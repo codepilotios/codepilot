@@ -1,0 +1,38 @@
+# Build products
+.build/
+build/
+DerivedData/
+*.xcarchive/
+*.ipa
+*.dSYM/
+*.app/
+
+# Xcode local state
+*.xcuserstate
+xcuserdata/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local runtime state and secrets
+.agents/
+AGENTS.md
+docs/superpowers/
+.env
+*.env
+phone-gateway-token
+phone-gateway.env
+*.log
+logs/
+uploads/
+codex-phone-open-test.txt
+remote-projects-*.js
+
+# Generated OTA artifacts
+ios/CodexPhone/build/
+ios/CodexPhone/fastlane/report.xml
+
+# macOS
+.DS_Store

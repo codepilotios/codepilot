@@ -1,0 +1,221 @@
+require "fileutils"
+
+default_platform(:ios)
+
+platform :ios do
+  def codex_phone_project_path
+    File.expand_path("../CodexPhone.xcodeproj", __dir__)
+  end
+
+  def codex_phone_output_dir
+    File.expand_path("../build/codex-phone-release", __dir__)
+  end
+
+  def codex_phone_api_key
+    options = {
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      duration: 1200,
+      in_house: false
+    }
+
+    key_content = ENV["APP_STORE_CONNECT_API_KEY_CONTENT"].to_s.strip
+    if key_content != ""
+      options[:key_content] = key_content
+      options[:is_key_content_base64] = ENV["APP_STORE_CONNECT_API_KEY_CONTENT_BASE64"] == "1"
+    else
+      options[:key_filepath] = ENV.fetch("APP_STORE_CONNECT_API_KEY_PATH")
+    end
+
+    app_store_connect_api_key(**options)
+  end
+
+  def codex_phone_testflight_groups
+    ENV.fetch("TESTFLIGHT_GROUPS", "CodePilot Beta")
+       .split(",")
+       .map(&:strip)
+       .reject(&:empty?)
+  end
+
+  def codex_phone_testflight_tester_email
+    ENV.fetch("TESTFLIGHT_TESTER_EMAIL")
+  end
+
+  def codex_phone_bundle_id
+    ENV.fetch("CODEPILOT_IOS_BUNDLE_ID", "io.codepilot.app")
+  end
+
+  def codex_phone_app_store_app
+    require "spaceship"
+
+    Spaceship::ConnectAPI::App.find(codex_phone_bundle_id)
+  end
+
+  lane :build do |_options|
+    project_path = codex_phone_project_path
+    output_dir = codex_phone_output_dir
+    ipa_path = File.join(output_dir, "CodexPhone.ipa")
+    archive_path = File.join(output_dir, "CodexPhone.xcarchive")
+    export_path = File.join(output_dir, "export")
+    export_options_path = File.join(output_dir, "ExportOptions.plist")
+    build_number = Time.now.utc.strftime("%Y%m%d%H%M")
+
+    FileUtils.mkdir_p(output_dir)
+    FileUtils.rm_rf(archive_path)
+    FileUtils.rm_rf(export_path)
+
+    increment_build_number(
+      xcodeproj: project_path,
+      build_number: build_number
+    )
+
+    File.write(
+      export_options_path,
+      <<~PLIST
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>method</key>
+          <string>app-store</string>
+          <key>signingStyle</key>
+          <string>automatic</string>
+          <key>teamID</key>
+          <string>#{ENV.fetch("APPLE_DEVELOPER_TEAM_ID")}</string>
+          <key>uploadSymbols</key>
+          <true/>
+        </dict>
+        </plist>
+      PLIST
+    )
+
+    sh(
+      "xcodebuild",
+      "-resolvePackageDependencies",
+      "-scheme", "CodexPhone",
+      "-project", project_path,
+      "-configuration", "Release"
+    )
+
+    sh(
+      "xcodebuild",
+      "-project", project_path,
+      "-scheme", "CodexPhone",
+      "-configuration", "Release",
+      "-destination", "generic/platform=iOS",
+      "-archivePath", archive_path,
+      "DEVELOPMENT_TEAM=#{ENV.fetch("APPLE_DEVELOPER_TEAM_ID")}",
+      "archive",
+      "-allowProvisioningUpdates"
+    )
+
+    sh(
+      "xcodebuild",
+      "-exportArchive",
+      "-archivePath", archive_path,
+      "-exportPath", export_path,
+      "-exportOptionsPlist", export_options_path,
+      "-allowProvisioningUpdates"
+    )
+
+    exported_ipa_path = Dir[File.join(export_path, "*.ipa")].first
+    UI.user_error!("No IPA was exported by xcodebuild") unless exported_ipa_path
+
+    FileUtils.cp(exported_ipa_path, ipa_path)
+
+    ipa_path
+  end
+
+  desc "Build CodePilot and upload it to the configured TestFlight group"
+  lane :testflight do |options|
+    api_key = codex_phone_api_key
+    ensure_app_store_record(api_key: api_key)
+    ensure_configured_tester(api_key: api_key)
+    ipa_path = build(options)
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: codex_phone_bundle_id,
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: false,
+      distribute_external: true,
+      groups: codex_phone_testflight_groups,
+      notify_external_testers: true,
+      changelog: options[:changelog] || "CodePilot remote client update."
+    )
+  end
+
+  desc "Upload CodePilot for internal TestFlight only"
+  lane :testflight_internal do |options|
+    api_key = codex_phone_api_key
+    ipa_path = build(options)
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: codex_phone_bundle_id,
+      ipa: ipa_path,
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      changelog: options[:changelog] || "CodePilot remote client update."
+    )
+  end
+
+  desc "Add the configured tester to the configured CodePilot external TestFlight group"
+  lane :add_configured_tester do |_options|
+    ensure_configured_tester(api_key: codex_phone_api_key)
+  end
+
+  desc "Create the CodePilot App Store Connect record if needed"
+  lane :create_app_record do |_options|
+    create_app_online(
+      username: ENV.fetch("FASTLANE_APPLE_ID"),
+      app_identifier: codex_phone_bundle_id,
+      app_name: ENV.fetch("APP_STORE_APP_NAME", "CodePilot"),
+      app_version: ENV.fetch("APP_STORE_INITIAL_VERSION", "0.1"),
+      sku: ENV.fetch("APP_STORE_SKU", "codepilot-ios"),
+      language: ENV.fetch("APP_STORE_PRIMARY_LOCALE", "en-US"),
+      team_id: ENV.fetch("APPLE_DEVELOPER_TEAM_ID")
+    )
+  end
+
+  private_lane :ensure_app_store_record do |options|
+    require "spaceship"
+
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(**options[:api_key])
+    app = codex_phone_app_store_app
+    UI.user_error!("App Store Connect app #{codex_phone_bundle_id} is missing. Create it in App Store Connect or run `fastlane create_app_record` with an interactive Apple ID session.") unless app
+    UI.success("App Store Connect app exists: #{app.name} (#{app.bundle_id})")
+  end
+
+  private_lane :ensure_configured_tester do |options|
+    require "spaceship"
+
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.create(**options[:api_key])
+    app = codex_phone_app_store_app
+    UI.user_error!("Could not find App Store Connect app #{codex_phone_bundle_id}") unless app
+
+    existing_groups = app.get_beta_groups
+    missing_groups = codex_phone_testflight_groups - existing_groups.map(&:name)
+    missing_groups.each do |group_name|
+      Spaceship::ConnectAPI.create_beta_group(
+        app_id: app.id,
+        group_name: group_name,
+        is_internal_group: false,
+        public_link_enabled: false,
+        public_link_limit_enabled: true,
+        public_link_limit: 1
+      )
+    end
+
+    groups = app.get_beta_groups.select { |group| codex_phone_testflight_groups.include?(group.name) }
+
+    tester = {
+      email: codex_phone_testflight_tester_email,
+      firstName: ENV.fetch("TESTFLIGHT_TESTER_FIRST_NAME", "CodePilot"),
+      lastName: ENV.fetch("TESTFLIGHT_TESTER_LAST_NAME", "Tester")
+    }
+
+    groups.each { |group| group.post_bulk_beta_tester_assignments(beta_testers: [tester]) }
+    UI.success("Ensured #{codex_phone_testflight_tester_email} is in TestFlight group(s): #{groups.map(&:name).join(", ")}")
+  end
+end
