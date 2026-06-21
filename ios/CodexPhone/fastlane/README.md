@@ -29,7 +29,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane ios testflight
 ```
 
-Build Codex Phone and upload it to the Sample-only TestFlight group
+Build CodePilot and upload it to the configured TestFlight group
 
 ### ios testflight_internal
 
@@ -37,7 +37,7 @@ Build Codex Phone and upload it to the Sample-only TestFlight group
 [bundle exec] fastlane ios testflight_internal
 ```
 
-Upload Codex Phone for internal TestFlight only
+Upload CodePilot for internal TestFlight only
 
 ### ios add_configured_tester
 
@@ -45,7 +45,7 @@ Upload Codex Phone for internal TestFlight only
 [bundle exec] fastlane ios add_configured_tester
 ```
 
-Add Sample to the configured Codex Phone external TestFlight group
+Add the configured tester to the configured CodePilot external TestFlight group
 
 ### ios create_app_record
 
@@ -53,7 +53,7 @@ Add Sample to the configured Codex Phone external TestFlight group
 [bundle exec] fastlane ios create_app_record
 ```
 
-Create the Codex Phone App Store Connect record if needed
+Create the CodePilot App Store Connect record if needed
 
 ----
 
