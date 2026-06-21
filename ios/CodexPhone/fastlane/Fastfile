@@ -42,7 +42,7 @@ platform :ios do
   end
 
   def codex_phone_bundle_id
-    ENV.fetch("CODEPILOT_IOS_BUNDLE_ID", "io.codepilot.app")
+    ENV.fetch("CODEPILOT_IOS_BUNDLE_ID", "io.codepilot.iOS")
   end
 
   def codex_phone_app_store_app

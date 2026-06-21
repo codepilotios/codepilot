@@ -83,7 +83,7 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
         let body = NotificationDeviceRegistrationRequest(
             token: token,
             environment: environment,
-            bundleId: Bundle.main.bundleIdentifier ?? "io.codepilot.app",
+            bundleId: Bundle.main.bundleIdentifier ?? "io.codepilot.iOS",
             platform: "ios"
         )
 

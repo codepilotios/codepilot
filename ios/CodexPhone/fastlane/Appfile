@@ -1,4 +1,4 @@
-app_identifier(ENV.fetch("CODEPILOT_IOS_BUNDLE_ID", "io.codepilot.app"))
+app_identifier(ENV.fetch("CODEPILOT_IOS_BUNDLE_ID", "io.codepilot.iOS"))
 
 apple_id(ENV["FASTLANE_APPLE_ID"]) if ENV["FASTLANE_APPLE_ID"].to_s != ""
 team_id(ENV["APPLE_DEVELOPER_TEAM_ID"]) if ENV["APPLE_DEVELOPER_TEAM_ID"].to_s != ""

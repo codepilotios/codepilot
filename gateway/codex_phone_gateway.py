@@ -57,7 +57,7 @@ STALE_AUTH_MARKERS = (
     "please try signing in again",
     "please log out and sign in again",
 )
-DEFAULT_APNS_TOPIC = "io.codepilot.app"
+DEFAULT_APNS_TOPIC = "io.codepilot.iOS"
 REMOTE_LOGIN_AUTH_URL_RE = re.compile(r"https://auth\.openai\.com/oauth/authorize\?\S+")
 REMOTE_LOGIN_URL_RE = re.compile(r"https?://\S+")
 REMOTE_LOGIN_URL_TIMEOUT_SECONDS = 15

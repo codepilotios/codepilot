@@ -1181,14 +1181,14 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 response = state.register_notification_device({
                     "token": " ABC123 ",
                     "environment": "production",
-                    "bundleId": "io.codepilot.app",
+                    "bundleId": "io.codepilot.iOS",
                 })
 
                 self.assertTrue(response["ok"])
                 devices = json.loads((switcher_home / "phone-notification-devices.json").read_text(encoding="utf-8"))
                 self.assertEqual(devices[0]["token"], "abc123")
                 self.assertEqual(devices[0]["environment"], "production")
-                self.assertEqual(devices[0]["bundleId"], "io.codepilot.app")
+                self.assertEqual(devices[0]["bundleId"], "io.codepilot.iOS")
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
@@ -1208,7 +1208,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                     "CODEX_PHONE_APNS_TEAM_ID": "ignored-when-cert-is-present",
                     "CODEX_PHONE_APNS_KEY_ID": "ignored-when-cert-is-present",
                     "CODEX_PHONE_APNS_KEY_PATH": "/missing/token-key.p8",
-                    "CODEX_PHONE_APNS_TOPIC": "io.codepilot.app",
+                    "CODEX_PHONE_APNS_TOPIC": "io.codepilot.iOS",
                 })
 
                 notifier = gateway.APNsPushNotifier.from_environment()
@@ -1216,7 +1216,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 self.assertIsInstance(notifier, gateway.APNsCertificatePushNotifier)
                 self.assertEqual(notifier.cert_path, cert_path)
                 self.assertEqual(notifier.key_path, key_path)
-                self.assertEqual(notifier.default_topic, "io.codepilot.app")
+                self.assertEqual(notifier.default_topic, "io.codepilot.iOS")
             finally:
                 gateway.os.environ.clear()
                 gateway.os.environ.update(old_env)
@@ -1227,7 +1227,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             switcher_home = tmp_path / "switcher"
             switcher_home.mkdir()
             (switcher_home / "phone-notification-devices.json").write_text(json.dumps([
-                {"token": "abc123", "environment": "production", "bundleId": "io.codepilot.app"}
+                {"token": "abc123", "environment": "production", "bundleId": "io.codepilot.iOS"}
             ]), encoding="utf-8")
             push_notifier = RecordingPushNotifier()
 
