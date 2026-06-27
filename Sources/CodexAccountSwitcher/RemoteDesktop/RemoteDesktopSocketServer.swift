@@ -3,7 +3,7 @@ import Foundation
 
 final class RemoteDesktopSocketServer {
     static let defaultSocketURL = FileManager.default.homeDirectoryForCurrentUser
-        .appendingPathComponent(".codepilot/remote-desktop/remote-desktop.sock")
+        .appendingPathComponent(".codepilot/remote-desktop/host.sock")
 
     private static let supportedMethods: Set<String> = [
         "status",
@@ -95,7 +95,10 @@ final class RemoteDesktopSocketServer {
                 continue
             }
 
-            handleClient(clientFD)
+            configureClientSocket(clientFD)
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.handleClient(clientFD)
+            }
         }
     }
 
@@ -116,7 +119,7 @@ final class RemoteDesktopSocketServer {
                 try writeResponse(HostRPCResponse(
                     id: UUID(),
                     status: 413,
-                    payload: nil,
+                    payload: Data(),
                     errorCode: "request_too_large"
                 ), to: clientFD)
             case .line(let data):
@@ -127,7 +130,7 @@ final class RemoteDesktopSocketServer {
                         try writeResponse(HostRPCResponse(
                             id: request.id,
                             status: 404,
-                            payload: nil,
+                            payload: Data(),
                             errorCode: "unsupported_method"
                         ), to: clientFD)
                         return
@@ -144,7 +147,7 @@ final class RemoteDesktopSocketServer {
                     try writeResponse(HostRPCResponse(
                         id: UUID(),
                         status: 400,
-                        payload: nil,
+                        payload: Data(),
                         errorCode: "invalid_json"
                     ), to: clientFD)
                 }
@@ -207,6 +210,26 @@ final class RemoteDesktopSocketServer {
         }
     }
 
+    private func configureClientSocket(_ clientFD: Int32) {
+        var one: Int32 = 1
+        _ = setsockopt(
+            clientFD,
+            SOL_SOCKET,
+            SO_NOSIGPIPE,
+            &one,
+            socklen_t(MemoryLayout.size(ofValue: one))
+        )
+
+        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        _ = setsockopt(
+            clientFD,
+            SOL_SOCKET,
+            SO_RCVTIMEO,
+            &timeout,
+            socklen_t(MemoryLayout.size(ofValue: timeout))
+        )
+    }
+
     private func prepareSocketDirectory() throws {
         let directoryURL = socketURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(
@@ -231,16 +254,25 @@ final class RemoteDesktopSocketServer {
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOTSOCK), userInfo: nil)
         }
 
-        if try socketIsReachable() {
+        switch try probeSocketState() {
+        case .live:
             throw NSError(domain: NSPOSIXErrorDomain, code: Int(EADDRINUSE), userInfo: nil)
-        }
-
-        if unlink(socketURL.path) != 0 && errno != ENOENT {
-            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        case .stale:
+            if unlink(socketURL.path) != 0 && errno != ENOENT {
+                throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+            }
+        case .ambiguous(let error):
+            throw error
         }
     }
 
-    private func socketIsReachable() throws -> Bool {
+    private enum SocketState {
+        case live
+        case stale
+        case ambiguous(Error)
+    }
+
+    private func probeSocketState() throws -> SocketState {
         let fd = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fd >= 0 else {
             throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
@@ -251,7 +283,7 @@ final class RemoteDesktopSocketServer {
         address.sun_family = sa_family_t(AF_UNIX)
         let pathBytes = Array(socketURL.path.utf8)
         guard pathBytes.count < MemoryLayout.size(ofValue: address.sun_path) else {
-            return false
+            return .ambiguous(NSError(domain: NSPOSIXErrorDomain, code: Int(ENAMETOOLONG), userInfo: nil))
         }
         withUnsafeMutableBytes(of: &address.sun_path) { buffer in
             buffer.initializeMemory(as: UInt8.self, repeating: 0)
@@ -270,10 +302,16 @@ final class RemoteDesktopSocketServer {
             }
         }
         if result == 0 {
-            return true
+            return .live
         }
 
-        return false
+        let code = errno
+        switch code {
+        case ECONNREFUSED, ENOENT:
+            return .stale
+        default:
+            return .ambiguous(POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO))
+        }
     }
 
     private func createListener() throws -> Int32 {
@@ -303,7 +341,7 @@ final class RemoteDesktopSocketServer {
 
         let bindResult = withUnsafePointer(to: &address) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+                Darwin.bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
             }
         }
         guard bindResult == 0 else {
@@ -312,7 +350,7 @@ final class RemoteDesktopSocketServer {
             throw POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO)
         }
 
-        guard listen(fd, 4) == 0 else {
+        guard Darwin.listen(fd, 4) == 0 else {
             let code = errno
             close(fd)
             throw POSIXError(POSIXErrorCode(rawValue: code) ?? .EIO)

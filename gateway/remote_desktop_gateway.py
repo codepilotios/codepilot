@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_REMOTE_DESKTOP_SOCKET_PATH = Path.home() / ".codepilot" / "remote-desktop" / "remote-desktop.sock"
+DEFAULT_REMOTE_DESKTOP_SOCKET_PATH = Path.home() / ".codepilot" / "remote-desktop" / "host.sock"
 DEFAULT_TIMEOUT_SECONDS = 5.0
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576
 DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
@@ -91,7 +91,7 @@ class NativeHostClient:
 
 def _encode_payload(payload: Any | None) -> str | None:
     if payload is None:
-        return None
+        return ""
     if isinstance(payload, bytes):
         raw = payload
     elif isinstance(payload, str):
@@ -122,17 +122,15 @@ def _decode_response(raw: bytes, expected_id: str) -> dict[str, Any]:
         raise RemoteDesktopHostError("malformed_response")
     if not isinstance(status, int):
         raise RemoteDesktopHostError("malformed_response")
-    if payload is not None and not isinstance(payload, str):
+    if not isinstance(payload, str):
         raise RemoteDesktopHostError("malformed_response")
     if error_code is not None and not isinstance(error_code, str):
         raise RemoteDesktopHostError("malformed_response")
 
-    decoded_payload = None
-    if payload is not None:
-        try:
-            decoded_payload = base64.b64decode(payload.encode("ascii"), validate=True)
-        except (UnicodeError, binascii.Error) as exc:
-            raise RemoteDesktopHostError("malformed_response") from exc
+    try:
+        decoded_payload = base64.b64decode(payload.encode("ascii"), validate=True)
+    except (UnicodeError, binascii.Error) as exc:
+        raise RemoteDesktopHostError("malformed_response") from exc
 
     return {
         "id": request_id,

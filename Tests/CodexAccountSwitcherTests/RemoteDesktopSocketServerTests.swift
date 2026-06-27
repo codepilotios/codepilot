@@ -4,6 +4,10 @@ import XCTest
 @testable import CodexAccountSwitcher
 
 final class RemoteDesktopSocketServerTests: XCTestCase {
+    func testDefaultSocketPathUsesHostSocketName() {
+        XCTAssertEqual(RemoteDesktopSocketServer.defaultSocketURL.lastPathComponent, "host.sock")
+    }
+
     func testDispatchesRequestAndReturnsResponse() throws {
         let socketURL = try makeSocketURL()
         let received = LockedValue<HostRPCRequest?>(nil)
@@ -33,48 +37,116 @@ final class RemoteDesktopSocketServerTests: XCTestCase {
         XCTAssertNil(response.errorCode)
     }
 
+    func testStaleSocketFileIsCleanedUpAndReplaced() throws {
+        let socketURL = try makeSocketURL()
+        try createStaleSocket(at: socketURL)
+
+        let server = try makeServer(socketURL: socketURL) { request in
+            HostRPCResponse(id: request.id, status: 200, payload: Data(), errorCode: nil)
+        }
+        defer { server.stop() }
+
+        let response = try call(socketURL: socketURL, request: HostRPCRequest(
+            id: UUID(uuidString: "55555555-5555-5555-5555-555555555555")!,
+            method: "status",
+            payload: Data()
+        ))
+
+        XCTAssertEqual(response.status, 200)
+        XCTAssertEqual(response.payload, Data())
+        XCTAssertNil(response.errorCode)
+        XCTAssertEqual(try permissions(at: socketURL), 0o600)
+    }
+
     func testRejectsMalformedAndOversizedRequestsWithoutStoppingServer() throws {
         let socketURL = try makeSocketURL()
         let server = try makeServer(socketURL: socketURL, maxRequestBytes: 256) { request in
-            HostRPCResponse(id: request.id, status: 200, payload: nil, errorCode: nil)
+            HostRPCResponse(id: request.id, status: 200, payload: Data(), errorCode: nil)
         }
         defer { server.stop() }
 
         let malformedResponse = try sendRawLine("{\"method\":\"status\"\n", to: socketURL)
         XCTAssertEqual(malformedResponse.status, 400)
         XCTAssertEqual(malformedResponse.errorCode, "invalid_json")
-        XCTAssertNil(malformedResponse.payload)
+        XCTAssertEqual(malformedResponse.payload, Data())
 
         let unsupportedRequest = try JSONEncoder().encode(HostRPCRequest(
             id: UUID(uuidString: "33333333-3333-3333-3333-333333333333")!,
             method: "status.debug",
-            payload: nil
+            payload: Data()
         )) + Data([0x0A])
         let unsupportedResponse = try sendLine(unsupportedRequest, to: socketURL)
         XCTAssertEqual(unsupportedResponse.status, 404)
         XCTAssertEqual(unsupportedResponse.errorCode, "unsupported_method")
-        XCTAssertNil(unsupportedResponse.payload)
+        XCTAssertEqual(unsupportedResponse.payload, Data())
 
         let oversizedRequest = String(repeating: "x", count: 512)
         let oversizedResponse = try sendRawLine(oversizedRequest + "\n", to: socketURL)
         XCTAssertEqual(oversizedResponse.status, 413)
         XCTAssertEqual(oversizedResponse.errorCode, "request_too_large")
-        XCTAssertNil(oversizedResponse.payload)
+        XCTAssertEqual(oversizedResponse.payload, Data())
 
         let response = try call(socketURL: socketURL, request: HostRPCRequest(
             id: UUID(uuidString: "22222222-2222-2222-2222-222222222222")!,
             method: "status",
-            payload: nil
+            payload: Data()
         ))
 
         XCTAssertEqual(response.status, 200)
         XCTAssertNil(response.errorCode)
     }
 
+    func testStalledClientDoesNotBlockSubsequentRequests() throws {
+        let socketURL = try makeSocketURL()
+        let server = try makeServer(socketURL: socketURL) { request in
+            HostRPCResponse(id: request.id, status: 200, payload: Data(), errorCode: nil)
+        }
+        defer { server.stop() }
+
+        let stalledFD = try connectToSocket(socketURL)
+        defer { close(stalledFD) }
+        try writeAll(fd: stalledFD, data: Data(#"{"id":"44444444-4444-4444-4444-444444444444","method":"status","payload":""#.utf8))
+
+        let response = try call(socketURL: socketURL, request: HostRPCRequest(
+            id: UUID(uuidString: "66666666-6666-6666-6666-666666666666")!,
+            method: "status",
+            payload: Data()
+        ))
+
+        XCTAssertEqual(response.status, 200)
+        XCTAssertEqual(response.payload, Data())
+    }
+
+    func testDisconnectedClientDoesNotCrashServer() throws {
+        let socketURL = try makeSocketURL()
+        let server = try makeServer(socketURL: socketURL) { request in
+            HostRPCResponse(id: request.id, status: 200, payload: Data(), errorCode: nil)
+        }
+        defer { server.stop() }
+
+        let previousSigpipeHandler = Darwin.signal(SIGPIPE, SIG_IGN)
+        defer { _ = Darwin.signal(SIGPIPE, previousSigpipeHandler) }
+
+        let fd = try connectToSocket(socketURL)
+        try writeAll(fd: fd, data: Data(#"{"id":"77777777-7777-7777-7777-777777777777","method":"status","payload":""#.utf8))
+        close(fd)
+
+        Thread.sleep(forTimeInterval: 0.05)
+
+        let response = try call(socketURL: socketURL, request: HostRPCRequest(
+            id: UUID(uuidString: "88888888-8888-8888-8888-888888888888")!,
+            method: "status",
+            payload: Data()
+        ))
+
+        XCTAssertEqual(response.status, 200)
+        XCTAssertEqual(response.payload, Data())
+    }
+
     func testSocketPathAndParentDirectoryAreOwnerOnly() throws {
         let socketURL = try makeSocketURL()
         let server = try makeServer(socketURL: socketURL) { request in
-            HostRPCResponse(id: request.id, status: 200, payload: nil, errorCode: nil)
+            HostRPCResponse(id: request.id, status: 200, payload: Data(), errorCode: nil)
         }
         defer { server.stop() }
 
@@ -101,6 +173,38 @@ final class RemoteDesktopSocketServerTests: XCTestCase {
             .appendingPathComponent("codex-rds-\(UUID().uuidString.prefix(8))", isDirectory: true)
         try FileManager.default.createDirectory(at: base, withIntermediateDirectories: true)
         return base.appendingPathComponent("remote-desktop.sock")
+    }
+
+    private func createStaleSocket(at socketURL: URL) throws {
+        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+        guard fd >= 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .ENOTSUP) }
+        defer { close(fd) }
+
+        var address = sockaddr_un()
+        address.sun_family = sa_family_t(AF_UNIX)
+        let pathBytes = Array(socketURL.path.utf8)
+        guard pathBytes.count < MemoryLayout.size(ofValue: address.sun_path) else {
+            throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENAMETOOLONG), userInfo: nil)
+        }
+
+        withUnsafeMutableBytes(of: &address.sun_path) { buffer in
+            buffer.initializeMemory(as: UInt8.self, repeating: 0)
+            _ = pathBytes.withUnsafeBytes { source in
+                memcpy(buffer.baseAddress, source.baseAddress, pathBytes.count)
+            }
+        }
+
+        let bindResult = withUnsafePointer(to: &address) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                Darwin.bind(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        }
+        guard bindResult == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
+        guard Darwin.listen(fd, 1) == 0 else {
+            throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
+        }
     }
 
     private func call(socketURL: URL, request: HostRPCRequest) throws -> HostRPCResponse {
@@ -152,6 +256,15 @@ final class RemoteDesktopSocketServerTests: XCTestCase {
             close(fd)
             throw POSIXError(POSIXErrorCode(rawValue: code) ?? .ENOTCONN)
         }
+
+        var one: Int32 = 1
+        _ = setsockopt(
+            fd,
+            SOL_SOCKET,
+            SO_NOSIGPIPE,
+            &one,
+            socklen_t(MemoryLayout.size(ofValue: one))
+        )
 
         return fd
     }

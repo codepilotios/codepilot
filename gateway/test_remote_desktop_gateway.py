@@ -10,7 +10,10 @@ import time
 import unittest
 from pathlib import Path
 
-from remote_desktop_gateway import NativeHostClient, RemoteDesktopHostError
+try:
+    from .remote_desktop_gateway import NativeHostClient, RemoteDesktopHostError
+except ImportError:
+    from remote_desktop_gateway import NativeHostClient, RemoteDesktopHostError
 
 
 class UnixSocketServer:
@@ -86,8 +89,33 @@ class NativeHostClientTests(unittest.TestCase):
             response = client.call("status", {"scope": "health"})
 
         self.assertEqual(expected_request["method"], "status")
+        self.assertEqual(
+            expected_request["payload"],
+            base64.b64encode(json.dumps({"scope": "health"}, separators=(",", ":")).encode("utf-8")).decode("ascii"),
+        )
         self.assertEqual(response["status"], 200)
         self.assertEqual(json.loads(response["payload"].decode("utf-8")), {"ok": True})
+
+    def test_call_uses_empty_payload_envelope_when_payload_is_missing(self):
+        expected_request = {}
+
+        def handler(conn):
+            line = _read_line(conn)
+            expected_request.update(json.loads(line))
+            response = {
+                "id": expected_request["id"],
+                "status": 200,
+                "payload": "",
+                "errorCode": None,
+            }
+            conn.sendall(json.dumps(response).encode("utf-8") + b"\n")
+
+        with UnixSocketServer(self.socket_path, handler):
+            client = NativeHostClient(self.socket_path, timeout_seconds=1.0, max_response_bytes=1024)
+            response = client.call("status")
+
+        self.assertEqual(expected_request["payload"], "")
+        self.assertEqual(response["payload"], b"")
 
     def test_call_maps_connection_failure_to_safe_error(self):
         client = NativeHostClient(self.socket_path, timeout_seconds=0.1)
