@@ -19,4 +19,160 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertNil(event.deltaX)
         XCTAssertNil(event.deltaY)
     }
+
+    func testEveryWireModelRoundTrips() throws {
+        let date = Date(timeIntervalSince1970: 1_700_000_000)
+        let device = TrustedRemoteDevice(
+            id: "device-1",
+            name: "iPhone",
+            publicKeyRawRepresentation: Data([1, 2, 3, 4]),
+            approvedAt: date,
+            revokedAt: nil
+        )
+        let auditEvent = RemoteAuditEvent(
+            id: "audit-1",
+            timestamp: date,
+            kind: "session.started",
+            deviceId: device.id,
+            sessionId: "session-1"
+        )
+
+        try assertRoundTrip(RemoteInputKind.keyDown)
+        try assertRoundTrip(RemoteInputEvent(
+            sessionId: "session-1",
+            sequence: 9,
+            kind: .scroll,
+            x: 0.25,
+            y: 0.75,
+            button: nil,
+            keyCode: nil,
+            text: nil,
+            deltaX: 1.5,
+            deltaY: -2.5
+        ))
+        try assertRoundTrip(RemoteDisplay(
+            id: 42,
+            name: "Studio Display",
+            pixelWidth: 5120,
+            pixelHeight: 2880,
+            scale: 2,
+            rotation: 0
+        ))
+        try assertRoundTrip(RemotePairingChallenge(
+            id: "challenge-1",
+            code: "123456",
+            macName: "Office Mac",
+            expiresAt: date
+        ))
+        try assertRoundTrip(device)
+        try assertRoundTrip(RemoteDesktopLease(
+            id: "lease-1",
+            deviceId: device.id,
+            expiresAt: date
+        ))
+        try assertRoundTrip(RemoteSessionDescription(type: "offer", sdp: "v=0"))
+        try assertRoundTrip(RemoteICECandidate(
+            candidate: "candidate:1 1 UDP 1 192.0.2.1 5000 typ host",
+            sdpMid: "0",
+            sdpMLineIndex: 0
+        ))
+        try assertRoundTrip(RemoteClipboardDirection.send)
+        try assertRoundTrip(RemoteClipboardRequest(
+            sessionId: "session-1",
+            direction: .send,
+            text: "hello"
+        ))
+        try assertRoundTrip(auditEvent)
+        try assertRoundTrip(RemoteAuditEventResponse(
+            events: [auditEvent],
+            nextCursor: "cursor-2"
+        ))
+    }
+
+    func testDateAndDataUseStableWireRepresentations() throws {
+        let device = TrustedRemoteDevice(
+            id: "device-1",
+            name: "iPhone",
+            publicKeyRawRepresentation: Data([1, 2, 3, 4]),
+            approvedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            revokedAt: nil
+        )
+
+        let data = try wireEncoder().encode(device)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(json["approvedAt"] as? String, "2023-11-14T22:13:20Z")
+        XCTAssertEqual(json["publicKeyRawRepresentation"] as? String, "AQIDBA==")
+        XCTAssertEqual(try wireDecoder().decode(TrustedRemoteDevice.self, from: data), device)
+    }
+
+    func testSoftwareIdentitySignsAndVerifiesFixture() throws {
+        let identity = SoftwareRemoteDeviceIdentity(deviceID: "device-1")
+        let message = Data("challenge-code".utf8)
+        let signature = try identity.sign(message)
+
+        XCTAssertEqual(identity.deviceID, "device-1")
+        XCTAssertFalse(identity.publicKeyRawRepresentation.isEmpty)
+        XCTAssertTrue(try identity.verify(signature: signature, message: message))
+        XCTAssertFalse(try identity.verify(signature: signature, message: Data("other".utf8)))
+    }
+
+    func testRemoteDesktopAPIMapsRevokedDeviceAndPairingExpiry() async throws {
+        let revokedAPI = RemoteDesktopAPI(
+            baseURL: URL(string: "https://gateway.example")!,
+            token: "token"
+        ) { request in
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token")
+            let data = #"{"error":"untrusted_device"}"#.data(using: .utf8)!
+            return (data, HTTPURLResponse(url: request.url!, statusCode: 403, httpVersion: nil, headerFields: nil)!)
+        }
+
+        do {
+            _ = try await revokedAPI.startSession(deviceID: "device-1", nonce: "nonce", signature: Data([1]))
+            XCTFail("Expected revoked device failure")
+        } catch RemoteDesktopAPIError.server(let status, let code) {
+            XCTAssertEqual(status, 403)
+            XCTAssertEqual(code, "untrusted_device")
+        }
+
+        let expiredAPI = RemoteDesktopAPI(
+            baseURL: URL(string: "https://gateway.example")!,
+            token: "token"
+        ) { request in
+            let data = #"{"error":"pairing_expired"}"#.data(using: .utf8)!
+            return (data, HTTPURLResponse(url: request.url!, statusCode: 410, httpVersion: nil, headerFields: nil)!)
+        }
+
+        do {
+            _ = try await expiredAPI.completePairing(challengeID: "challenge-1", deviceID: "device-1", signature: Data([1]))
+            XCTFail("Expected expired pairing failure")
+        } catch RemoteDesktopAPIError.server(let status, let code) {
+            XCTAssertEqual(status, 410)
+            XCTAssertEqual(code, "pairing_expired")
+        }
+    }
+
+    private func assertRoundTrip<T: Codable & Equatable>(
+        _ value: T,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        let encoded = try wireEncoder().encode(value)
+        let decoded = try wireDecoder().decode(T.self, from: encoded)
+        XCTAssertEqual(decoded, value, file: file, line: line)
+    }
+
+    private func wireEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.dataEncodingStrategy = .base64
+        return encoder
+    }
+
+    private func wireDecoder() -> JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        decoder.dataDecodingStrategy = .base64
+        return decoder
+    }
 }

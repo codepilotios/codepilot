@@ -1,0 +1,128 @@
+import Foundation
+
+enum RemoteDesktopAPIError: Error, Equatable {
+    case invalidURL
+    case invalidResponse
+    case server(status: Int, code: String)
+}
+
+struct RemoteDesktopAPI {
+    typealias Transport = (URLRequest) async throws -> (Data, HTTPURLResponse)
+
+    let baseURL: URL
+    let token: String
+    let transport: Transport
+
+    init(
+        baseURL: URL,
+        token: String,
+        transport: @escaping Transport = RemoteDesktopAPI.defaultTransport
+    ) {
+        self.baseURL = baseURL
+        self.token = token
+        self.transport = transport
+    }
+
+    func startPairing(deviceID: String, name: String, publicKey: Data) async throws -> RemotePairingChallenge {
+        try await request(
+            "POST",
+            path: "/api/remote/pairing/start",
+            body: [
+                "deviceId": deviceID,
+                "name": name,
+                "publicKey": publicKey.base64EncodedString()
+            ]
+        )
+    }
+
+    func completePairing(challengeID: String, deviceID: String, signature: Data) async throws -> TrustedRemoteDevice {
+        try await request(
+            "POST",
+            path: "/api/remote/pairing/complete",
+            body: [
+                "challengeId": challengeID,
+                "deviceId": deviceID,
+                "signature": signature.base64EncodedString()
+            ]
+        )
+    }
+
+    func startSession(deviceID: String, nonce: String, signature: Data) async throws -> RemoteDesktopLease {
+        try await request(
+            "POST",
+            path: "/api/remote/sessions",
+            body: [
+                "deviceId": deviceID,
+                "nonce": nonce,
+                "signature": signature.base64EncodedString()
+            ]
+        )
+    }
+
+    func status() async throws -> RemoteDesktopHostStatus {
+        try await request("GET", path: "/api/remote/status", body: nil)
+    }
+
+    private func request<T: Decodable>(_ method: String, path: String, body: [String: Any]?) async throws -> T {
+        guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else {
+            throw RemoteDesktopAPIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.timeoutInterval = 30
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let body {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        }
+
+        let (data, response) = try await transport(request)
+        guard (200..<300).contains(response.statusCode) else {
+            let code = (try? JSONDecoder().decode(RemoteDesktopAPIErrorResponse.self, from: data).error) ?? "remote_desktop_error"
+            throw RemoteDesktopAPIError.server(status: response.statusCode, code: code)
+        }
+        do {
+            return try JSONDecoder.remoteDesktop.decode(T.self, from: data)
+        } catch {
+            throw RemoteDesktopAPIError.invalidResponse
+        }
+    }
+
+    private static func defaultTransport(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw RemoteDesktopAPIError.invalidResponse
+        }
+        return (data, http)
+    }
+}
+
+struct RemoteDesktopHostStatus: Codable, Equatable {
+    let ok: Bool?
+    let iceServers: [RemoteIceServer]?
+    let capabilities: RemoteDesktopCapabilities?
+}
+
+struct RemoteDesktopCapabilities: Codable, Equatable {
+    let relayAvailable: Bool?
+}
+
+struct RemoteIceServer: Codable, Equatable {
+    let urls: [String]
+    let username: String?
+    let credential: String?
+}
+
+private struct RemoteDesktopAPIErrorResponse: Decodable {
+    let error: String
+}
+
+private extension JSONDecoder {
+    static var remoteDesktop: JSONDecoder {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        decoder.dataDecodingStrategy = .base64
+        return decoder
+    }
+}

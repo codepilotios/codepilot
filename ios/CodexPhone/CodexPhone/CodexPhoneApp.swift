@@ -117,6 +117,7 @@ struct RootView: View {
     @State private var showingStatus = false
     @State private var showingNewThread = false
     @State private var showingAccountSwitcher = false
+    @State private var showingRemoteDesktop = false
     @State private var openedThread: CodexThread?
 
     var body: some View {
@@ -161,6 +162,15 @@ struct RootView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        showingRemoteDesktop = true
+                    } label: {
+                        Image(systemName: "desktopcomputer")
+                    }
+                    .accessibilityLabel("Remote Desktop")
+                    .disabled(gatewayToken.isEmpty)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         showingStatus = true
                     } label: {
                         Image(systemName: "chart.bar.xaxis")
@@ -198,6 +208,10 @@ struct RootView: View {
             }
             .sheet(isPresented: $showingStatus) {
                 AccountStatusView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
+            }
+            .sheet(isPresented: $showingRemoteDesktop) {
+                RemotePairingView()
+                    .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showingAccountSwitcher) {
                 AccountSwitcherView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)

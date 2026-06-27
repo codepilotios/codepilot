@@ -13,6 +13,9 @@
 		8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */; };
 		8F4E52032F43000100C0D3C1 /* RemoteDesktopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */; };
 		8F4E52052F43000100C0D3C1 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 8F4E52042F43000100C0D3C1 /* WebRTC */; };
+		8F4E53012F44000100C0D3C1 /* RemoteDeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */; };
+		8F4E53032F44000100C0D3C1 /* RemoteDesktopAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */; };
+		8F4E53052F44000100C0D3C1 /* RemotePairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53042F44000100C0D3C1 /* RemotePairingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -34,6 +37,9 @@
 		8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopModels.swift; sourceTree = "<group>"; };
 		8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopTests.swift; sourceTree = "<group>"; };
 		8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodexPhoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDeviceIdentity.swift; sourceTree = "<group>"; };
+		8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopAPI.swift; sourceTree = "<group>"; };
+		8F4E53042F44000100C0D3C1 /* RemotePairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePairingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +103,9 @@
 			isa = PBXGroup;
 			children = (
 				8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */,
+				8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */,
+				8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */,
+				8F4E53042F44000100C0D3C1 /* RemotePairingView.swift */,
 			);
 			path = RemoteDesktop;
 			sourceTree = "<group>";
@@ -201,11 +210,14 @@
 		8F4E50FB2F41000100C0D3C1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
-				8F4E51212F42100100C0D3C1 /* ChatAutoScrollState.swift in Sources */,
-				8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */,
-				8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */,
-			);
+				files = (
+					8F4E51212F42100100C0D3C1 /* ChatAutoScrollState.swift in Sources */,
+					8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */,
+					8F4E53032F44000100C0D3C1 /* RemoteDesktopAPI.swift in Sources */,
+					8F4E53012F44000100C0D3C1 /* RemoteDeviceIdentity.swift in Sources */,
+					8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */,
+					8F4E53052F44000100C0D3C1 /* RemotePairingView.swift in Sources */,
+				);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		8F4E520B2F43000100C0D3C1 /* Sources */ = {
