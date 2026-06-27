@@ -126,3 +126,16 @@ struct RemoteDesktopAuditEvent: Codable, Equatable, Identifiable {
     let sequence: UInt64?
     let reason: RemoteDesktopAuditReason?
 }
+
+struct HostRPCRequest: Codable, Equatable {
+    let id: UUID
+    let method: String
+    let payload: Data?
+}
+
+struct HostRPCResponse: Codable, Equatable {
+    let id: UUID
+    let status: Int
+    let payload: Data?
+    let errorCode: String?
+}
