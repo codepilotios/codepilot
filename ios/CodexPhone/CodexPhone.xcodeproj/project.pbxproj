@@ -16,6 +16,11 @@
 		8F4E53012F44000100C0D3C1 /* RemoteDeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */; };
 		8F4E53032F44000100C0D3C1 /* RemoteDesktopAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */; };
 		8F4E53052F44000100C0D3C1 /* RemotePairingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53042F44000100C0D3C1 /* RemotePairingView.swift */; };
+		8F4E53112F45000100C0D3C1 /* RemoteInputMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53102F45000100C0D3C1 /* RemoteInputMapper.swift */; };
+		8F4E53132F45000100C0D3C1 /* RemoteDesktopSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53122F45000100C0D3C1 /* RemoteDesktopSession.swift */; };
+		8F4E53152F45000100C0D3C1 /* RemotePeerConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53142F45000100C0D3C1 /* RemotePeerConnection.swift */; };
+		8F4E53172F45000100C0D3C1 /* RemoteControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53162F45000100C0D3C1 /* RemoteControlBar.swift */; };
+		8F4E53192F45000100C0D3C1 /* RemoteDesktopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53182F45000100C0D3C1 /* RemoteDesktopView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +45,11 @@
 		8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDeviceIdentity.swift; sourceTree = "<group>"; };
 		8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopAPI.swift; sourceTree = "<group>"; };
 		8F4E53042F44000100C0D3C1 /* RemotePairingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePairingView.swift; sourceTree = "<group>"; };
+		8F4E53102F45000100C0D3C1 /* RemoteInputMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteInputMapper.swift; sourceTree = "<group>"; };
+		8F4E53122F45000100C0D3C1 /* RemoteDesktopSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopSession.swift; sourceTree = "<group>"; };
+		8F4E53142F45000100C0D3C1 /* RemotePeerConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePeerConnection.swift; sourceTree = "<group>"; };
+		8F4E53162F45000100C0D3C1 /* RemoteControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteControlBar.swift; sourceTree = "<group>"; };
+		8F4E53182F45000100C0D3C1 /* RemoteDesktopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -106,6 +116,11 @@
 				8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */,
 				8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */,
 				8F4E53042F44000100C0D3C1 /* RemotePairingView.swift */,
+				8F4E53102F45000100C0D3C1 /* RemoteInputMapper.swift */,
+				8F4E53122F45000100C0D3C1 /* RemoteDesktopSession.swift */,
+				8F4E53142F45000100C0D3C1 /* RemotePeerConnection.swift */,
+				8F4E53162F45000100C0D3C1 /* RemoteControlBar.swift */,
+				8F4E53182F45000100C0D3C1 /* RemoteDesktopView.swift */,
 			);
 			path = RemoteDesktop;
 			sourceTree = "<group>";
@@ -215,7 +230,12 @@
 					8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */,
 					8F4E53032F44000100C0D3C1 /* RemoteDesktopAPI.swift in Sources */,
 					8F4E53012F44000100C0D3C1 /* RemoteDeviceIdentity.swift in Sources */,
+					8F4E53132F45000100C0D3C1 /* RemoteDesktopSession.swift in Sources */,
+					8F4E53112F45000100C0D3C1 /* RemoteInputMapper.swift in Sources */,
 					8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */,
+					8F4E53152F45000100C0D3C1 /* RemotePeerConnection.swift in Sources */,
+					8F4E53172F45000100C0D3C1 /* RemoteControlBar.swift in Sources */,
+					8F4E53192F45000100C0D3C1 /* RemoteDesktopView.swift in Sources */,
 					8F4E53052F44000100C0D3C1 /* RemotePairingView.swift in Sources */,
 				);
 			runOnlyForDeploymentPostprocessing = 0;

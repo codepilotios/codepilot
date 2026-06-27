@@ -26,6 +26,13 @@ struct RemotePairingView: View {
                 }
 
                 Section {
+                    NavigationLink {
+                        RemoteDesktopView()
+                    } label: {
+                        Label("Start Session", systemImage: "play.rectangle")
+                    }
+                    .disabled(statusText == "Not paired")
+
                     Button {
                         Task { await refreshStatus() }
                     } label: {

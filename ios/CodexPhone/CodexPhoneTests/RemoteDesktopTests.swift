@@ -152,6 +152,40 @@ final class RemoteDesktopTests: XCTestCase {
         }
     }
 
+    func testRemoteInputMapperCreatesMonotonicNormalizedEvents() {
+        var mapper = RemoteInputMapper(sessionID: "lease-1")
+
+        let tap = mapper.tap(at: CGPoint(x: 50, y: 25), in: CGSize(width: 100, height: 100))
+        let drag = mapper.drag(to: CGPoint(x: 25, y: 75), in: CGSize(width: 100, height: 100))
+        let scroll = mapper.scroll(delta: CGSize(width: 3, height: -4))
+
+        XCTAssertEqual(tap.sequence, 1)
+        XCTAssertEqual(tap.kind, .pointer)
+        XCTAssertEqual(tap.x, 0.5)
+        XCTAssertEqual(tap.y, 0.25)
+        XCTAssertEqual(drag.sequence, 2)
+        XCTAssertEqual(drag.x, 0.25)
+        XCTAssertEqual(drag.y, 0.75)
+        XCTAssertEqual(scroll.sequence, 3)
+        XCTAssertEqual(scroll.kind, .scroll)
+        XCTAssertEqual(scroll.deltaX, 3)
+        XCTAssertEqual(scroll.deltaY, -4)
+    }
+
+    func testRemoteDesktopSessionBackgroundGraceAndDisconnectCleanup() {
+        var session = RemoteDesktopSessionState(leaseID: "lease-1", now: Date(timeIntervalSince1970: 100))
+
+        session.connected(now: Date(timeIntervalSince1970: 101))
+        session.enterBackground(now: Date(timeIntervalSince1970: 110))
+        XCTAssertEqual(session.phase, .suspended)
+        XCTAssertFalse(session.shouldRequireNewLease(now: Date(timeIntervalSince1970: 130)))
+        XCTAssertTrue(session.shouldRequireNewLease(now: Date(timeIntervalSince1970: 141)))
+
+        session.disconnect()
+        XCTAssertEqual(session.phase, .disconnected)
+        XCTAssertTrue(session.pendingInputs.isEmpty)
+    }
+
     private func assertRoundTrip<T: Codable & Equatable>(
         _ value: T,
         file: StaticString = #filePath,
