@@ -9,9 +9,16 @@ enum RemoteDesktopSessionPhase: Equatable {
     case disconnected
 }
 
+enum RemoteDesktopTransportPath: Equatable {
+    case unknown
+    case direct
+    case relayed
+}
+
 struct RemoteDesktopSessionState: Equatable {
     let leaseID: String
     private(set) var phase: RemoteDesktopSessionPhase
+    private(set) var transportPath: RemoteDesktopTransportPath
     private(set) var pendingInputs: [RemoteInputEvent]
     private var backgroundedAt: Date?
     private let backgroundGrace: TimeInterval
@@ -19,6 +26,7 @@ struct RemoteDesktopSessionState: Equatable {
     init(leaseID: String, now: Date = Date(), backgroundGrace: TimeInterval = 30) {
         self.leaseID = leaseID
         self.phase = .connecting
+        self.transportPath = .unknown
         self.pendingInputs = []
         self.backgroundedAt = nil
         self.backgroundGrace = backgroundGrace
@@ -54,8 +62,13 @@ struct RemoteDesktopSessionState: Equatable {
         pendingInputs.append(event)
     }
 
+    mutating func updateTransportPath(_ path: RemoteDesktopTransportPath) {
+        transportPath = path
+    }
+
     mutating func disconnect() {
         phase = .disconnected
+        transportPath = .unknown
         pendingInputs.removeAll()
         backgroundedAt = nil
     }

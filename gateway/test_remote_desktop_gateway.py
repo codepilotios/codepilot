@@ -275,6 +275,31 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         status, payload = gateway.handle("GET", ["sessions", "session-1", "signal"], {"after": ["0"]}, None)
         self.assertEqual(payload["signals"], [])
 
+    def test_clipboard_requires_explicit_text_under_size_limit(self):
+        host = FakeNativeHostClient()
+        gateway = RemoteDesktopGateway(host_client=host)
+
+        status, payload = gateway.handle("POST", ["sessions", "session-1", "clipboard"], {}, {
+            "direction": "send",
+            "text": "hello",
+        })
+        self.assertEqual(status, 200)
+        self.assertEqual(host.calls[0][0], "session.clipboard")
+
+        status, payload = gateway.handle("POST", ["sessions", "session-1", "clipboard"], {}, {
+            "direction": "send",
+            "text": "x" * (1_048_576 + 1),
+        })
+        self.assertEqual(status, 413)
+        self.assertEqual(payload["error"], "clipboard_too_large")
+
+        status, payload = gateway.handle("POST", ["sessions", "session-1", "clipboard"], {}, {
+            "direction": "send",
+            "text": 42,
+        })
+        self.assertEqual(status, 400)
+        self.assertEqual(payload["error"], "invalid_request")
+
     def test_status_returns_stun_only_when_turn_environment_is_unset(self):
         old_env = dict(os.environ)
         try:

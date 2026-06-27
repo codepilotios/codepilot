@@ -176,13 +176,21 @@ final class RemoteDesktopTests: XCTestCase {
         var session = RemoteDesktopSessionState(leaseID: "lease-1", now: Date(timeIntervalSince1970: 100))
 
         session.connected(now: Date(timeIntervalSince1970: 101))
+        session.updateTransportPath(.direct)
+        XCTAssertEqual(session.transportPath, .direct)
         session.enterBackground(now: Date(timeIntervalSince1970: 110))
         XCTAssertEqual(session.phase, .suspended)
         XCTAssertFalse(session.shouldRequireNewLease(now: Date(timeIntervalSince1970: 130)))
         XCTAssertTrue(session.shouldRequireNewLease(now: Date(timeIntervalSince1970: 141)))
 
+        session.enterForeground(now: Date(timeIntervalSince1970: 130))
+        XCTAssertEqual(session.phase, .reconnecting)
+        session.updateTransportPath(.relayed)
+        XCTAssertEqual(session.transportPath, .relayed)
+
         session.disconnect()
         XCTAssertEqual(session.phase, .disconnected)
+        XCTAssertEqual(session.transportPath, .unknown)
         XCTAssertTrue(session.pendingInputs.isEmpty)
     }
 

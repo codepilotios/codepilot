@@ -34,6 +34,7 @@ ERROR_STATUS = {
 IDENTIFIER_MAX_LENGTH = 128
 SIGNAL_QUEUE_LIMIT = 256
 STUN_ONLY_ICE_SERVERS = [{"urls": ["stun:stun.l.google.com:19302"]}]
+MAX_CLIPBOARD_TEXT_BYTES = 1_048_576
 
 
 class RemoteDesktopHostError(RuntimeError):
@@ -273,6 +274,8 @@ class RemoteDesktopGateway:
                 raise RemoteDesktopRequestError(400, "invalid_request")
             if not isinstance(payload["text"], str):
                 raise RemoteDesktopRequestError(400, "invalid_request")
+            if len(payload["text"].encode("utf-8")) > MAX_CLIPBOARD_TEXT_BYTES:
+                raise RemoteDesktopRequestError(413, "clipboard_too_large")
             return 200, self._native_json("session.clipboard", {"sessionId": session_id, **payload})
 
         if method == "POST" and len(parts) == 3 and parts[0] == "sessions" and parts[2] == "disconnect":
