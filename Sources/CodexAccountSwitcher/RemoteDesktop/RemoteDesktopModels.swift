@@ -87,3 +87,42 @@ struct RemoteAuditEventResponse: Codable, Equatable {
     let events: [RemoteAuditEvent]
     let nextCursor: String?
 }
+
+enum RemoteDesktopAuditEventKind: String, Codable {
+    case pairingChallengeIssued
+    case pairingChallengeVerified
+    case pairingApproved
+    case deviceRevoked
+    case nonceIssued
+    case nonceConsumed
+    case leaseGranted
+    case leaseRenewed
+    case leaseEnded
+    case sequenceAccepted
+    case sequenceRejected
+    case controllerBusy
+    case clipboardRequested
+    case displayChanged
+}
+
+enum RemoteDesktopAuditReason: String, Codable {
+    case expired
+    case used
+    case invalidSignature
+    case revoked
+    case busy
+    case replay
+    case unauthorized
+    case leaseExpired
+}
+
+struct RemoteDesktopAuditEvent: Codable, Equatable, Identifiable {
+    let id: String
+    let timestamp: Date
+    let kind: RemoteDesktopAuditEventKind
+    let deviceId: String?
+    let sessionId: String?
+    let leaseId: String?
+    let sequence: UInt64?
+    let reason: RemoteDesktopAuditReason?
+}
