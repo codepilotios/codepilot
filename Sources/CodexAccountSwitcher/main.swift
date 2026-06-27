@@ -2455,9 +2455,11 @@ private final class CodePilotSetupWindowController: NSWindowController {
 
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
+    private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var setupWindowController: CodePilotSetupWindowController?
+    private var remoteDesktopWindowController: RemoteDesktopWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -2466,6 +2468,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.title = "CodePilot"
         menu.delegate = self
         statusItem.menu = menu
+        remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
         switcher.onChange = { [weak self] in self?.updateStatusTitle() }
         switcher.start()
         updateStatusTitle()
@@ -2477,6 +2480,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let usage = self.switcher.usage(for: active)
             let warning = self.switcher.staleAuthProfiles().isEmpty ? "" : "! "
             self.statusItem.button?.title = "CodePilot: \(warning)\(active) \(self.compactRateLimitSummary(usage))"
+            let isRemoteControlled = self.remoteDesktopCoordinator?.snapshot.activeSession != nil
+            self.statusItem.button?.contentTintColor = isRemoteControlled ? .systemRed : nil
         }
     }
 
@@ -2516,6 +2521,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let setup = NSMenuItem(title: "Setup CodePilot...", action: #selector(openSetup), keyEquivalent: ",")
         setup.target = self
         menu.addItem(setup)
+
+        let remoteDesktop = NSMenuItem(title: "Remote Desktop...", action: #selector(openRemoteDesktop), keyEquivalent: "r")
+        remoteDesktop.target = self
+        remoteDesktop.isEnabled = remoteDesktopCoordinator != nil
+        menu.addItem(remoteDesktop)
 
         let profiles = switcher.profiles()
         if profiles.isEmpty {
@@ -2601,6 +2611,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         setupWindowController?.showWindow(nil)
         setupWindowController?.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func openRemoteDesktop() {
+        guard let remoteDesktopCoordinator else { return }
+        if remoteDesktopWindowController == nil {
+            remoteDesktopWindowController = RemoteDesktopWindowController(coordinator: remoteDesktopCoordinator)
+        }
+        remoteDesktopWindowController?.showWindow(nil)
+        remoteDesktopWindowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 

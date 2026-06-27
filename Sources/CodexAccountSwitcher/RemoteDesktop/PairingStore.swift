@@ -288,6 +288,29 @@ final class PairingStore {
     }
 
     @discardableResult
+    func trustPreverifiedDevice(
+        id: String,
+        name: String,
+        publicKeyRawRepresentation: Data
+    ) throws -> TrustedRemoteDevice {
+        lock.lock()
+        defer { lock.unlock() }
+
+        let device = TrustedRemoteDevice(
+            id: id,
+            name: name,
+            publicKeyRawRepresentation: publicKeyRawRepresentation,
+            approvedAt: clock(),
+            revokedAt: nil
+        )
+        var updatedDevices = trustedDevicesByID
+        updatedDevices[id] = device
+        try persistTrustedDevices(updatedDevices.values.sorted(by: { $0.id < $1.id }))
+        trustedDevicesByID = updatedDevices
+        return device
+    }
+
+    @discardableResult
     func revokeDevice(id: String) throws -> TrustedRemoteDevice {
         lock.lock()
         defer { lock.unlock() }
