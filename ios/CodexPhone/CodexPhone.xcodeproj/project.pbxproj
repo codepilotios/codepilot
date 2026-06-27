@@ -10,7 +10,20 @@
 		8F4E51112F42100100C0D3C1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8F4E51102F42100100C0D3C1 /* Assets.xcassets */; };
 		8F4E51212F42100100C0D3C1 /* ChatAutoScrollState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E51202F42100100C0D3C1 /* ChatAutoScrollState.swift */; };
 		8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E50FF2F41000100C0D3C1 /* CodexPhoneApp.swift */; };
+		8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */; };
+		8F4E52032F43000100C0D3C1 /* RemoteDesktopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */; };
+		8F4E52052F43000100C0D3C1 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 8F4E52042F43000100C0D3C1 /* WebRTC */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8F4E520D2F43000100C0D3C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F4E50F82F41000100C0D3C1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8F4E50FA2F41000100C0D3C1;
+			remoteInfo = CodexPhone;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		8F4E51202F42100100C0D3C1 /* ChatAutoScrollState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAutoScrollState.swift; sourceTree = "<group>"; };
@@ -18,10 +31,21 @@
 		8F4E50FF2F41000100C0D3C1 /* CodexPhoneApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexPhoneApp.swift; sourceTree = "<group>"; };
 		8F4E51012F41000100C0D3C1 /* CodexPhone.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodexPhone.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F4E51102F42100100C0D3C1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopModels.swift; sourceTree = "<group>"; };
+		8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopTests.swift; sourceTree = "<group>"; };
+		8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodexPhoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		8F4E50FC2F41000100C0D3C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F4E52052F43000100C0D3C1 /* WebRTC in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F4E52082F43000100C0D3C1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -35,6 +59,7 @@
 			isa = PBXGroup;
 			children = (
 				8F4E50FE2F41000100C0D3C1 /* CodexPhone */,
+				8F4E52092F43000100C0D3C1 /* CodexPhoneTests */,
 				8F4E50FD2F41000100C0D3C1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +68,7 @@
 			isa = PBXGroup;
 			children = (
 				8F4E51012F41000100C0D3C1 /* CodexPhone.app */,
+				8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -52,10 +78,27 @@
 			children = (
 				8F4E50FF2F41000100C0D3C1 /* CodexPhoneApp.swift */,
 				8F4E51202F42100100C0D3C1 /* ChatAutoScrollState.swift */,
+				8F4E520A2F43000100C0D3C1 /* RemoteDesktop */,
 				8F4E51222F42100100C0D3C1 /* CodexPhone.entitlements */,
 				8F4E51102F42100100C0D3C1 /* Assets.xcassets */,
 			);
 			path = CodexPhone;
+			sourceTree = "<group>";
+		};
+		8F4E52092F43000100C0D3C1 /* CodexPhoneTests */ = {
+			isa = PBXGroup;
+			children = (
+				8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */,
+			);
+			path = CodexPhoneTests;
+			sourceTree = "<group>";
+		};
+		8F4E520A2F43000100C0D3C1 /* RemoteDesktop */ = {
+			isa = PBXGroup;
+			children = (
+				8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */,
+			);
+			path = RemoteDesktop;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -74,9 +117,30 @@
 			dependencies = (
 			);
 			name = CodexPhone;
+			packageProductDependencies = (
+				8F4E52042F43000100C0D3C1 /* WebRTC */,
+			);
 			productName = CodexPhone;
 			productReference = 8F4E51012F41000100C0D3C1 /* CodexPhone.app */;
 			productType = "com.apple.product-type.application";
+		};
+		8F4E52072F43000100C0D3C1 /* CodexPhoneTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8F4E52122F43000100C0D3C1 /* Build configuration list for PBXNativeTarget "CodexPhoneTests" */;
+			buildPhases = (
+				8F4E520B2F43000100C0D3C1 /* Sources */,
+				8F4E52082F43000100C0D3C1 /* Frameworks */,
+				8F4E520C2F43000100C0D3C1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				8F4E520E2F43000100C0D3C1 /* PBXTargetDependency */,
+			);
+			name = CodexPhoneTests;
+			productName = CodexPhoneTests;
+			productReference = 8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -102,11 +166,15 @@
 				Base,
 			);
 			mainGroup = 8F4E50F72F41000100C0D3C1;
+			packageReferences = (
+				8F4E520F2F43000100C0D3C1 /* XCRemoteSwiftPackageReference "WebRTC" */,
+			);
 			productRefGroup = 8F4E50FD2F41000100C0D3C1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				8F4E50FA2F41000100C0D3C1 /* CodexPhone */,
+				8F4E52072F43000100C0D3C1 /* CodexPhoneTests */,
 			);
 		};
 /* End PBXProject section */
@@ -120,6 +188,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8F4E520C2F43000100C0D3C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -129,10 +204,27 @@
 			files = (
 				8F4E51212F42100100C0D3C1 /* ChatAutoScrollState.swift in Sources */,
 				8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */,
+				8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F4E520B2F43000100C0D3C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F4E52032F43000100C0D3C1 /* RemoteDesktopTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		8F4E520E2F43000100C0D3C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8F4E50FA2F41000100C0D3C1 /* CodexPhone */;
+			targetProxy = 8F4E520D2F43000100C0D3C1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		8F4E51042F41000100C0D3C1 /* Debug */ = {
@@ -314,6 +406,36 @@
 			};
 			name = Release;
 		};
+		8F4E52102F43000100C0D3C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.codepilot.iOS.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CodexPhone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CodexPhone";
+			};
+			name = Debug;
+		};
+		8F4E52112F43000100C0D3C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.codepilot.iOS.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CodexPhone.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CodexPhone";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -335,7 +457,35 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		8F4E52122F43000100C0D3C1 /* Build configuration list for PBXNativeTarget "CodexPhoneTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8F4E52102F43000100C0D3C1 /* Debug */,
+				8F4E52112F43000100C0D3C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8F4E520F2F43000100C0D3C1 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			requirement = {
+				kind = exactVersion;
+				version = 149.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8F4E52042F43000100C0D3C1 /* WebRTC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8F4E520F2F43000100C0D3C1 /* XCRemoteSwiftPackageReference "WebRTC" */;
+			productName = WebRTC;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8F4E50F82F41000100C0D3C1 /* Project object */;
 }

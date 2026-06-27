@@ -7,9 +7,15 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
+    dependencies: [
+        .package(url: "https://github.com/stasel/WebRTC.git", exact: "149.0.0")
+    ],
     targets: [
         .executableTarget(
-            name: "CodexAccountSwitcher"
+            name: "CodexAccountSwitcher",
+            dependencies: [
+                .product(name: "WebRTC", package: "WebRTC")
+            ]
         ),
         .testTarget(
             name: "CodexAccountSwitcherTests",
