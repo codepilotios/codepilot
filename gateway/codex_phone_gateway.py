@@ -24,6 +24,11 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+try:
+    from .remote_desktop_gateway import RemoteDesktopGateway
+except ImportError:
+    from remote_desktop_gateway import RemoteDesktopGateway
+
 
 HOME = Path.home()
 DEFAULT_CODEX_HOME = HOME / ".codex"
@@ -561,7 +566,11 @@ def json_response(handler, status: int, payload: dict):
     handler.wfile.write(body)
 
 
-def decode_body(handler) -> dict:
+class RequestBodyTooLarge(ValueError):
+    pass
+
+
+def decode_body(handler, max_length: int | None = None) -> dict:
     raw_length = handler.headers.get("content-length", "0")
     try:
         length = int(raw_length)
@@ -569,6 +578,8 @@ def decode_body(handler) -> dict:
         length = 0
     if length <= 0:
         return {}
+    if max_length is not None and length > max_length:
+        raise RequestBodyTooLarge("request_too_large")
     body = handler.rfile.read(length)
     return json.loads(body.decode("utf-8"))
 
@@ -1704,6 +1715,7 @@ class GatewayState:
         login_runner=None,
         login_process_factory=subprocess.Popen,
         login_callback_relayer=None,
+        remote_desktop_gateway=None,
     ):
         self.codex_home = codex_home
         self.token = token
@@ -1719,6 +1731,7 @@ class GatewayState:
         self.login_runner = login_runner
         self.login_process_factory = login_process_factory
         self.login_callback_relayer = login_callback_relayer
+        self.remote_desktop_gateway = remote_desktop_gateway if remote_desktop_gateway is not None else RemoteDesktopGateway()
         self._remote_login_sessions = {}
         self._remote_login_lock = threading.Lock()
 
@@ -3789,6 +3802,12 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, self.state().account_status_snapshot())
                 return
 
+            if len(parts) >= 2 and parts[0] == "api" and parts[1] == "remote":
+                query = urllib.parse.parse_qs(parsed.query)
+                status, payload = self.state().remote_desktop_gateway.handle("GET", parts[2:], query, None)
+                json_response(self, status, payload)
+                return
+
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "files":
                 query = urllib.parse.parse_qs(parsed.query)
                 requested_path = (query.get("path") or [""])[0]
@@ -3987,9 +4006,17 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, {"ok": True})
                 return
 
+            if len(parts) >= 2 and parts[0] == "api" and parts[1] == "remote":
+                body = decode_body(self, max_length=1_048_576)
+                status, payload = self.state().remote_desktop_gateway.handle("POST", parts[2:], {}, body)
+                json_response(self, status, payload)
+                return
+
             json_response(self, 404, {"error": "Not found"})
         except LookupError as exc:
             json_response(self, 404, {"error": str(exc)})
+        except RequestBodyTooLarge as exc:
+            json_response(self, 413, {"error": str(exc)})
         except ValueError as exc:
             json_response(self, 400, {"error": str(exc)})
         except RuntimeError as exc:
