@@ -72,9 +72,10 @@ struct RemoteDesktopView: View {
                                     height: value.translation.height - lastDragTranslation.height
                                 )
                                 lastDragTranslation = value.translation
-                                pendingPointerDelta.width += delta.width
-                                pendingPointerDelta.height += delta.height
-                                predictCursor(delta: delta)
+                                let remoteDelta = remotePointerDelta(forScreenDelta: delta, container: proxy.size)
+                                pendingPointerDelta.width += remoteDelta.width
+                                pendingPointerDelta.height += remoteDelta.height
+                                predictCursor(remoteDelta: remoteDelta)
                                 flushPointerDeltaIfNeeded()
                             }
                             .onEnded { value in
@@ -326,7 +327,7 @@ struct RemoteDesktopView: View {
         let delta = pendingPointerDelta
         pendingPointerDelta = .zero
         lastPointerSendAt = Date()
-        send(mapper.moveRelative(delta: delta))
+        send(mapper.moveRelative(delta: delta, sensitivity: 1))
     }
 
     private func streamKeyboardChange(from oldValue: String, to newValue: String) {
@@ -386,9 +387,9 @@ struct RemoteDesktopView: View {
         return CGPoint(x: hotspot.x + offset.width, y: hotspot.y + offset.height)
     }
 
-    private func predictCursor(delta: CGSize) {
+    private func predictCursor(remoteDelta: CGSize) {
         guard let coordinateSize = cursorCoordinateSize ?? frameImage?.size else { return }
-        viewport.applyPointerDelta(delta, coordinateSize: coordinateSize)
+        viewport.applyPointerDelta(remoteDelta, coordinateSize: coordinateSize, sensitivity: 1)
     }
 
     private var remoteImageSize: CGSize? {
@@ -396,6 +397,13 @@ struct RemoteDesktopView: View {
             return cursorCoordinateSize
         }
         return frameImage?.size
+    }
+
+    private func remotePointerDelta(forScreenDelta delta: CGSize, container: CGSize) -> CGSize {
+        guard let imageSize = remoteImageSize else { return delta }
+        var current = viewport
+        current.zoom = effectiveZoom
+        return current.remoteDelta(forScreenDelta: delta, container: container, image: imageSize)
     }
 
     private static func errorText(_ error: Error) -> String {

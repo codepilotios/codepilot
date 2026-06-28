@@ -47,6 +47,15 @@ struct RemoteViewport: Equatable {
         CGSize(width: symbolSize * 0.32, height: symbolSize * 0.40)
     }
 
+    func remoteDelta(forScreenDelta delta: CGSize, container: CGSize, image: CGSize) -> CGSize {
+        let scaled = scaledImageSize(container: container, image: image)
+        guard scaled.width > 0, scaled.height > 0 else { return .zero }
+        return CGSize(
+            width: delta.width * image.width / scaled.width,
+            height: delta.height * image.height / scaled.height
+        )
+    }
+
     mutating func applyPointerDelta(
         _ delta: CGSize,
         coordinateSize: CGSize,

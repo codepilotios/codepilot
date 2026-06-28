@@ -284,6 +284,26 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(viewport.cursor.y, 0.4, accuracy: 0.0001)
     }
 
+    func testViewportConvertsScreenDeltaToRemoteDeltaUsingZoomAndRotationLayout() {
+        let image = CGSize(width: 1_920, height: 1_080)
+
+        let portrait = RemoteViewport(zoom: 1).remoteDelta(
+            forScreenDelta: CGSize(width: 10, height: 10),
+            container: CGSize(width: 390, height: 844),
+            image: image
+        )
+        XCTAssertEqual(portrait.width, 49.2308, accuracy: 0.0001)
+        XCTAssertEqual(portrait.height, 49.2308, accuracy: 0.0001)
+
+        let landscapeZoomed = RemoteViewport(zoom: 2).remoteDelta(
+            forScreenDelta: CGSize(width: 10, height: 10),
+            container: CGSize(width: 844, height: 390),
+            image: image
+        )
+        XCTAssertEqual(landscapeZoomed.width, 13.8462, accuracy: 0.0001)
+        XCTAssertEqual(landscapeZoomed.height, 13.8462, accuracy: 0.0001)
+    }
+
     private func assertRoundTrip<T: Codable & Equatable>(
         _ value: T,
         file: StaticString = #filePath,
