@@ -89,6 +89,16 @@ class FakeRemoteLoginProcess:
 
 
 class AppServerClientTests(unittest.TestCase):
+    def setUp(self):
+        self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+        self._switcher_home_tempdir = tempfile.TemporaryDirectory()
+        gateway.DEFAULT_SWITCHER_HOME = Path(self._switcher_home_tempdir.name)
+        gateway.DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
+
+    def tearDown(self):
+        gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
+        self._switcher_home_tempdir.cleanup()
+
     def test_codex_child_env_prepends_homebrew_path_and_sets_codex_home(self):
         old_env = dict(gateway.os.environ)
         try:
@@ -792,6 +802,16 @@ class StreamEventFormattingTests(unittest.TestCase):
 
 
 class GatewayStateTests(unittest.TestCase):
+    def setUp(self):
+        self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+        self._switcher_home_tempdir = tempfile.TemporaryDirectory()
+        gateway.DEFAULT_SWITCHER_HOME = Path(self._switcher_home_tempdir.name)
+        gateway.DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
+
+    def tearDown(self):
+        gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
+        self._switcher_home_tempdir.cleanup()
+
     def test_public_health_exposes_safe_gateway_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
