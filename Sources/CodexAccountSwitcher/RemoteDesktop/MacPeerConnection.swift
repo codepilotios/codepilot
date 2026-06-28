@@ -2,7 +2,16 @@ import CoreGraphics
 import Foundation
 import LiveKitWebRTC
 
-typealias RemoteInputHandler = (RemoteInputEvent) throws -> Void
+typealias RemoteInputHandler = (RemoteInputEvent) throws -> CGPoint?
+
+private struct MacPeerCursorUpdate: Codable {
+    struct Cursor: Codable {
+        let x: Double
+        let y: Double
+    }
+
+    let cursor: Cursor
+}
 
 enum MacPeerConnectionState: Equatable {
     case idle
@@ -216,7 +225,13 @@ final class MacPeerConnection: NSObject, LKRTCPeerConnectionDelegate, LKRTCDataC
         guard !buffer.isBinary else { return }
         do {
             let event = try JSONDecoder().decode(RemoteInputEvent.self, from: buffer.data)
-            try inputHandler?(event)
+            guard let cursor = try inputHandler?(event) else { return }
+            let update = MacPeerCursorUpdate(cursor: MacPeerCursorUpdate.Cursor(
+                x: Double(cursor.x),
+                y: Double(cursor.y)
+            ))
+            let data = try JSONEncoder().encode(update)
+            _ = dataChannel.sendData(LKRTCDataBuffer(data: data, isBinary: false))
         } catch {
             NSLog("CodePilot remote desktop data-channel input failed: \(error.localizedDescription)")
         }

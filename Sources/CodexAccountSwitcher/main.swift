@@ -2627,8 +2627,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let remoteFrameCaptureService = RemoteFrameCaptureService()
     private let remoteInputInjector = RemoteInputInjector(validator: GatewayRemoteInputValidator())
     private lazy var macPeerConnection = MacPeerConnection { [weak self] event in
-        guard let self else { return }
-        try self.remoteInputInjector.handle(event, displayFrame: CGDisplayBounds(CGMainDisplayID()))
+        guard let self else { return nil }
+        let displayFrame = CGDisplayBounds(CGMainDisplayID())
+        try self.remoteInputInjector.handle(event, displayFrame: displayFrame)
+        let cursor = CGEvent(source: nil)?.location ?? .zero
+        return CGPoint(
+            x: min(1, max(0, (cursor.x - displayFrame.minX) / displayFrame.width)),
+            y: min(1, max(0, (cursor.y - displayFrame.minY) / displayFrame.height))
+        )
     }
     private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
     private var remoteDesktopSocketServer: RemoteDesktopSocketServer?

@@ -102,12 +102,12 @@ struct RemoteDesktopView: View {
                         }
                     }
 
-                if let frameImage {
+                if let imageSize = remoteImageSize {
                     Image(systemName: "cursorarrow")
                         .font(.system(size: cursorSymbolSize(), weight: .semibold))
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 1.5, x: 0, y: 1)
-                        .position(cursorPosition(container: proxy.size, image: frameImage.size))
+                        .position(cursorPosition(container: proxy.size, image: imageSize))
                         .allowsHitTesting(false)
                 }
 
@@ -174,6 +174,10 @@ struct RemoteDesktopView: View {
                 if track != nil {
                     stopFrameLoop()
                 }
+            }
+            .onReceive(peer.$remoteCursor) { cursor in
+                guard let cursor else { return }
+                viewport.cursor = cursor
             }
             .onDisappear {
                 stopFrameLoop()
@@ -356,10 +360,10 @@ struct RemoteDesktopView: View {
     }
 
     private func viewportOffset(container: CGSize) -> CGSize {
-        guard let frameImage else { return .zero }
+        guard let imageSize = remoteImageSize else { return .zero }
         var current = viewport
         current.zoom = effectiveZoom
-        return current.offset(container: container, image: frameImage.size)
+        return current.offset(container: container, image: imageSize)
     }
 
     private func cursorPosition(container: CGSize, image: CGSize) -> CGPoint {
@@ -375,8 +379,15 @@ struct RemoteDesktopView: View {
     }
 
     private func predictCursor(delta: CGSize) {
-        guard let frameImage, frameImage.size.width > 0, frameImage.size.height > 0 else { return }
-        viewport.applyPointerDelta(delta, coordinateSize: cursorCoordinateSize ?? frameImage.size)
+        guard let coordinateSize = cursorCoordinateSize ?? frameImage?.size else { return }
+        viewport.applyPointerDelta(delta, coordinateSize: coordinateSize)
+    }
+
+    private var remoteImageSize: CGSize? {
+        if let cursorCoordinateSize, cursorCoordinateSize.width > 0, cursorCoordinateSize.height > 0 {
+            return cursorCoordinateSize
+        }
+        return frameImage?.size
     }
 
     private static func errorText(_ error: Error) -> String {

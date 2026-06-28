@@ -192,6 +192,14 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(status.cursor, RemoteCursorPosition(x: 0.25, y: 0.75))
     }
 
+    func testRemotePeerCursorUpdateDecodes() throws {
+        let data = #"{"cursor":{"x":0.4,"y":0.6}}"#.data(using: .utf8)!
+
+        let update = try JSONDecoder().decode(RemotePeerCursorUpdate.self, from: data)
+
+        XCTAssertEqual(update, RemotePeerCursorUpdate(cursor: .init(x: 0.4, y: 0.6)))
+    }
+
     func testRemoteInputMapperCreatesMonotonicNormalizedEvents() {
         var mapper = RemoteInputMapper(sessionID: "lease-1")
 

@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import WebRTC
 
@@ -13,6 +14,7 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
     @Published private(set) var isInputReady = false
     @Published private(set) var latencyText = "--"
     @Published private(set) var videoTrack: RTCVideoTrack?
+    @Published private(set) var remoteCursor: CGPoint?
 
     private let factory = RTCPeerConnectionFactory()
     private var peerConnection: RTCPeerConnection?
@@ -93,6 +95,7 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
         peerConnection?.close()
         peerConnection = nil
         videoTrack = nil
+        remoteCursor = nil
         isConnected = false
         isInputReady = false
         latencyText = "--"
@@ -157,7 +160,15 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
         }
     }
 
-    func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {}
+    func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
+        guard !buffer.isBinary,
+              let update = try? JSONDecoder().decode(RemotePeerCursorUpdate.self, from: buffer.data) else {
+            return
+        }
+        DispatchQueue.main.async {
+            self.remoteCursor = CGPoint(x: update.cursor.x, y: update.cursor.y)
+        }
+    }
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCPeerConnectionState) {
         DispatchQueue.main.async {
@@ -176,4 +187,13 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
             self.videoTrack = track
         }
     }
+}
+
+struct RemotePeerCursorUpdate: Codable, Equatable {
+    struct Cursor: Codable, Equatable {
+        let x: Double
+        let y: Double
+    }
+
+    let cursor: Cursor
 }
