@@ -1,4 +1,5 @@
 import Foundation
+import LiveKitWebRTC
 
 enum MacPeerConnectionState: Equatable {
     case idle

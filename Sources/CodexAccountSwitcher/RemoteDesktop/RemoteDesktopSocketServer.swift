@@ -17,6 +17,8 @@ final class RemoteDesktopSocketServer {
         "session.end",
         "session.display",
         "session.clipboard",
+        "frame.capture",
+        "input.inject",
         "audit.list"
     ]
 

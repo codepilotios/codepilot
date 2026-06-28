@@ -1,4 +1,5 @@
 import Foundation
+import WebRTC
 
 final class RemotePeerConnection: ObservableObject {
     @Published private(set) var isConnected = false

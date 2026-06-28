@@ -152,6 +152,36 @@ final class RemoteDesktopTests: XCTestCase {
         }
     }
 
+    func testRemoteDesktopAPISendsInputEvent() async throws {
+        let event = RemoteInputEvent(
+            sessionId: "gateway-session",
+            sequence: 3,
+            kind: .pointer,
+            x: 0.25,
+            y: 0.75,
+            button: nil,
+            keyCode: nil,
+            text: nil,
+            deltaX: nil,
+            deltaY: nil
+        )
+        let api = RemoteDesktopAPI(
+            baseURL: URL(string: "https://gateway.example")!,
+            token: "token"
+        ) { request in
+            XCTAssertEqual(request.url?.path, "/api/remote/input")
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer token")
+            XCTAssertEqual(try JSONDecoder().decode(RemoteInputEvent.self, from: request.httpBody!), event)
+            return (
+                #"{"ok":true}"#.data(using: .utf8)!,
+                HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            )
+        }
+
+        try await api.sendInput(event)
+    }
+
     func testRemoteInputMapperCreatesMonotonicNormalizedEvents() {
         var mapper = RemoteInputMapper(sessionID: "lease-1")
 

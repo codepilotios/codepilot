@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 from datetime import datetime, timezone
+import fcntl
 import hashlib
 import json
 import mimetypes
@@ -736,6 +738,21 @@ def epoch_seconds(value) -> int | None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return int(parsed.timestamp())
     return None
+
+
+def parse_iso_datetime(value: str) -> datetime | None:
+    stripped = str(value or "").strip()
+    if not stripped:
+        return None
+    if stripped.endswith("Z"):
+        stripped = stripped[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(stripped)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 
 def event_status(raw_status: str | None, stream_type: str) -> str:
@@ -1948,6 +1965,8 @@ class GatewayState:
                 self.close_app_server_client()
             else:
                 self.close_app_server_if_auth_changed_and_idle()
+                with self.auth_file_lock():
+                    self.sync_active_auth_to_active_profile()
 
     def active_account_name(self) -> str:
         return read_marker(self.active_account_marker, "unknown")
@@ -2711,7 +2730,9 @@ class GatewayState:
             if self.has_running_jobs():
                 raise RuntimeError("Cannot switch account while a Codex turn is running")
             self._close_app_server_client_locked()
-            self.install_auth_file(profile_auth, self.active_auth_path)
+            with self.auth_file_lock():
+                self.sync_active_auth_to_active_profile()
+                self.install_auth_file(profile_auth, self.active_auth_path)
 
         self.active_account_marker.parent.mkdir(parents=True, exist_ok=True)
         self.active_account_marker.write_text(account_name + "\n", encoding="utf-8")
@@ -2761,6 +2782,58 @@ class GatewayState:
                 pass
             raise
 
+    @contextlib.contextmanager
+    def auth_file_lock(self):
+        DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
+        lock_path = DEFAULT_SWITCHER_HOME / "auth-files.lock"
+        fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def auth_file_snapshot(self, auth_path: Path) -> dict:
+        data = json.loads(auth_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("auth.json is not an object")
+        tokens = data.get("tokens")
+        if not isinstance(tokens, dict):
+            tokens = {}
+        return {
+            "accountId": str(tokens.get("account_id") or ""),
+            "lastRefresh": parse_iso_datetime(str(data.get("last_refresh") or "")),
+        }
+
+    def sync_active_auth_to_active_profile(self) -> bool:
+        account_name = self.active_account_name()
+        if not account_name or account_name == "unknown":
+            return False
+        profile_auth = self.accounts_dir / account_name / "auth.json"
+        if not self.active_auth_path.is_file() or not profile_auth.is_file():
+            return False
+        try:
+            if self.active_auth_path.read_bytes() == profile_auth.read_bytes():
+                return False
+            active = self.auth_file_snapshot(self.active_auth_path)
+            profile = self.auth_file_snapshot(profile_auth)
+        except (OSError, json.JSONDecodeError, ValueError):
+            return False
+
+        active_account = str(active.get("accountId") or "")
+        profile_account = str(profile.get("accountId") or "")
+        if active_account and profile_account and active_account != profile_account:
+            return False
+
+        active_refresh = active.get("lastRefresh")
+        profile_refresh = profile.get("lastRefresh")
+        if active_refresh is not None and profile_refresh is not None and active_refresh < profile_refresh:
+            return False
+
+        self.install_auth_file(self.active_auth_path, profile_auth)
+        return True
+
     def run_access_token_login(self, temp_codex_home: Path, access_token: str):
         if self.login_runner is not None:
             self.login_runner(temp_codex_home, access_token)
@@ -2790,21 +2863,25 @@ class GatewayState:
             raise RuntimeError("Cannot refresh active account auth while a Codex turn is running")
 
         profile_auth = self.accounts_dir / account_name / "auth.json"
-        self.install_auth_file(generated_auth, profile_auth)
-
         if is_active_account:
             with self._app_server_lock:
                 if self.has_running_jobs():
                     raise RuntimeError("Cannot refresh active account auth while a Codex turn is running")
                 self._close_app_server_client_locked()
-                self.install_auth_file(generated_auth, self.active_auth_path)
+                with self.auth_file_lock():
+                    self.install_auth_file(generated_auth, profile_auth)
+                    self.install_auth_file(generated_auth, self.active_auth_path)
+        else:
+            with self.auth_file_lock():
+                self.install_auth_file(generated_auth, profile_auth)
 
         self.record_remote_login_refresh(account_name)
 
     def install_new_account_auth(self, account_name: str, generated_auth: Path):
         account_name = self.sanitized_new_account_profile_name(account_name)
         profile_auth = self.accounts_dir / account_name / "auth.json"
-        self.install_auth_file(generated_auth, profile_auth)
+        with self.auth_file_lock():
+            self.install_auth_file(generated_auth, profile_auth)
         self.record_remote_login_add(account_name)
 
     def refresh_account_auth_with_access_token(self, raw_name: str, access_token: str) -> dict:
@@ -3805,6 +3882,15 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) >= 2 and parts[0] == "api" and parts[1] == "remote":
                 query = urllib.parse.parse_qs(parsed.query)
                 status, payload = self.state().remote_desktop_gateway.handle("GET", parts[2:], query, None)
+                if isinstance(payload, dict) and "_raw" in payload:
+                    raw = payload.get("_raw") or b""
+                    self.send_response(status)
+                    self.send_header("Content-Type", str(payload.get("_content_type") or "application/octet-stream"))
+                    self.send_header("Cache-Control", str(payload.get("_cache_control") or "no-store"))
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.end_headers()
+                    self.wfile.write(raw)
+                    return
                 json_response(self, status, payload)
                 return
 

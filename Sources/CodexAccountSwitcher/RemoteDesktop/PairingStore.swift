@@ -199,6 +199,12 @@ final class PairingStore {
         return token
     }
 
+    func challenge(id: String) -> RemotePairingChallenge? {
+        lock.lock()
+        defer { lock.unlock() }
+        return pairingChallengesByID[id]?.challenge
+    }
+
     func approveDevice(using token: VerifiedPairingApprovalToken) throws -> TrustedRemoteDevice {
         lock.lock()
         defer { lock.unlock() }

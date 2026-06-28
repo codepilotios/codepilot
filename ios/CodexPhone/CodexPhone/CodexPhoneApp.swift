@@ -128,7 +128,9 @@ struct RootView: View {
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
-                    ThreadListView(model: model)
+                    ThreadListView(model: model) {
+                        showingRemoteDesktop = true
+                    }
                 }
             }
             .navigationTitle("CodePilot")
@@ -209,9 +211,8 @@ struct RootView: View {
             .sheet(isPresented: $showingStatus) {
                 AccountStatusView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
-            .sheet(isPresented: $showingRemoteDesktop) {
+            .fullScreenCover(isPresented: $showingRemoteDesktop) {
                 RemotePairingView()
-                    .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showingAccountSwitcher) {
                 AccountSwitcherView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
@@ -467,6 +468,7 @@ struct ReasoningLevelPicker: View {
 
 struct ThreadListView: View {
     @ObservedObject var model: CodexPhoneModel
+    var onRemoteDesktop: () -> Void = {}
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var renamingThread: CodexThread?
@@ -478,6 +480,13 @@ struct ThreadListView: View {
             AggregateCreditBar(accounts: model.accountStatuses)
 
             List {
+                Section {
+                    Button(action: onRemoteDesktop) {
+                        Label("Remote Desktop", systemImage: "desktopcomputer")
+                    }
+                    .accessibilityIdentifier("remoteDesktopHomeButton")
+                }
+
                 if !pinnedThreads.isEmpty {
                     Section {
                         ForEach(pinnedThreads) { thread in
@@ -1336,7 +1345,7 @@ struct OpenableText: View {
     @State private var openError: String?
 
     var body: some View {
-        Text(linkifiedAttributedString(text))
+        Text(renderedMessageAttributedString(text))
             .font(font)
             .foregroundStyle(foregroundColor)
             .textSelection(.enabled)
@@ -1419,8 +1428,18 @@ struct QuickLookPreview: UIViewControllerRepresentable {
 
 private let remoteFileURLScheme = "codex-phone-file"
 
-private func linkifiedAttributedString(_ text: String) -> AttributedString {
-    var attributed = AttributedString(text)
+private func renderedMessageAttributedString(_ text: String) -> AttributedString {
+    let options = AttributedString.MarkdownParsingOptions(
+        interpretedSyntax: .full,
+        failurePolicy: .returnPartiallyParsedIfPossible
+    )
+    let attributed = (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
+    return linkifiedAttributedString(attributed)
+}
+
+private func linkifiedAttributedString(_ source: AttributedString) -> AttributedString {
+    var attributed = source
+    let text = String(attributed.characters)
     let nsText = text as NSString
     let fullRange = NSRange(location: 0, length: nsText.length)
     var linkedRanges: [NSRange] = []

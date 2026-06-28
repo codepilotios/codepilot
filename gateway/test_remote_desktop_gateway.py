@@ -120,6 +120,26 @@ class NativeHostClientTests(unittest.TestCase):
         self.assertEqual(expected_request["payload"], "")
         self.assertEqual(response["payload"], b"")
 
+    def test_call_accepts_case_changed_uuid_from_swift_host(self):
+        response_payload = base64.b64encode(json.dumps({"ok": True}).encode("utf-8")).decode("ascii")
+
+        def handler(conn):
+            request = json.loads(_read_line(conn))
+            response = {
+                "id": request["id"].upper(),
+                "status": 200,
+                "payload": response_payload,
+                "errorCode": None,
+            }
+            conn.sendall(json.dumps(response).encode("utf-8") + b"\n")
+
+        with UnixSocketServer(self.socket_path, handler):
+            client = NativeHostClient(self.socket_path, timeout_seconds=1.0, max_response_bytes=1024)
+            response = client.call("status", {})
+
+        self.assertEqual(response["status"], 200)
+        self.assertEqual(json.loads(response["payload"].decode("utf-8")), {"ok": True})
+
     def test_call_maps_connection_failure_to_safe_error(self):
         client = NativeHostClient(self.socket_path, timeout_seconds=0.1)
 
@@ -182,6 +202,8 @@ class FakeNativeHostClient:
         response = self.responses.get(method)
         if response is None:
             response = {"ok": True, "method": method, "payload": payload}
+        if isinstance(response, dict) and {"status", "payload", "errorCode"}.issubset(response):
+            return response
         return {
             "id": "native-response",
             "status": 200,
@@ -315,6 +337,80 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         finally:
             os.environ.clear()
             os.environ.update(old_env)
+
+    def test_frame_returns_raw_jpeg_payload(self):
+        host = FakeNativeHostClient()
+        host.responses["frame.capture"] = {
+            "status": 200,
+            "payload": b"\xff\xd8jpeg\xff\xd9",
+            "errorCode": None,
+        }
+        gateway = RemoteDesktopGateway(host_client=host)
+
+        status, payload = gateway.handle("GET", ["frame"], {}, None)
+
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["_raw"], b"\xff\xd8jpeg\xff\xd9")
+        self.assertEqual(payload["_content_type"], "image/jpeg")
+
+    def test_input_forwards_validated_event_to_native_host(self):
+        host = FakeNativeHostClient()
+        gateway = RemoteDesktopGateway(host_client=host)
+        event = {
+            "sessionId": "gateway-session",
+            "sequence": 7,
+            "kind": "pointer",
+            "x": 0.25,
+            "y": 0.75,
+            "button": None,
+            "keyCode": None,
+            "text": None,
+            "deltaX": None,
+            "deltaY": None,
+        }
+
+        status, payload = gateway.handle("POST", ["input"], {}, event)
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(host.calls[-1], ("input.inject", event))
+
+    def test_input_accepts_swift_payload_with_omitted_optional_fields(self):
+        host = FakeNativeHostClient()
+        gateway = RemoteDesktopGateway(host_client=host)
+        event = {
+            "sessionId": "swift-session",
+            "sequence": 1,
+            "kind": "pointer",
+            "x": 0.4,
+            "y": 0.6,
+        }
+
+        status, payload = gateway.handle("POST", ["input"], {}, event)
+
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(host.calls[-1], ("input.inject", event))
+
+    def test_input_rejects_unknown_fields(self):
+        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient())
+
+        status, payload = gateway.handle("POST", ["input"], {}, {
+            "sessionId": "gateway-session",
+            "sequence": 1,
+            "kind": "pointer",
+            "x": 0.5,
+            "y": 0.5,
+            "button": None,
+            "keyCode": None,
+            "text": None,
+            "deltaX": None,
+            "deltaY": None,
+            "unexpected": True,
+        })
+
+        self.assertEqual(status, 400)
+        self.assertEqual(payload, {"error": "invalid_request"})
 
     def test_status_generates_cloudflare_turn_ice_servers_when_configured(self):
         old_env = dict(os.environ)

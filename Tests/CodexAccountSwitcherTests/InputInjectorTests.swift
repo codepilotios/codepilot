@@ -116,6 +116,28 @@ final class InputInjectorTests: XCTestCase {
         XCTAssertTrue(sink.events.contains(.keyUp(55)))
         XCTAssertTrue(sink.events.contains(.buttonUp(0, CGPoint(x: 50, y: 50))))
     }
+
+    func testPointerWithDeltasMovesRelativeToCurrentCursor() throws {
+        let sink = RecordingRemoteInputSink()
+        sink.pointerPosition = CGPoint(x: 400, y: 300)
+        let injector = RemoteInputInjector(validator: FakeRemoteInputLeaseValidator(), sink: sink)
+        let event = RemoteInputEvent(
+            sessionId: "lease-relative",
+            sequence: 1,
+            kind: .pointer,
+            x: nil,
+            y: nil,
+            button: nil,
+            keyCode: nil,
+            text: nil,
+            deltaX: 24,
+            deltaY: -12
+        )
+
+        try injector.handle(event, displayFrame: CGRect(x: 0, y: 0, width: 1000, height: 800))
+
+        XCTAssertEqual(sink.events, [.pointer(CGPoint(x: 424, y: 288))])
+    }
 }
 
 final class FakeRemoteInputLeaseValidator: RemoteInputLeaseValidating {
@@ -143,8 +165,13 @@ final class RecordingRemoteInputSink: RemoteInputPosting {
     }
 
     var events: [Event] = []
+    var pointerPosition: CGPoint = .zero
 
-    func movePointer(to point: CGPoint) { events.append(.pointer(point)) }
+    func currentPointerPosition() -> CGPoint { pointerPosition }
+    func movePointer(to point: CGPoint) {
+        pointerPosition = point
+        events.append(.pointer(point))
+    }
     func buttonDown(_ button: Int, at point: CGPoint) { events.append(.buttonDown(button, point)) }
     func buttonUp(_ button: Int, at point: CGPoint) { events.append(.buttonUp(button, point)) }
     func scroll(deltaX: Double, deltaY: Double) { events.append(.scroll(deltaX, deltaY)) }

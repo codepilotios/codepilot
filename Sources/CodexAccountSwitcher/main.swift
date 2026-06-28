@@ -669,6 +669,10 @@ final class CodexAccountSwitcher {
         guard !events.isEmpty else { return }
         let active = activeAccountName()
         applyTurnTracking(from: events)
+        if events.contains(where: { $0.isTerminalTurnActivity || $0.clearsThreadTurns }),
+           activeTurnTracker.activeTurnCount == 0 {
+            persistActiveAuthToProfile(context: "after turn finished")
+        }
 
         if pendingSwitchReason == nil, let exhausted = events.first(where: { $0.isTokenExhaustion }) {
             pendingSwitchReason = exhausted.summary
@@ -677,6 +681,22 @@ final class CodexAccountSwitcher {
             statusMessage = "Limit detected; waiting for Codex to finish"
             appendAudit("Queued automatic switch for \(active): \(Self.singleLine(exhausted.summary, limit: 180))")
             startRateLimitRefreshIfNeeded(force: true)
+        }
+    }
+
+    private func persistActiveAuthToProfile(context: String) {
+        do {
+            let didSync = try AuthProfileSynchronizer.syncActiveAuthToProfile(
+                activeAuth: settings.activeAuth,
+                activeAccountMarker: settings.activeAccountMarker,
+                accountsDir: settings.accountsDir,
+                fileManager: fileManager
+            )
+            if didSync {
+                appendAudit("Synced active auth to profile \(context)")
+            }
+        } catch {
+            appendAudit("Skipped active auth sync \(context): \(error.localizedDescription)")
         }
     }
 
@@ -1246,6 +1266,7 @@ final class CodexAccountSwitcher {
             throw SwitchError.activeTurnsRunning(blockers.count)
         }
 
+        persistActiveAuthToProfile(context: "before switching to \(next.name)")
         try backupActiveAuth()
         let temporary = settings.activeAuth.deletingLastPathComponent()
             .appendingPathComponent(".auth.json.codex-account-switcher.tmp")
@@ -1478,6 +1499,115 @@ struct CodexQuitGuard {
         phoneGatewayJobDescriptions: [String]
     ) -> [String] {
         Array(Set(activeTurnDescriptions + phoneGatewayJobDescriptions)).sorted()
+    }
+}
+
+enum AuthProfileSynchronizer {
+    @discardableResult
+    static func syncActiveAuthToProfile(
+        activeAuth: URL,
+        activeAccountMarker: URL,
+        accountsDir: URL,
+        fileManager: FileManager = .default
+    ) throws -> Bool {
+        guard fileManager.fileExists(atPath: activeAuth.path) else { return false }
+        guard let accountName = try? String(contentsOf: activeAccountMarker, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              !accountName.isEmpty,
+              accountName != "unknown" else {
+            return false
+        }
+
+        let profileAuth = accountsDir
+            .appendingPathComponent(accountName, isDirectory: true)
+            .appendingPathComponent("auth.json")
+        guard fileManager.fileExists(atPath: profileAuth.path) else { return false }
+
+        return try withAuthFileLock(near: activeAccountMarker, fileManager: fileManager) {
+            let activeData = try Data(contentsOf: activeAuth)
+            let profileData = try Data(contentsOf: profileAuth)
+            guard activeData != profileData else { return false }
+
+            let decoder = JSONDecoder()
+            let activeSnapshot = try decoder.decode(AuthFileSnapshot.self, from: activeData)
+            let profileSnapshot = try decoder.decode(AuthFileSnapshot.self, from: profileData)
+            let activeAccountID = activeSnapshot.tokens?.accountID ?? ""
+            let profileAccountID = profileSnapshot.tokens?.accountID ?? ""
+            if !activeAccountID.isEmpty, !profileAccountID.isEmpty, activeAccountID != profileAccountID {
+                return false
+            }
+
+            if let activeRefresh = activeSnapshot.lastRefreshDate,
+               let profileRefresh = profileSnapshot.lastRefreshDate,
+               activeRefresh < profileRefresh {
+                return false
+            }
+
+            try installAuth(from: activeAuth, to: profileAuth, fileManager: fileManager)
+            return true
+        }
+    }
+
+    private static func withAuthFileLock<T>(
+        near marker: URL,
+        fileManager: FileManager,
+        body: () throws -> T
+    ) throws -> T {
+        let lockURL = marker.deletingLastPathComponent().appendingPathComponent("auth-files.lock")
+        fileManager.createFile(atPath: lockURL.path, contents: nil)
+        let fd = open(lockURL.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        guard fd >= 0 else { throw POSIXError(.EIO) }
+        defer { close(fd) }
+        guard flock(fd, LOCK_EX) == 0 else { throw POSIXError(.EIO) }
+        defer { flock(fd, LOCK_UN) }
+        return try body()
+    }
+
+    private static func installAuth(
+        from source: URL,
+        to destination: URL,
+        fileManager: FileManager
+    ) throws {
+        try fileManager.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let temporary = destination
+            .deletingLastPathComponent()
+            .appendingPathComponent(".auth.json.codex-account-switcher.tmp")
+        if fileManager.fileExists(atPath: temporary.path) {
+            try fileManager.removeItem(at: temporary)
+        }
+        try fileManager.copyItem(at: source, to: temporary)
+        if fileManager.fileExists(atPath: destination.path) {
+            _ = try fileManager.replaceItemAt(destination, withItemAt: temporary)
+        } else {
+            try fileManager.moveItem(at: temporary, to: destination)
+        }
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destination.path)
+    }
+}
+
+private struct AuthFileSnapshot: Decodable {
+    let lastRefresh: String?
+    let tokens: AuthFileSnapshotTokens?
+
+    var lastRefreshDate: Date? {
+        guard let lastRefresh else { return nil }
+        return ISO8601DateFormatter().date(from: lastRefresh)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case lastRefresh = "last_refresh"
+        case tokens
+    }
+}
+
+private struct AuthFileSnapshotTokens: Decodable {
+    let accountID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case accountID = "account_id"
     }
 }
 
@@ -2453,9 +2583,30 @@ private final class CodePilotSetupWindowController: NSWindowController {
     }
 }
 
+private enum RemoteDesktopRPCValidationError: Error {
+    case invalidRequest
+}
+
+private final class GatewayRemoteInputValidator: RemoteInputLeaseValidating {
+    private let lock = NSLock()
+    private var lastSequenceBySession: [String: UInt64] = [:]
+
+    func validateInput(sessionID: String, sequence: UInt64) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        if let last = lastSequenceBySession[sessionID], sequence <= last {
+            throw RemoteDesktopSecurityError.sequenceReplay
+        }
+        lastSequenceBySession[sessionID] = sequence
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
+    private let remoteFrameCaptureService = RemoteFrameCaptureService()
+    private let remoteInputInjector = RemoteInputInjector(validator: GatewayRemoteInputValidator())
     private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
+    private var remoteDesktopSocketServer: RemoteDesktopSocketServer?
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var setupWindowController: CodePilotSetupWindowController?
@@ -2464,11 +2615,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
 
+        if !CGPreflightScreenCaptureAccess() {
+            _ = CGRequestScreenCaptureAccess()
+        }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "CodePilot"
         menu.delegate = self
         statusItem.menu = menu
         remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
+        if let remoteDesktopCoordinator {
+            do {
+                let server = RemoteDesktopSocketServer { [weak self, weak remoteDesktopCoordinator] request in
+                    guard let self, let remoteDesktopCoordinator else {
+                        return Self.remoteDesktopRPCError(request.id, status: 503, code: "host_unavailable")
+                    }
+                    return self.handleRemoteDesktopRPC(request, coordinator: remoteDesktopCoordinator)
+                }
+                try server.start()
+                remoteDesktopSocketServer = server
+            } catch {
+                NSLog("CodePilot remote desktop host failed to start: \(error.localizedDescription)")
+            }
+        }
         switcher.onChange = { [weak self] in self?.updateStatusTitle() }
         switcher.start()
         updateStatusTitle()
@@ -2622,6 +2791,172 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         remoteDesktopWindowController?.showWindow(nil)
         remoteDesktopWindowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func handleRemoteDesktopRPC(
+        _ request: HostRPCRequest,
+        coordinator: RemoteDesktopCoordinator
+    ) -> HostRPCResponse {
+        do {
+            switch request.method {
+            case "status":
+                coordinator.refreshStatus()
+                let status = coordinator.snapshot
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "ok": true,
+                    "screenRecordingGranted": status.screenRecordingGranted,
+                    "accessibilityGranted": status.accessibilityGranted,
+                    "macUnlocked": status.macUnlocked,
+                    "trustedDeviceCount": status.trustedDevices.count,
+                    "capabilities": [
+                        "pairing": true,
+                        "sessions": true,
+                        "screen": true,
+                        "input": status.accessibilityGranted
+                    ]
+                ])
+
+            case "pairing.start":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let name = try Self.remoteDesktopString(payload["name"])
+                let publicKey = try Self.remoteDesktopBase64(payload["publicKey"])
+                let pending = try coordinator.beginPairing(
+                    deviceID: deviceID,
+                    name: name,
+                    publicKeyRawRepresentation: publicKey,
+                    macName: Host.current().localizedName ?? "Mac"
+                )
+                return try Self.remoteDesktopRPCCodable(request.id, pending.challenge)
+
+            case "pairing.complete":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let challengeID = try Self.remoteDesktopString(payload["challengeId"])
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let signature = try Self.remoteDesktopBase64(payload["signature"])
+                guard let challenge = coordinator.pairingStore.challenge(id: challengeID) else {
+                    return Self.remoteDesktopRPCError(request.id, status: 410, code: "pairing_expired")
+                }
+                let token = try coordinator.pairingStore.verifyChallenge(
+                    challenge,
+                    deviceID: deviceID,
+                    signature: signature
+                )
+                let device = try coordinator.pairingStore.approveDevice(using: token)
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCCodable(request.id, device)
+
+            case "devices.list":
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "devices": try Self.remoteDesktopJSONArray(coordinator.snapshot.trustedDevices)
+                ])
+
+            case "devices.revoke":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let device = try coordinator.pairingStore.revokeDevice(id: deviceID)
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCCodable(request.id, device)
+
+            case "audit.list":
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "events": try Self.remoteDesktopJSONArray(coordinator.snapshot.auditEvents),
+                    "nextCursor": NSNull()
+                ])
+
+            case "frame.capture":
+                let frame = try remoteFrameCaptureService.captureMainDisplayJPEG()
+                return HostRPCResponse(id: request.id, status: 200, payload: frame, errorCode: nil)
+
+            case "input.inject":
+                coordinator.refreshStatus()
+                guard coordinator.snapshot.accessibilityGranted else {
+                    return Self.remoteDesktopRPCError(request.id, status: 403, code: "accessibility_required")
+                }
+                let decoder = JSONDecoder()
+                let event = try decoder.decode(RemoteInputEvent.self, from: request.payload)
+                try remoteInputInjector.handle(event, displayFrame: CGDisplayBounds(CGMainDisplayID()))
+                return try Self.remoteDesktopRPCJSON(request.id, ["ok": true])
+
+            default:
+                return Self.remoteDesktopRPCError(request.id, status: 404, code: "unsupported_method")
+            }
+        } catch {
+            return Self.remoteDesktopRPCError(
+                request.id,
+                status: 400,
+                code: Self.remoteDesktopRPCErrorCode(error)
+            )
+        }
+    }
+
+    private static func remoteDesktopRPCPayload(_ data: Data) throws -> [String: Any] {
+        if data.isEmpty {
+            return [:]
+        }
+        let object = try JSONSerialization.jsonObject(with: data)
+        guard let payload = object as? [String: Any] else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return payload
+    }
+
+    private static func remoteDesktopString(_ value: Any?) throws -> String {
+        guard let string = value as? String, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return string
+    }
+
+    private static func remoteDesktopBase64(_ value: Any?) throws -> Data {
+        let string = try remoteDesktopString(value)
+        guard let data = Data(base64Encoded: string) else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return data
+    }
+
+    private static func remoteDesktopRPCCodable<T: Encodable>(_ id: UUID, _ value: T) throws -> HostRPCResponse {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.dataEncodingStrategy = .base64
+        return HostRPCResponse(id: id, status: 200, payload: try encoder.encode(value), errorCode: nil)
+    }
+
+    private static func remoteDesktopJSONArray<T: Encodable>(_ values: [T]) throws -> [[String: Any]] {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.dataEncodingStrategy = .base64
+        let data = try encoder.encode(values)
+        return (try JSONSerialization.jsonObject(with: data) as? [[String: Any]]) ?? []
+    }
+
+    private static func remoteDesktopRPCJSON(_ id: UUID, _ value: [String: Any]) throws -> HostRPCResponse {
+        HostRPCResponse(
+            id: id,
+            status: 200,
+            payload: try JSONSerialization.data(withJSONObject: value),
+            errorCode: nil
+        )
+    }
+
+    private static func remoteDesktopRPCError(_ id: UUID, status: Int, code: String) -> HostRPCResponse {
+        HostRPCResponse(id: id, status: status, payload: Data(), errorCode: code)
+    }
+
+    private static func remoteDesktopRPCErrorCode(_ error: Error) -> String {
+        switch error as? RemoteDesktopSecurityError {
+        case .challengeExpired, .challengeAlreadyUsed, .challengeUnknown:
+            return "pairing_expired"
+        case .invalidSignature:
+            return "invalid_signature"
+        case .deviceRevoked, .untrustedDevice:
+            return "untrusted_device"
+        default:
+            return "invalid_request"
+        }
     }
 
     @objc private func switchToProfile(_ sender: NSMenuItem) {

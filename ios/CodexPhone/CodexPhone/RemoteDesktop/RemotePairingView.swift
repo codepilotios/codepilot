@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct RemotePairingView: View {
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var statusText = "Not paired"
@@ -50,6 +51,15 @@ struct RemotePairingView: View {
             }
             .navigationTitle("Remote Desktop")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Label("Back", systemImage: "chevron.left")
+                    }
+                }
+            }
             .task {
                 await refreshStatus()
             }
@@ -62,7 +72,13 @@ struct RemotePairingView: View {
         defer { isLoading = false }
         do {
             let status = try await api.status()
-            if status.capabilities?.relayAvailable == true {
+            if status.screenRecordingGranted == false || status.accessibilityGranted == false {
+                let missing = [
+                    status.screenRecordingGranted == false ? "Screen Recording" : nil,
+                    status.accessibilityGranted == false ? "Accessibility" : nil
+                ].compactMap { $0 }.joined(separator: " and ")
+                statusText = "Allow \(missing) for CodePilot on the Mac"
+            } else if status.capabilities?.relayAvailable == true {
                 statusText = "Host reachable, relay available"
             } else {
                 statusText = "Host reachable, local/STUN only"

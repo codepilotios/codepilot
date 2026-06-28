@@ -63,6 +63,47 @@ struct RemoteDesktopAPI {
         try await request("GET", path: "/api/remote/status", body: nil)
     }
 
+    func frame() async throws -> Data {
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+            throw RemoteDesktopAPIError.invalidURL
+        }
+        let basePath = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        components.path = "/" + ([basePath, "api", "remote", "frame"].filter { !$0.isEmpty }.joined(separator: "/"))
+        components.queryItems = [URLQueryItem(name: "t", value: String(Date().timeIntervalSince1970))]
+        guard let url = components.url else {
+            throw RemoteDesktopAPIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 5
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("image/jpeg", forHTTPHeaderField: "Accept")
+
+        let (data, response) = try await transport(request)
+        guard (200..<300).contains(response.statusCode) else {
+            let code = (try? JSONDecoder().decode(RemoteDesktopAPIErrorResponse.self, from: data).error) ?? "remote_desktop_error"
+            throw RemoteDesktopAPIError.server(status: response.statusCode, code: code)
+        }
+        return data
+    }
+
+    func sendInput(_ event: RemoteInputEvent) async throws {
+        guard let url = URL(string: "/api/remote/input", relativeTo: baseURL)?.absoluteURL else {
+            throw RemoteDesktopAPIError.invalidURL
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 5
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(event)
+        let (data, response) = try await transport(request)
+        guard (200..<300).contains(response.statusCode) else {
+            let code = (try? JSONDecoder().decode(RemoteDesktopAPIErrorResponse.self, from: data).error) ?? "remote_desktop_error"
+            throw RemoteDesktopAPIError.server(status: response.statusCode, code: code)
+        }
+    }
+
     private func request<T: Decodable>(_ method: String, path: String, body: [String: Any]?) async throws -> T {
         guard let url = URL(string: path, relativeTo: baseURL)?.absoluteURL else {
             throw RemoteDesktopAPIError.invalidURL
@@ -100,6 +141,9 @@ struct RemoteDesktopAPI {
 
 struct RemoteDesktopHostStatus: Codable, Equatable {
     let ok: Bool?
+    let screenRecordingGranted: Bool?
+    let accessibilityGranted: Bool?
+    let macUnlocked: Bool?
     let iceServers: [RemoteIceServer]?
     let capabilities: RemoteDesktopCapabilities?
 }

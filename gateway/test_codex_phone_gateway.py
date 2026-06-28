@@ -1011,6 +1011,52 @@ class GatewayStateTests(unittest.TestCase):
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
+    def test_switch_account_persists_refreshed_active_auth_before_installing_next_account(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            codex_home = tmp_path / "codex"
+            codex_home.mkdir()
+            switcher_home = tmp_path / "switcher"
+            accounts_dir = switcher_home / "accounts"
+            (accounts_dir / "Main").mkdir(parents=True)
+            (accounts_dir / "Free").mkdir(parents=True)
+            active_auth = {
+                "last_refresh": "2026-06-24T08:00:00Z",
+                "tokens": {"account_id": "main-account", "access_token": "active-refreshed"},
+            }
+            main_profile_auth = {
+                "last_refresh": "2026-06-23T08:00:00Z",
+                "tokens": {"account_id": "main-account", "access_token": "old-profile"},
+            }
+            free_profile_auth = {
+                "last_refresh": "2026-06-24T07:00:00Z",
+                "tokens": {"account_id": "free-account", "access_token": "free"},
+            }
+            (codex_home / "auth.json").write_text(json.dumps(active_auth), encoding="utf-8")
+            (accounts_dir / "Main" / "auth.json").write_text(json.dumps(main_profile_auth), encoding="utf-8")
+            (accounts_dir / "Free" / "auth.json").write_text(json.dumps(free_profile_auth), encoding="utf-8")
+            (switcher_home / "active-account.txt").write_text("Main\n", encoding="utf-8")
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            with gateway.JOBS_LOCK:
+                old_jobs = dict(gateway.JOBS)
+                gateway.JOBS.clear()
+            try:
+                state = GatewayState(codex_home, "token", Path("/missing-codex"), False)
+
+                state.switch_account("Free")
+
+                persisted_main = json.loads((accounts_dir / "Main" / "auth.json").read_text(encoding="utf-8"))
+                installed_active = json.loads((codex_home / "auth.json").read_text(encoding="utf-8"))
+                self.assertEqual(persisted_main["tokens"]["access_token"], "active-refreshed")
+                self.assertEqual(installed_active["tokens"]["access_token"], "free")
+            finally:
+                with gateway.JOBS_LOCK:
+                    gateway.JOBS.clear()
+                    gateway.JOBS.update(old_jobs)
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
     def test_parse_mcp_list_output_marks_reconnectable_auth_states(self):
         state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
         output = """Name                   Url                                                          Bearer Token Env Var  Status   Auth

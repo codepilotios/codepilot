@@ -17,6 +17,30 @@ struct RemoteInputMapper {
         pointer(kind: .pointer, point: point, size: size)
     }
 
+    mutating func moveRelative(delta: CGSize, sensitivity: CGFloat = 1.35) -> RemoteInputEvent {
+        make(
+            kind: .pointer,
+            deltaX: Double(delta.width * sensitivity),
+            deltaY: Double(delta.height * sensitivity)
+        )
+    }
+
+    mutating func buttonDown(at point: CGPoint, in size: CGSize, button: Int = 0) -> RemoteInputEvent {
+        pointer(kind: .buttonDown, point: point, size: size, button: button)
+    }
+
+    mutating func buttonUp(at point: CGPoint, in size: CGSize, button: Int = 0) -> RemoteInputEvent {
+        pointer(kind: .buttonUp, point: point, size: size, button: button)
+    }
+
+    mutating func buttonDown(button: Int = 0) -> RemoteInputEvent {
+        make(kind: .buttonDown, button: button)
+    }
+
+    mutating func buttonUp(button: Int = 0) -> RemoteInputEvent {
+        make(kind: .buttonUp, button: button)
+    }
+
     mutating func scroll(delta: CGSize) -> RemoteInputEvent {
         make(kind: .scroll, deltaX: delta.width, deltaY: delta.height)
     }
@@ -33,11 +57,17 @@ struct RemoteInputMapper {
         make(kind: .text, text: text)
     }
 
-    private mutating func pointer(kind: RemoteInputKind, point: CGPoint, size: CGSize) -> RemoteInputEvent {
+    private mutating func pointer(
+        kind: RemoteInputKind,
+        point: CGPoint,
+        size: CGSize,
+        button: Int? = nil
+    ) -> RemoteInputEvent {
         make(
             kind: kind,
             x: normalized(point.x, size.width),
-            y: normalized(point.y, size.height)
+            y: normalized(point.y, size.height),
+            button: button
         )
     }
 

@@ -17,6 +17,7 @@ protocol RemoteInputLeaseValidating: AnyObject {
 }
 
 protocol RemoteInputPosting: AnyObject {
+    func currentPointerPosition() -> CGPoint
     func movePointer(to point: CGPoint)
     func buttonDown(_ button: Int, at point: CGPoint)
     func buttonUp(_ button: Int, at point: CGPoint)
@@ -42,15 +43,23 @@ final class RemoteInputInjector {
 
         switch event.kind {
         case .pointer:
-            sink.movePointer(to: try point(for: event, displayFrame: displayFrame))
+            if let deltaX = event.deltaX, let deltaY = event.deltaY, event.x == nil, event.y == nil {
+                let current = sink.currentPointerPosition()
+                sink.movePointer(to: CGPoint(
+                    x: min(displayFrame.maxX, max(displayFrame.minX, current.x + deltaX)),
+                    y: min(displayFrame.maxY, max(displayFrame.minY, current.y + deltaY))
+                ))
+            } else {
+                sink.movePointer(to: try point(for: event, displayFrame: displayFrame))
+            }
         case .buttonDown:
             let button = event.button ?? 0
-            let point = try point(for: event, displayFrame: displayFrame)
+            let point = try pointOrCurrent(for: event, displayFrame: displayFrame)
             pressedButtons[button] = point
             sink.buttonDown(button, at: point)
         case .buttonUp:
             let button = event.button ?? 0
-            let point = try point(for: event, displayFrame: displayFrame)
+            let point = try pointOrCurrent(for: event, displayFrame: displayFrame)
             pressedButtons.removeValue(forKey: button)
             sink.buttonUp(button, at: point)
         case .scroll:
@@ -87,9 +96,20 @@ final class RemoteInputInjector {
         }
         return DisplayCoordinateMapper.map(x: x, y: y, into: displayFrame)
     }
+
+    private func pointOrCurrent(for event: RemoteInputEvent, displayFrame: CGRect) throws -> CGPoint {
+        if event.x == nil, event.y == nil {
+            return sink.currentPointerPosition()
+        }
+        return try point(for: event, displayFrame: displayFrame)
+    }
 }
 
 final class CGEventRemoteInputSink: RemoteInputPosting {
+    func currentPointerPosition() -> CGPoint {
+        CGEvent(source: nil)?.location ?? .zero
+    }
+
     func movePointer(to point: CGPoint) {
         CGEvent(mouseEventSource: nil, mouseType: .mouseMoved, mouseCursorPosition: point, mouseButton: .left)?
             .post(tap: .cghidEventTap)

@@ -24,6 +24,8 @@ ERROR_STATUS = {
     "pairing_expired": 410,
     "untrusted_device": 403,
     "invalid_signature": 403,
+    "accessibility_required": 403,
+    "screen_recording_required": 403,
     "controller_busy": 409,
     "session_expired": 410,
     "sequence_replay": 409,
@@ -35,6 +37,11 @@ IDENTIFIER_MAX_LENGTH = 128
 SIGNAL_QUEUE_LIMIT = 256
 STUN_ONLY_ICE_SERVERS = [{"urls": ["stun:stun.l.google.com:19302"]}]
 MAX_CLIPBOARD_TEXT_BYTES = 1_048_576
+REMOTE_INPUT_KEYS = {
+    "sessionId", "sequence", "kind", "x", "y", "button", "keyCode",
+    "text", "deltaX", "deltaY",
+}
+REMOTE_INPUT_KINDS = {"pointer", "buttonDown", "buttonUp", "scroll", "keyDown", "keyUp", "text"}
 
 
 class RemoteDesktopHostError(RuntimeError):
@@ -138,7 +145,7 @@ def _decode_response(raw: bytes, expected_id: str) -> dict[str, Any]:
     payload = message.get("payload")
     error_code = message.get("errorCode")
 
-    if not isinstance(request_id, str) or request_id != expected_id:
+    if not isinstance(request_id, str) or request_id.lower() != expected_id.lower():
         raise RemoteDesktopHostError("malformed_response")
     if not isinstance(status, int):
         raise RemoteDesktopHostError("malformed_response")
@@ -215,6 +222,37 @@ class RemoteDesktopGateway:
             status.setdefault("iceServers", self._ice_servers())
             status.setdefault("capabilities", {})["relayAvailable"] = self._relay_available()
             return 200, status
+
+        if method == "GET" and parts == ["frame"]:
+            response = self.host_client.call("frame.capture", {})
+            status = int(response.get("status") or 500)
+            error_code = response.get("errorCode")
+            if status >= 400 or error_code:
+                raise RemoteDesktopHostError(str(error_code or "host_unavailable"))
+            raw_payload = response.get("payload")
+            if not isinstance(raw_payload, (bytes, bytearray)) or not raw_payload:
+                raise RemoteDesktopHostError("malformed_response")
+            return 200, {
+                "_raw": bytes(raw_payload),
+                "_content_type": "image/jpeg",
+                "_cache_control": "no-store, max-age=0",
+            }
+
+        if method == "POST" and parts == ["input"]:
+            payload = _input_body(body)
+            _validate_identifier(payload["sessionId"])
+            _positive_int(payload["sequence"])
+            if payload["kind"] not in REMOTE_INPUT_KINDS:
+                raise RemoteDesktopRequestError(400, "invalid_request")
+            for key in ("x", "y", "deltaX", "deltaY"):
+                if payload.get(key) is not None and not isinstance(payload[key], (int, float)):
+                    raise RemoteDesktopRequestError(400, "invalid_request")
+            for key in ("button", "keyCode"):
+                if payload.get(key) is not None and not isinstance(payload[key], int):
+                    raise RemoteDesktopRequestError(400, "invalid_request")
+            if payload.get("text") is not None and not isinstance(payload["text"], str):
+                raise RemoteDesktopRequestError(400, "invalid_request")
+            return 200, self._native_json("input.inject", payload)
 
         if method == "POST" and parts == ["pairing", "start"]:
             payload = _strict_body(body, {"deviceId", "name", "publicKey"})
@@ -372,6 +410,15 @@ def _strict_body(body: dict[str, Any] | None, allowed_keys: set[str]) -> dict[st
         raise RemoteDesktopRequestError(400, "invalid_request")
     keys = set(body)
     if keys != allowed_keys:
+        raise RemoteDesktopRequestError(400, "invalid_request")
+    return dict(body)
+
+
+def _input_body(body: dict[str, Any] | None) -> dict[str, Any]:
+    if not isinstance(body, dict):
+        raise RemoteDesktopRequestError(400, "invalid_request")
+    keys = set(body)
+    if not {"sessionId", "sequence", "kind"}.issubset(keys) or not keys.issubset(REMOTE_INPUT_KEYS):
         raise RemoteDesktopRequestError(400, "invalid_request")
     return dict(body)
 

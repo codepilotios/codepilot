@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RemoteControlBar: View {
     let latencyText: String
+    let isPanMode: Bool
     let onKeyboard: () -> Void
     let onClipboard: () -> Void
     let onMode: () -> Void
@@ -16,8 +17,9 @@ struct RemoteControlBar: View {
                 Image(systemName: "doc.on.clipboard")
             }
             Button(action: onMode) {
-                Image(systemName: "hand.draw")
+                Image(systemName: isPanMode ? "hand.draw.fill" : "cursorarrow.motionlines")
             }
+            .tint(isPanMode ? .accentColor : nil)
             Text(latencyText)
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
