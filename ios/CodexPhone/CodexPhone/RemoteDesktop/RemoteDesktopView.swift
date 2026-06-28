@@ -103,7 +103,7 @@ struct RemoteDesktopView: View {
                         }
                     }
 
-                if let imageSize = remoteImageSize {
+                if peer.videoTrack == nil, let imageSize = remoteImageSize {
                     Image(systemName: "cursorarrow")
                         .font(.system(size: cursorSymbolSize(), weight: .semibold))
                         .foregroundStyle(.white)

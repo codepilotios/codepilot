@@ -52,7 +52,7 @@ final class ScreenCaptureService: NSObject, ScreenCaptureServicing, SCStreamOutp
         configuration.minimumFrameInterval = CMTime(value: 1, timescale: 30)
         configuration.queueDepth = 5
         configuration.pixelFormat = kCVPixelFormatType_32BGRA
-        configuration.showsCursor = false
+        configuration.showsCursor = true
         configuration.capturesAudio = false
 
         let filter = SCContentFilter(display: display, excludingWindows: [])
