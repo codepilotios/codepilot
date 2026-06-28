@@ -55,11 +55,17 @@ final class RemoteInputInjector {
         case .buttonDown:
             let button = event.button ?? 0
             let point = try pointOrCurrent(for: event, displayFrame: displayFrame)
+            if event.x != nil || event.y != nil {
+                sink.movePointer(to: point)
+            }
             pressedButtons[button] = point
             sink.buttonDown(button, at: point)
         case .buttonUp:
             let button = event.button ?? 0
             let point = try pointOrCurrent(for: event, displayFrame: displayFrame)
+            if event.x != nil || event.y != nil {
+                sink.movePointer(to: point)
+            }
             pressedButtons.removeValue(forKey: button)
             sink.buttonUp(button, at: point)
         case .scroll:

@@ -138,6 +138,32 @@ final class InputInjectorTests: XCTestCase {
 
         XCTAssertEqual(sink.events, [.pointer(CGPoint(x: 424, y: 288))])
     }
+
+    func testAbsoluteButtonDownMovesPointerBeforeClicking() throws {
+        let sink = RecordingRemoteInputSink()
+        sink.pointerPosition = CGPoint(x: 10, y: 10)
+        let injector = RemoteInputInjector(validator: FakeRemoteInputLeaseValidator(), sink: sink)
+        let event = RemoteInputEvent(
+            sessionId: "lease-click",
+            sequence: 1,
+            kind: .buttonDown,
+            x: 0.25,
+            y: 0.75,
+            button: 0,
+            keyCode: nil,
+            text: nil,
+            deltaX: nil,
+            deltaY: nil
+        )
+
+        try injector.handle(event, displayFrame: CGRect(x: 0, y: 0, width: 1000, height: 800))
+
+        let target = CGPoint(x: 250, y: 600)
+        XCTAssertEqual(sink.events, [
+            .pointer(target),
+            .buttonDown(0, target)
+        ])
+    }
 }
 
 final class FakeRemoteInputLeaseValidator: RemoteInputLeaseValidating {
