@@ -8,6 +8,7 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
+import WebKit
 
 @main
 struct CodexPhoneApp: App {
@@ -1342,6 +1343,7 @@ struct OpenableText: View {
     let gatewayURL: String
     let gatewayToken: String
     @State private var previewItem: FilePreviewItem?
+    @State private var localWebItem: LocalWebItem?
     @State private var openError: String?
 
     var body: some View {
@@ -1350,16 +1352,26 @@ struct OpenableText: View {
             .foregroundStyle(foregroundColor)
             .textSelection(.enabled)
             .environment(\.openURL, OpenURLAction { url in
-                guard let path = remoteFilePath(from: url) else {
-                    return .systemAction
+                if let path = remoteFilePath(from: url) {
+                    Task {
+                        await openRemoteFile(path)
+                    }
+                    return .handled
                 }
-                Task {
-                    await openRemoteFile(path)
+                if isMacLocalWebURL(url) {
+                    Task {
+                        await openLocalWebURL(url)
+                    }
+                    return .handled
                 }
-                return .handled
+                return .systemAction
             })
             .sheet(item: $previewItem) { item in
                 QuickLookPreview(url: item.url)
+                    .ignoresSafeArea()
+            }
+            .sheet(item: $localWebItem) { item in
+                LocalWebBrowserView(item: item)
                     .ignoresSafeArea()
             }
             .alert("File Could Not Be Opened", isPresented: Binding(
@@ -1385,11 +1397,31 @@ struct OpenableText: View {
             openError = error.localizedDescription
         }
     }
+
+    @MainActor
+    private func openLocalWebURL(_ url: URL) async {
+        do {
+            let sessionURL = try await CodexGatewayClient().startLocalWebSession(
+                url: url,
+                baseURL: gatewayURL,
+                token: gatewayToken
+            )
+            localWebItem = LocalWebItem(originalURL: url, sessionURL: sessionURL)
+        } catch {
+            openError = error.localizedDescription
+        }
+    }
 }
 
 struct FilePreviewItem: Identifiable {
     let id = UUID()
     let url: URL
+}
+
+struct LocalWebItem: Identifiable {
+    let id = UUID()
+    let originalURL: URL
+    let sessionURL: URL
 }
 
 struct QuickLookPreview: UIViewControllerRepresentable {
@@ -1424,6 +1456,47 @@ struct QuickLookPreview: UIViewControllerRepresentable {
             url as NSURL
         }
     }
+}
+
+struct LocalWebBrowserView: View {
+    let item: LocalWebItem
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            LocalWebView(url: item.sessionURL)
+                .navigationTitle(item.originalURL.absoluteString)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: item.originalURL) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .accessibilityLabel("Share Original URL")
+                    }
+                }
+        }
+    }
+}
+
+struct LocalWebView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.allowsBackForwardNavigationGestures = true
+        webView.load(URLRequest(url: url))
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
 }
 
 private let remoteFileURLScheme = "codex-phone-file"
@@ -1521,6 +1594,28 @@ private func remoteFilePath(from url: URL) -> String? {
         return nil
     }
     return components.queryItems?.first(where: { $0.name == "path" })?.value
+}
+
+func isMacLocalWebURL(_ url: URL) -> Bool {
+    guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
+        return false
+    }
+    guard let host = url.host?.lowercased() else {
+        return false
+    }
+    return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+func localWebSessionURL(path: String, baseURL: String) -> URL? {
+    guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+          var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+    let parsedPath = URLComponents(string: path)
+    components.path = parsedPath?.path ?? path
+    components.queryItems = parsedPath?.queryItems
+    components.fragment = nil
+    return components.url
 }
 
 struct JobStatusView: View {
@@ -4430,6 +4525,20 @@ struct CodexGatewayClient {
         return destination
     }
 
+    func startLocalWebSession(url: URL, baseURL: String, token: String) async throws -> URL {
+        let response: LocalWebSessionResponse = try await request(
+            "/api/local-web/sessions",
+            method: "POST",
+            body: LocalWebSessionRequest(url: url.absoluteString),
+            baseURL: baseURL,
+            token: token
+        )
+        guard let sessionURL = localWebSessionURL(path: response.path, baseURL: baseURL) else {
+            throw GatewayError.invalidResponse
+        }
+        return sessionURL
+    }
+
     private func get<T: Decodable>(_ path: String, baseURL: String, token: String) async throws -> T {
         try await request(path, method: "GET", body: Optional<[String: String]>.none, baseURL: baseURL, token: token)
     }
@@ -4688,6 +4797,17 @@ struct RenameThreadRequest: Encodable {
 
 struct PinThreadRequest: Encodable {
     let pinned: Bool
+}
+
+struct LocalWebSessionRequest: Encodable {
+    let url: String
+}
+
+struct LocalWebSessionResponse: Decodable {
+    let sessionId: String
+    let path: String
+    let targetOrigin: String
+    let expiresAt: Int
 }
 
 struct QueuedPrompt: Codable, Identifiable, Hashable {

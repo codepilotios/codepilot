@@ -40,6 +40,20 @@ class RecordingPushNotifier:
         self.sent.append((devices, notification))
 
 
+class RecordingLocalWebFetcher:
+    def __init__(self):
+        self.urls = []
+
+    def __call__(self, url):
+        self.urls.append(url)
+        return 200, {"Content-Type": "text/html; charset=utf-8"}, (
+            b'<html><head></head><body>'
+            b'<script src="/app.js"></script>'
+            b'<a href="http://localhost:3000/settings">Settings</a>'
+            b"</body></html>"
+        )
+
+
 class FakeRemoteLoginProcess:
     def __init__(self, codex_home: Path, auth_url: str):
         self.codex_home = codex_home
@@ -802,6 +816,41 @@ class GatewayStateTests(unittest.TestCase):
             self.assertEqual(metadata["filename"], "created-by-codex.txt")
             self.assertEqual(metadata["mimeType"], "text/plain")
             self.assertEqual(metadata["size"], 5)
+
+    def test_local_web_session_rejects_non_loopback_url(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+
+        with self.assertRaises(ValueError):
+            state.start_local_web_session("https://example.com")
+
+    def test_local_web_session_returns_gateway_path_for_localhost_url(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+
+        session = state.start_local_web_session("http://localhost:3000/dashboard?tab=logs")
+
+        self.assertEqual(session["targetOrigin"], "http://127.0.0.1:3000")
+        self.assertRegex(session["path"], r"^/api/local-web/[^/]+/dashboard\?tab=logs$")
+        self.assertGreater(session["expiresAt"], 0)
+
+    def test_local_web_session_proxies_localhost_content_and_rewrites_same_origin_links(self):
+        fetcher = RecordingLocalWebFetcher()
+        state = GatewayState(
+            Path("/tmp/codex"),
+            "token",
+            Path("/missing-codex"),
+            False,
+            local_web_fetcher=fetcher,
+        )
+        session = state.start_local_web_session("http://localhost:3000/dashboard")
+        session_id = session["sessionId"]
+
+        response = state.proxy_local_web_session(session_id, ["dashboard"], "")
+
+        self.assertEqual(fetcher.urls, ["http://127.0.0.1:3000/dashboard"])
+        self.assertEqual(response["status"], 200)
+        self.assertEqual(response["contentType"], "text/html; charset=utf-8")
+        self.assertIn(b'src="/api/local-web/', response["body"])
+        self.assertIn(b'href="/api/local-web/', response["body"])
 
     def test_prepare_workspace_can_create_new_project_directory(self):
         with tempfile.TemporaryDirectory() as tmp:

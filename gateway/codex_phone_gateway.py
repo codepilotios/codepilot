@@ -69,6 +69,8 @@ REMOTE_LOGIN_AUTH_URL_RE = re.compile(r"https://auth\.openai\.com/oauth/authoriz
 REMOTE_LOGIN_URL_RE = re.compile(r"https?://\S+")
 REMOTE_LOGIN_URL_TIMEOUT_SECONDS = 15
 REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS = 30
+LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 60 * 60
+LOCAL_WEB_MAX_BYTES = 25 * 1024 * 1024
 
 JOBS = {}
 JOB_PROCESSES = {}
@@ -656,6 +658,19 @@ def file_response(handler: BaseHTTPRequestHandler, path: Path):
         shutil.copyfileobj(handle, handler.wfile)
 
 
+def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
+    body = payload.get("body") or b""
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    status = int(payload.get("status") or 502)
+    handler.send_response(status)
+    handler.send_header("Content-Type", str(payload.get("contentType") or "application/octet-stream"))
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
 def truncate_text(text: str, limit: int = 900) -> str:
     compacted = re.sub(r"\s+", " ", text).strip()
     if len(compacted) <= limit:
@@ -678,6 +693,27 @@ def compact_json(value, limit: int = 900) -> str:
         return truncate_text(json.dumps(value, ensure_ascii=False, sort_keys=True), limit)
     except TypeError:
         return truncate_text(str(value), limit)
+
+
+def fetch_local_web_url(url: str) -> tuple[int, dict, bytes]:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "CodePilot/0.1 local-web-proxy",
+            "Accept": "*/*",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = response.read(LOCAL_WEB_MAX_BYTES + 1)
+            if len(body) > LOCAL_WEB_MAX_BYTES:
+                raise RuntimeError("Local web response is too large")
+            return int(response.status), dict(response.headers.items()), body
+    except urllib.error.HTTPError as exc:
+        body = exc.read(LOCAL_WEB_MAX_BYTES + 1)
+        if len(body) > LOCAL_WEB_MAX_BYTES:
+            raise RuntimeError("Local web response is too large")
+        return int(exc.code), dict(exc.headers.items()), body
 
 
 def is_stale_auth_message(message: str) -> bool:
@@ -1733,6 +1769,7 @@ class GatewayState:
         login_process_factory=subprocess.Popen,
         login_callback_relayer=None,
         remote_desktop_gateway=None,
+        local_web_fetcher=None,
     ):
         self.codex_home = codex_home
         self.token = token
@@ -1749,6 +1786,9 @@ class GatewayState:
         self.login_process_factory = login_process_factory
         self.login_callback_relayer = login_callback_relayer
         self.remote_desktop_gateway = remote_desktop_gateway if remote_desktop_gateway is not None else RemoteDesktopGateway()
+        self.local_web_fetcher = local_web_fetcher if local_web_fetcher is not None else fetch_local_web_url
+        self._local_web_sessions = {}
+        self._local_web_lock = threading.Lock()
         self._remote_login_sessions = {}
         self._remote_login_lock = threading.Lock()
 
@@ -3194,6 +3234,114 @@ class GatewayState:
             except OSError:
                 pass
 
+    def start_local_web_session(self, raw_url: str) -> dict:
+        parsed = self.validated_local_web_url(raw_url)
+        session_id = secrets.token_urlsafe(24)
+        now = int(time.time())
+        expires_at = now + LOCAL_WEB_SESSION_TIMEOUT_SECONDS
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        target_origin = f"{parsed.scheme}://127.0.0.1:{port}"
+        session = {
+            "id": session_id,
+            "scheme": parsed.scheme,
+            "port": port,
+            "createdAt": now,
+            "expiresAt": expires_at,
+            "targetOrigin": target_origin,
+        }
+        with self._local_web_lock:
+            self._local_web_sessions[session_id] = session
+            self.cleanup_expired_local_web_sessions_locked(now)
+        path = self.local_web_gateway_path(session_id, parsed.path or "/", parsed.query)
+        return {
+            "sessionId": session_id,
+            "path": path,
+            "targetOrigin": target_origin,
+            "expiresAt": expires_at,
+        }
+
+    def validated_local_web_url(self, raw_url: str):
+        value = str(raw_url or "").strip()
+        parsed = urllib.parse.urlparse(value)
+        if parsed.scheme not in {"http", "https"}:
+            raise ValueError("Only http and https localhost URLs can be opened")
+        hostname = (parsed.hostname or "").casefold()
+        if hostname not in {"localhost", "127.0.0.1", "::1"}:
+            raise ValueError("Only localhost URLs can be opened through the Mac gateway")
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if port <= 0 or port > 65535:
+            raise ValueError("Localhost URL port is invalid")
+        return parsed
+
+    def cleanup_expired_local_web_sessions_locked(self, now: int):
+        expired = [
+            session_id for session_id, session in self._local_web_sessions.items()
+            if int(session.get("expiresAt") or 0) <= now
+        ]
+        for session_id in expired:
+            self._local_web_sessions.pop(session_id, None)
+
+    def local_web_gateway_path(self, session_id: str, path: str, query: str = "") -> str:
+        clean_path = "/" + str(path or "/").lstrip("/")
+        quoted_path = urllib.parse.quote(clean_path, safe="/:@!$&'()*+,;=-._~")
+        gateway_path = f"/api/local-web/{session_id}{quoted_path}"
+        if query:
+            gateway_path += f"?{query}"
+        return gateway_path
+
+    def proxy_local_web_session(self, session_id: str, path_parts: list[str], query: str) -> dict:
+        now = int(time.time())
+        with self._local_web_lock:
+            self.cleanup_expired_local_web_sessions_locked(now)
+            session = self._local_web_sessions.get(str(session_id or ""))
+        if not session:
+            raise LookupError("Local web session not found or expired")
+
+        path = "/" + "/".join(urllib.parse.quote(urllib.parse.unquote(part), safe=":@!$&'()*+,;=-._~") for part in path_parts)
+        if path == "/":
+            path = "/"
+        url = urllib.parse.urlunparse((
+            str(session["scheme"]),
+            f"127.0.0.1:{int(session['port'])}",
+            path,
+            "",
+            str(query or ""),
+            "",
+        ))
+        status, headers, body = self.local_web_fetcher(url)
+        content_type = str(headers.get("Content-Type") or headers.get("content-type") or "application/octet-stream")
+        if "text/html" in content_type.lower():
+            body = self.rewrite_local_web_html(session, body)
+        return {
+            "status": int(status),
+            "contentType": content_type,
+            "body": body,
+        }
+
+    def rewrite_local_web_html(self, session: dict, body: bytes) -> bytes:
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return body
+        session_id = str(session["id"])
+        port = int(session["port"])
+        replacements = [
+            (f"http://localhost:{port}", f"/api/local-web/{session_id}"),
+            (f"http://127.0.0.1:{port}", f"/api/local-web/{session_id}"),
+            (f"https://localhost:{port}", f"/api/local-web/{session_id}"),
+            (f"https://127.0.0.1:{port}", f"/api/local-web/{session_id}"),
+        ]
+        for source, target in replacements:
+            text = text.replace(source, target)
+        session_base = f"/api/local-web/{session_id}"
+        text = re.sub(
+            r'''(?P<attr>\b(?:src|href|action)=["'])(?P<path>/(?!/|api/local-web/)[^"']*)''',
+            lambda match: f"{match.group('attr')}{session_base}{match.group('path')}",
+            text,
+            flags=re.IGNORECASE,
+        )
+        return text.encode("utf-8")
+
     def read_usage(self) -> dict:
         try:
             data = json.loads(self.usage_path.read_text(encoding="utf-8"))
@@ -3850,12 +3998,24 @@ class Handler(BaseHTTPRequestHandler):
         return False
 
     def do_GET(self):
-        if not self.authenticate():
-            return
-
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
         parts = [part for part in path.split("/") if part]
+
+        if len(parts) >= 3 and parts[0] == "api" and parts[1] == "local-web":
+            try:
+                local_web_response(
+                    self,
+                    self.state().proxy_local_web_session(parts[2], parts[3:], parsed.query),
+                )
+            except LookupError as exc:
+                json_response(self, 404, {"error": str(exc)})
+            except Exception as exc:
+                json_response(self, 502, {"error": str(exc)})
+            return
+
+        if not self.authenticate():
+            return
 
         try:
             if path == "/health":
@@ -4049,6 +4209,11 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "notifications" and parts[2] == "device":
                 body = decode_body(self)
                 json_response(self, 200, self.state().register_notification_device(body))
+                return
+
+            if len(parts) == 3 and parts[0] == "api" and parts[1] == "local-web" and parts[2] == "sessions":
+                body = decode_body(self)
+                json_response(self, 200, self.state().start_local_web_session(str(body.get("url", ""))))
                 return
 
             if len(parts) == 4 and parts[0] == "api" and parts[1] == "threads" and parts[3] == "turns":

@@ -3,6 +3,23 @@ import XCTest
 @testable import CodexPhone
 
 final class RemoteDesktopTests: XCTestCase {
+    func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
+        XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://localhost:3000"))))
+        XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://127.0.0.1:5173/path"))))
+        XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "https://localhost:8443"))))
+        XCTAssertFalse(isMacLocalWebURL(try XCTUnwrap(URL(string: "https://example.com"))))
+        XCTAssertFalse(isMacLocalWebURL(try XCTUnwrap(URL(string: "file:///tmp/app.log"))))
+    }
+
+    func testLocalWebSessionURLResolvesGatewayRelativePath() throws {
+        let url = try XCTUnwrap(localWebSessionURL(
+            path: "/api/local-web/session-1/dashboard?tab=logs",
+            baseURL: "https://gateway.example/base"
+        ))
+
+        XCTAssertEqual(url.absoluteString, "https://gateway.example/api/local-web/session-1/dashboard?tab=logs")
+    }
+
     func testRenderedMessageMarkdownPreservesChatLineBreaks() {
         let input = """
         Adjusted the Remote Desktop marker a little lower: offset is now 15pt instead of 11pt.
