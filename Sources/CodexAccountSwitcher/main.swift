@@ -2587,6 +2587,27 @@ private enum RemoteDesktopRPCValidationError: Error {
     case invalidRequest
 }
 
+private struct RemoteDesktopSignalResponse: Codable {
+    let signals: [MacPeerSignal]
+}
+
+private final class RemoteDesktopResultBox<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: Result<Value, Error>?
+
+    func store(_ value: Result<Value, Error>) {
+        lock.lock()
+        self.value = value
+        lock.unlock()
+    }
+
+    func load() -> Result<Value, Error>? {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+}
+
 private final class GatewayRemoteInputValidator: RemoteInputLeaseValidating {
     private let lock = NSLock()
     private var lastSequenceBySession: [String: UInt64] = [:]
@@ -2605,6 +2626,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
     private let remoteFrameCaptureService = RemoteFrameCaptureService()
     private let remoteInputInjector = RemoteInputInjector(validator: GatewayRemoteInputValidator())
+    private let macPeerConnection = MacPeerConnection()
     private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
     private var remoteDesktopSocketServer: RemoteDesktopSocketServer?
     private var statusItem: NSStatusItem!
@@ -2870,6 +2892,46 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let frame = try remoteFrameCaptureService.captureMainDisplayJPEG()
                 return HostRPCResponse(id: request.id, status: 200, payload: frame, errorCode: nil)
 
+            case "session.signal":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let sessionID = try Self.remoteDesktopString(payload["sessionId"])
+                let sequence = try Self.remoteDesktopUInt64(payload["sequence"])
+                let kindRaw = try Self.remoteDesktopString(payload["kind"])
+                guard let kind = MacPeerSignal.Kind(rawValue: kindRaw) else {
+                    throw RemoteDesktopRPCValidationError.invalidRequest
+                }
+                let signalPayload = try Self.remoteDesktopBase64(payload["payload"])
+                if macPeerConnection.state == .idle || macPeerConnection.state == .disconnected(leaseID: sessionID) {
+                    macPeerConnection.start(leaseID: sessionID)
+                }
+                let signal = MacPeerSignal(
+                    leaseID: sessionID,
+                    sequence: sequence,
+                    kind: kind,
+                    payload: signalPayload
+                )
+                try macPeerConnection.acceptRemoteSignal(signal)
+                guard kind == .offer, let offer = String(data: signalPayload, encoding: .utf8) else {
+                    return try Self.remoteDesktopRPCCodable(request.id, RemoteDesktopSignalResponse(signals: []))
+                }
+                let answer = try Self.remoteDesktopAwait {
+                    try await self.macPeerConnection.answer(offerSDP: offer)
+                }
+                let answerSignal = MacPeerSignal(
+                    leaseID: sessionID,
+                    sequence: 1,
+                    kind: .answer,
+                    payload: Data(answer.utf8)
+                )
+                return try Self.remoteDesktopRPCCodable(
+                    request.id,
+                    RemoteDesktopSignalResponse(signals: [answerSignal])
+                )
+
+            case "session.end":
+                macPeerConnection.disconnect()
+                return try Self.remoteDesktopRPCJSON(request.id, ["ok": true])
+
             case "input.inject":
                 coordinator.refreshStatus()
                 guard coordinator.snapshot.accessibilityGranted else {
@@ -2916,6 +2978,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             throw RemoteDesktopRPCValidationError.invalidRequest
         }
         return string
+    }
+
+    private static func remoteDesktopUInt64(_ value: Any?) throws -> UInt64 {
+        if let number = value as? NSNumber, number.uint64Value > 0 {
+            return number.uint64Value
+        }
+        throw RemoteDesktopRPCValidationError.invalidRequest
     }
 
     private static func remoteDesktopBase64(_ value: Any?) throws -> Data {
@@ -2965,6 +3034,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         default:
             return "invalid_request"
         }
+    }
+
+    private static func remoteDesktopAwait<T>(
+        timeout: TimeInterval = 10,
+        operation: @escaping () async throws -> T
+    ) throws -> T {
+        let semaphore = DispatchSemaphore(value: 0)
+        let result = RemoteDesktopResultBox<T>()
+        Task {
+            let value: Result<T, Error>
+            do { value = .success(try await operation()) }
+            catch { value = .failure(error) }
+            result.store(value)
+            semaphore.signal()
+        }
+        guard semaphore.wait(timeout: .now() + timeout) == .success else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        guard let value = result.load() else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return try value.get()
     }
 
     @objc private func switchToProfile(_ sender: NSMenuItem) {

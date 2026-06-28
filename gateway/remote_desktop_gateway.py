@@ -292,7 +292,12 @@ class RemoteDesktopGateway:
             sequence = _positive_int(payload["sequence"])
             signal_kind = _validate_signal_kind(payload["kind"])
             _require_base64(payload["payload"])
-            return 200, self._append_signal(session_id, sequence, signal_kind, payload["payload"])
+            acknowledgement = self._append_signal(session_id, sequence, signal_kind, payload["payload"])
+            native = self._native_json("session.signal", {"sessionId": session_id, **payload})
+            signals = native.get("signals")
+            if isinstance(signals, list):
+                acknowledgement["signals"] = signals
+            return 200, acknowledgement
 
         if method == "GET" and len(parts) == 3 and parts[0] == "sessions" and parts[2] == "signal":
             session_id = _validate_identifier(parts[1])
