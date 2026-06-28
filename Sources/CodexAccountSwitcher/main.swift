@@ -2314,12 +2314,7 @@ enum SwitchError: LocalizedError {
 }
 
 private struct CodePilotSetupStatus {
-    let codexCLI: String
-    let codexAuth: String
-    let accounts: String
-    let gatewayToken: String
-    let gateway: String
-    let cloudflared: String
+    let rows: [CodePilotSetupRow]
 
     static func load() -> CodePilotSetupStatus {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -2333,14 +2328,40 @@ private struct CodePilotSetupStatus {
             options: [.skipsHiddenFiles]
         ).filter { FileManager.default.fileExists(atPath: $0.appendingPathComponent("auth.json").path) }.count) ?? 0
 
-        return CodePilotSetupStatus(
-            codexCLI: executablePath(named: "codex") ?? "Not found",
-            codexAuth: FileManager.default.fileExists(atPath: codexAuth) ? "Signed in" : "Missing auth.json",
-            accounts: accountCount == 1 ? "1 profile" : "\(accountCount) profiles",
-            gatewayToken: FileManager.default.fileExists(atPath: tokenPath.path) ? "Token present" : "Missing token",
-            gateway: gatewayHealth(),
-            cloudflared: executablePath(named: "cloudflared") ?? "Not found"
-        )
+        let codexCLI = executablePath(named: "codex")
+        let cloudflared = executablePath(named: "cloudflared")
+        return CodePilotSetupStatus(rows: [
+            CodePilotSetupRow(
+                title: "Codex CLI",
+                requirement: codexCLI == nil ? .codexCLIMissing : .codexCLIInstalled,
+                detail: codexCLI ?? "Install Codex before using CodePilot."
+            ),
+            CodePilotSetupRow(
+                title: "Codex Login",
+                requirement: FileManager.default.fileExists(atPath: codexAuth) ? .codexSignedIn : .codexSignedOut,
+                detail: FileManager.default.fileExists(atPath: codexAuth) ? "Signed in" : "Missing auth.json"
+            ),
+            CodePilotSetupRow(
+                title: "Account Profiles",
+                requirement: accountCount > 0 ? .profilesCreated : .profilesMissing,
+                detail: accountCount == 1 ? "1 profile" : "\(accountCount) profiles"
+            ),
+            CodePilotSetupRow(
+                title: "Gateway Token",
+                requirement: FileManager.default.fileExists(atPath: tokenPath.path) ? .gatewayTokenPresent : .gatewayTokenMissing,
+                detail: FileManager.default.fileExists(atPath: tokenPath.path) ? "Token present" : "Missing token"
+            ),
+            CodePilotSetupRow(
+                title: "Gateway",
+                requirement: gatewayHealthRequirement(),
+                detail: gatewayHealthDetail()
+            ),
+            CodePilotSetupRow(
+                title: "Cloudflare",
+                requirement: cloudflared == nil ? .cloudflareOptional : .cloudflareReady,
+                detail: cloudflared ?? "Optional for access away from your local network."
+            )
+        ])
     }
 
     private static func executablePath(named name: String) -> String? {
@@ -2361,13 +2382,78 @@ private struct CodePilotSetupStatus {
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func gatewayHealth() -> String {
-        guard let url = URL(string: "http://127.0.0.1:18790/api/health"),
-              let data = try? Data(contentsOf: url),
-              !data.isEmpty else {
-            return "Not reachable"
+    private static func gatewayHealthRequirement() -> CodePilotSetupRequirement {
+        let tokenPath = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
+        guard let token = try? String(contentsOf: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+              !token.isEmpty,
+              let url = URL(string: "http://127.0.0.1:18790/api/health") else {
+            return .gatewayStopped
         }
-        return "Reachable"
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        guard let data = synchronousData(for: request), !data.isEmpty else {
+            return .gatewayStopped
+        }
+        return .gatewayRunning
+    }
+
+    private static func synchronousData(for request: URLRequest) -> Data? {
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: Data?
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            result = data
+            semaphore.signal()
+        }
+        task.resume()
+        _ = semaphore.wait(timeout: .now() + 2)
+        return result
+    }
+
+    private static func gatewayHealthDetail() -> String {
+        gatewayHealthRequirement() == .gatewayRunning
+            ? "Reachable on 127.0.0.1:18790"
+            : "Not reachable on 127.0.0.1:18790"
+    }
+}
+
+struct CodePilotSetupRow: Equatable {
+    let title: String
+    let requirement: CodePilotSetupRequirement
+    let detail: String
+}
+
+enum CodePilotSetupRequirement: Equatable {
+    case codexCLIInstalled
+    case codexCLIMissing
+    case codexSignedIn
+    case codexSignedOut
+    case profilesCreated
+    case profilesMissing
+    case gatewayTokenPresent
+    case gatewayTokenMissing
+    case gatewayRunning
+    case gatewayStopped
+    case gatewayBlockedByActiveTurn
+    case cloudflareReady
+    case cloudflareOptional
+    case screenRecordingMissing
+    case accessibilityMissing
+    case notificationsOptional
+
+    var statusLabel: String {
+        switch self {
+        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady:
+            return "Ready"
+        case .gatewayStopped:
+            return "Stopped"
+        case .gatewayBlockedByActiveTurn:
+            return "Blocked by active turn"
+        case .cloudflareOptional, .notificationsOptional:
+            return "Optional"
+        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .screenRecordingMissing, .accessibilityMissing:
+            return "Missing"
+        }
     }
 }
 
@@ -2427,7 +2513,8 @@ private final class CodePilotSetupWindowController: NSWindowController {
         root.addArrangedSubview(section(
             title: "Gateway",
             buttons: [
-                button("Install / Restart Gateway", #selector(installGateway)),
+                button("Restart Gateway When Idle", #selector(restartGatewayWhenIdle)),
+                button("Force Restart Gateway...", #selector(forceRestartGateway)),
                 button("Copy iOS Token", #selector(copyToken))
             ]
         ))
@@ -2474,15 +2561,8 @@ private final class CodePilotSetupWindowController: NSWindowController {
     private func refreshStatus() {
         statusStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let status = CodePilotSetupStatus.load()
-        [
-            ("Codex CLI", status.codexCLI),
-            ("Codex Auth", status.codexAuth),
-            ("Accounts", status.accounts),
-            ("Gateway Token", status.gatewayToken),
-            ("Gateway", status.gateway),
-            ("Cloudflare", status.cloudflared)
-        ].forEach { label, value in
-            let row = NSTextField(labelWithString: "\(label): \(value)")
+        status.rows.forEach { status in
+            let row = NSTextField(labelWithString: "\(status.title): \(status.requirement.statusLabel) - \(status.detail)")
             row.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
             statusStack.addArrangedSubview(row)
         }
@@ -2502,8 +2582,19 @@ private final class CodePilotSetupWindowController: NSWindowController {
         NSWorkspace.shared.open(url)
     }
 
-    @objc private func installGateway() {
+    @objc private func restartGatewayWhenIdle() {
         runBundledScript(named: "install-phone-gateway-agent.sh")
+    }
+
+    @objc private func forceRestartGateway() {
+        let alert = NSAlert()
+        alert.messageText = "Force Restart Gateway?"
+        alert.informativeText = "This can interrupt active phone turns. Use Restart Gateway When Idle unless you need to recover a stuck gateway."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Force Restart")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        runBundledScript(named: "install-phone-gateway-agent.sh", force: true)
     }
 
     @objc private func installCloudflare() {
@@ -2533,7 +2624,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         }
     }
 
-    private func runBundledScript(named name: String) {
+    private func runBundledScript(named name: String, force: Bool = false) {
         let candidates = [
             Bundle.main.resourceURL?.appendingPathComponent("scripts/\(name)"),
             URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/\(name)")
@@ -2545,7 +2636,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = [script.path, "--force"]
+        process.arguments = force ? [script.path, "--force"] : [script.path]
         process.standardOutput = pipe
         process.standardError = pipe
         process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
