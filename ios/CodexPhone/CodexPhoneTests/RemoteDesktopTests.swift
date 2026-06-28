@@ -3,6 +3,29 @@ import XCTest
 @testable import CodexPhone
 
 final class RemoteDesktopTests: XCTestCase {
+    func testRenderedMessageMarkdownPreservesChatLineBreaks() {
+        let input = """
+        Adjusted the Remote Desktop marker a little lower: offset is now 15pt instead of 11pt.
+        Verified:
+        - Simulator build passed.
+        - OTA build completed.
+        Commit: `42711c2`
+        """
+
+        let rendered = renderedMessageAttributedString(input)
+
+        XCTAssertEqual(
+            String(rendered.characters),
+            """
+            Adjusted the Remote Desktop marker a little lower: offset is now 15pt instead of 11pt.
+            Verified:
+            - Simulator build passed.
+            - OTA build completed.
+            Commit: 42711c2
+            """
+        )
+    }
+
     func testCanonicalRemoteInputEventDecodes() throws {
         let fixture = #"{"sessionId":"s1","sequence":4,"kind":"pointer","x":0.25,"y":0.75,"button":0,"keyCode":null,"text":null,"deltaX":null,"deltaY":null}"#.data(using: .utf8)!
 

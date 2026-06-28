@@ -1428,9 +1428,9 @@ struct QuickLookPreview: UIViewControllerRepresentable {
 
 private let remoteFileURLScheme = "codex-phone-file"
 
-private func renderedMessageAttributedString(_ text: String) -> AttributedString {
+func renderedMessageAttributedString(_ text: String) -> AttributedString {
     let options = AttributedString.MarkdownParsingOptions(
-        interpretedSyntax: .full,
+        interpretedSyntax: .inlineOnlyPreservingWhitespace,
         failurePolicy: .returnPartiallyParsedIfPossible
     )
     let attributed = (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
