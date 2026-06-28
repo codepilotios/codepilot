@@ -363,7 +363,7 @@ struct RemoteDesktopView: View {
     }
 
     private var pointerFlushInterval: TimeInterval {
-        peer.isInputReady ? (1.0 / 60.0) : 0.05
+        peer.isInputReady ? (1.0 / 60.0) : (1.0 / 30.0)
     }
 
     private func viewportOffset(container: CGSize) -> CGSize {

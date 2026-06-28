@@ -51,8 +51,7 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
         }
         peerConnection = peer
         let dataConfiguration = RTCDataChannelConfiguration()
-        dataConfiguration.isOrdered = false
-        dataConfiguration.maxRetransmits = 0
+        dataConfiguration.isOrdered = true
         if let dataChannel = peer.dataChannel(forLabel: "codepilot-input", configuration: dataConfiguration) {
             dataChannel.delegate = self
             inputDataChannel = dataChannel
