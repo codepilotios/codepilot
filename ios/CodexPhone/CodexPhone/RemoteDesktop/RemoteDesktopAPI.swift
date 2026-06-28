@@ -63,6 +63,24 @@ struct RemoteDesktopAPI {
         try await request("GET", path: "/api/remote/status", body: nil)
     }
 
+    func sendSignal(
+        sessionID: String,
+        sequence: UInt64,
+        kind: RemotePeerSignal.Kind,
+        payload: Data
+    ) async throws -> [RemotePeerSignal] {
+        let response: RemoteSignalAcknowledgement = try await request(
+            "POST",
+            path: "/api/remote/sessions/\(sessionID)/signal",
+            body: [
+                "sequence": sequence,
+                "kind": kind.rawValue,
+                "payload": payload.base64EncodedString()
+            ]
+        )
+        return response.signals ?? []
+    }
+
     func frame() async throws -> Data {
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw RemoteDesktopAPIError.invalidURL
@@ -148,6 +166,24 @@ struct RemoteInputAcknowledgement: Decodable, Equatable {
 
     let ok: Bool
     let cursor: Cursor?
+}
+
+struct RemotePeerSignal: Codable, Equatable {
+    enum Kind: String, Codable {
+        case offer
+        case answer
+        case ice
+    }
+
+    let leaseID: String
+    let sequence: UInt64
+    let kind: Kind
+    let payload: Data
+}
+
+private struct RemoteSignalAcknowledgement: Decodable {
+    let sequence: UInt64
+    let signals: [RemotePeerSignal]?
 }
 
 struct RemoteDesktopHostStatus: Codable, Equatable {

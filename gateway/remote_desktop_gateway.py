@@ -14,7 +14,7 @@ from typing import Any
 
 
 DEFAULT_REMOTE_DESKTOP_SOCKET_PATH = Path.home() / ".codepilot" / "remote-desktop" / "host.sock"
-DEFAULT_TIMEOUT_SECONDS = 5.0
+DEFAULT_TIMEOUT_SECONDS = 15.0
 DEFAULT_MAX_REQUEST_BYTES = 1_048_576
 DEFAULT_MAX_RESPONSE_BYTES = 1_048_576
 ALLOWED_RESPONSE_KEYS = {"id", "status", "payload", "errorCode"}

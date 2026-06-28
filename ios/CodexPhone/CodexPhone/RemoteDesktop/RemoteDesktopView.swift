@@ -34,7 +34,12 @@ struct RemoteDesktopView: View {
                 Rectangle()
                     .fill(Color(.secondarySystemBackground))
                     .overlay {
-                        if let frameImage {
+                        if let videoTrack = peer.videoTrack {
+                            RemoteVideoView(track: videoTrack)
+                                .scaleEffect(effectiveZoom)
+                                .offset(viewportOffset(container: proxy.size))
+                                .background(Color.black)
+                        } else if let frameImage {
                             Image(uiImage: frameImage)
                                 .resizable()
                                 .scaledToFit()
@@ -148,6 +153,7 @@ struct RemoteDesktopView: View {
                 peer.connect()
                 session.connected()
                 startFrameLoop()
+                startWebRTC()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                 session.enterBackground()
@@ -159,6 +165,12 @@ struct RemoteDesktopView: View {
                 if !session.shouldRequireNewLease() {
                     peer.connect()
                     startFrameLoop()
+                    startWebRTC()
+                }
+            }
+            .onReceive(peer.$videoTrack) { track in
+                if track != nil {
+                    stopFrameLoop()
                 }
             }
             .onDisappear {
@@ -206,7 +218,6 @@ struct RemoteDesktopView: View {
                         await MainActor.run {
                             frameImage = image
                             frameError = nil
-                            peer.connect()
                             session.connected()
                         }
                     }
@@ -216,6 +227,21 @@ struct RemoteDesktopView: View {
                         frameError = "Video unavailable: \(Self.errorText(error))"
                     }
                     try? await Task.sleep(nanoseconds: 700_000_000)
+                }
+            }
+        }
+    }
+
+    private func startWebRTC() {
+        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
+        Task {
+            do {
+                try await peer.connect(api: api)
+            } catch {
+                await MainActor.run {
+                    frameError = "WebRTC reconnecting: \(Self.errorText(error))"
                 }
             }
         }

@@ -22,6 +22,7 @@
 		8F4E53172F45000100C0D3C1 /* RemoteControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53162F45000100C0D3C1 /* RemoteControlBar.swift */; };
 		8F4E53192F45000100C0D3C1 /* RemoteDesktopView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53182F45000100C0D3C1 /* RemoteDesktopView.swift */; };
 		8F4E53212F46000100C0D3C1 /* RemoteViewport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53202F46000100C0D3C1 /* RemoteViewport.swift */; };
+		8F4E53232F46000100C0D3C1 /* RemoteVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53222F46000100C0D3C1 /* RemoteVideoView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,6 +53,7 @@
 		8F4E53162F45000100C0D3C1 /* RemoteControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteControlBar.swift; sourceTree = "<group>"; };
 		8F4E53182F45000100C0D3C1 /* RemoteDesktopView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopView.swift; sourceTree = "<group>"; };
 		8F4E53202F46000100C0D3C1 /* RemoteViewport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteViewport.swift; sourceTree = "<group>"; };
+		8F4E53222F46000100C0D3C1 /* RemoteVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteVideoView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -124,6 +126,7 @@
 				8F4E53162F45000100C0D3C1 /* RemoteControlBar.swift */,
 				8F4E53182F45000100C0D3C1 /* RemoteDesktopView.swift */,
 				8F4E53202F46000100C0D3C1 /* RemoteViewport.swift */,
+				8F4E53222F46000100C0D3C1 /* RemoteVideoView.swift */,
 			);
 			path = RemoteDesktop;
 			sourceTree = "<group>";
@@ -240,6 +243,7 @@
 					8F4E53172F45000100C0D3C1 /* RemoteControlBar.swift in Sources */,
 					8F4E53192F45000100C0D3C1 /* RemoteDesktopView.swift in Sources */,
 					8F4E53212F46000100C0D3C1 /* RemoteViewport.swift in Sources */,
+					8F4E53232F46000100C0D3C1 /* RemoteVideoView.swift in Sources */,
 					8F4E53052F44000100C0D3C1 /* RemotePairingView.swift in Sources */,
 				);
 			runOnlyForDeploymentPostprocessing = 0;
