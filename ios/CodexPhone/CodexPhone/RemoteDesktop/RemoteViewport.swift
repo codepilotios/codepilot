@@ -43,6 +43,18 @@ struct RemoteViewport: Equatable {
         13 + min(1, max(0, (zoom - 1) / 3)) * 5
     }
 
+    mutating func applyPointerDelta(
+        _ delta: CGSize,
+        coordinateSize: CGSize,
+        sensitivity: CGFloat = 1.35
+    ) {
+        guard coordinateSize.width > 0, coordinateSize.height > 0 else { return }
+        cursor = CGPoint(
+            x: min(1, max(0, cursor.x + delta.width * sensitivity / coordinateSize.width)),
+            y: min(1, max(0, cursor.y + delta.height * sensitivity / coordinateSize.height))
+        )
+    }
+
     private func scaledImageSize(container: CGSize, image: CGSize) -> CGSize {
         guard container.width > 0, container.height > 0, image.width > 0, image.height > 0 else {
             return .zero

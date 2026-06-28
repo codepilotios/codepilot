@@ -24,6 +24,7 @@ struct RemoteDesktopView: View {
     @State private var zoomScale: CGFloat = 1
     @State private var gestureZoomScale: CGFloat = 1
     @State private var viewport = RemoteViewport()
+    @State private var cursorCoordinateSize: CGSize?
     @State private var keyboardText = ""
     @State private var lastDragTranslation: CGSize = .zero
     @State private var pendingPointerDelta: CGSize = .zero
@@ -204,6 +205,12 @@ struct RemoteDesktopView: View {
         frameTask = Task {
             if let status = try? await api.status() {
                 await MainActor.run {
+                    if let displayFrame = status.displayFrame, displayFrame.width > 0, displayFrame.height > 0 {
+                        cursorCoordinateSize = CGSize(width: displayFrame.width, height: displayFrame.height)
+                    }
+                    if let cursor = status.cursor {
+                        viewport.cursor = CGPoint(x: cursor.x, y: cursor.y)
+                    }
                     if status.screenRecordingGranted == false {
                         permissionWarning = "Allow Screen Recording for CodePilot on the Mac."
                     } else if status.accessibilityGranted == false {
@@ -369,10 +376,7 @@ struct RemoteDesktopView: View {
 
     private func predictCursor(delta: CGSize) {
         guard let frameImage, frameImage.size.width > 0, frameImage.size.height > 0 else { return }
-        viewport.cursor = CGPoint(
-            x: min(1, max(0, viewport.cursor.x + delta.width * 1.35 / frameImage.size.width)),
-            y: min(1, max(0, viewport.cursor.y + delta.height * 1.35 / frameImage.size.height))
-        )
+        viewport.applyPointerDelta(delta, coordinateSize: cursorCoordinateSize ?? frameImage.size)
     }
 
     private static func errorText(_ error: Error) -> String {

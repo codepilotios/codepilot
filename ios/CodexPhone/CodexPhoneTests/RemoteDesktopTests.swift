@@ -183,6 +183,15 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertTrue(acknowledgement.ok)
     }
 
+    func testRemoteDesktopStatusDecodesDisplayFrameAndCursor() throws {
+        let data = #"{"ok":true,"displayFrame":{"width":2560,"height":1440},"cursor":{"x":0.25,"y":0.75}}"#.data(using: .utf8)!
+
+        let status = try JSONDecoder().decode(RemoteDesktopHostStatus.self, from: data)
+
+        XCTAssertEqual(status.displayFrame, RemoteDisplayFrame(width: 2560, height: 1440))
+        XCTAssertEqual(status.cursor, RemoteCursorPosition(x: 0.25, y: 0.75))
+    }
+
     func testRemoteInputMapperCreatesMonotonicNormalizedEvents() {
         var mapper = RemoteInputMapper(sessionID: "lease-1")
 
@@ -245,6 +254,19 @@ final class RemoteDesktopTests: XCTestCase {
     func testViewportCursorSymbolSizeStaysCompactWhenZoomedOut() {
         XCTAssertEqual(RemoteViewport(zoom: 1).cursorSymbolSize(), 13)
         XCTAssertEqual(RemoteViewport(zoom: 4).cursorSymbolSize(), 18)
+    }
+
+    func testViewportPointerPredictionUsesMacDisplayCoordinateSpace() {
+        var viewport = RemoteViewport(cursor: CGPoint(x: 0.5, y: 0.5))
+
+        viewport.applyPointerDelta(
+            CGSize(width: 100, height: -50),
+            coordinateSize: CGSize(width: 1_000, height: 500),
+            sensitivity: 1
+        )
+
+        XCTAssertEqual(viewport.cursor.x, 0.6, accuracy: 0.0001)
+        XCTAssertEqual(viewport.cursor.y, 0.4, accuracy: 0.0001)
     }
 
     private func assertRoundTrip<T: Codable & Equatable>(

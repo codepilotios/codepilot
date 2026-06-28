@@ -2827,12 +2827,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             case "status":
                 coordinator.refreshStatus()
                 let status = coordinator.snapshot
+                let displayFrame = CGDisplayBounds(CGMainDisplayID())
+                let cursor = CGEvent(source: nil)?.location ?? .zero
                 return try Self.remoteDesktopRPCJSON(request.id, [
                     "ok": true,
                     "screenRecordingGranted": status.screenRecordingGranted,
                     "accessibilityGranted": status.accessibilityGranted,
                     "macUnlocked": status.macUnlocked,
                     "trustedDeviceCount": status.trustedDevices.count,
+                    "displayFrame": [
+                        "width": displayFrame.width,
+                        "height": displayFrame.height
+                    ],
+                    "cursor": [
+                        "x": min(1, max(0, (cursor.x - displayFrame.minX) / displayFrame.width)),
+                        "y": min(1, max(0, (cursor.y - displayFrame.minY) / displayFrame.height))
+                    ],
                     "capabilities": [
                         "pairing": true,
                         "sessions": true,

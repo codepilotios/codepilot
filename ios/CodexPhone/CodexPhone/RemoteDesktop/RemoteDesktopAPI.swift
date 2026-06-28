@@ -191,8 +191,20 @@ struct RemoteDesktopHostStatus: Codable, Equatable {
     let screenRecordingGranted: Bool?
     let accessibilityGranted: Bool?
     let macUnlocked: Bool?
+    let displayFrame: RemoteDisplayFrame?
+    let cursor: RemoteCursorPosition?
     let iceServers: [RemoteIceServer]?
     let capabilities: RemoteDesktopCapabilities?
+}
+
+struct RemoteDisplayFrame: Codable, Equatable {
+    let width: Double
+    let height: Double
+}
+
+struct RemoteCursorPosition: Codable, Equatable {
+    let x: Double
+    let y: Double
 }
 
 struct RemoteDesktopCapabilities: Codable, Equatable {
