@@ -18,6 +18,7 @@ struct RemoteDesktopView: View {
     @State private var frameError: String?
     @State private var permissionWarning: String?
     @State private var frameTask: Task<Void, Never>?
+    @State private var webRTCTask: Task<Void, Never>?
     @State private var inputTask: Task<Void, Never>?
     @State private var interactionMode: InteractionMode = .control
     @State private var zoomScale: CGFloat = 1
@@ -175,6 +176,7 @@ struct RemoteDesktopView: View {
             }
             .onDisappear {
                 stopFrameLoop()
+                stopWebRTC()
                 inputTask?.cancel()
             }
         }
@@ -233,18 +235,31 @@ struct RemoteDesktopView: View {
     }
 
     private func startWebRTC() {
+        stopWebRTC()
         guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
-        Task {
-            do {
-                try await peer.connect(api: api)
-            } catch {
-                await MainActor.run {
-                    frameError = "WebRTC reconnecting: \(Self.errorText(error))"
+        webRTCTask = Task {
+            while !Task.isCancelled {
+                do {
+                    try await peer.connect(api: api)
+                    await MainActor.run {
+                        frameError = nil
+                    }
+                    return
+                } catch {
+                    await MainActor.run {
+                        frameError = "WebRTC reconnecting: \(Self.errorText(error))"
+                    }
+                    try? await Task.sleep(nanoseconds: 1_250_000_000)
                 }
             }
         }
+    }
+
+    private func stopWebRTC() {
+        webRTCTask?.cancel()
+        webRTCTask = nil
     }
 
     private func stopFrameLoop() {
@@ -254,6 +269,9 @@ struct RemoteDesktopView: View {
 
     private func send(_ event: RemoteInputEvent) {
         session.enqueueInput(event)
+        if peer.sendInput(event) {
+            return
+        }
         guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))

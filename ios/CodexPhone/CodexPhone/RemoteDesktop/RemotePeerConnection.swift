@@ -8,13 +8,15 @@ enum RemotePeerError: Error {
     case missingAnswer
 }
 
-final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionDelegate {
+final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionDelegate, RTCDataChannelDelegate {
     @Published private(set) var isConnected = false
+    @Published private(set) var isInputReady = false
     @Published private(set) var latencyText = "--"
     @Published private(set) var videoTrack: RTCVideoTrack?
 
     private let factory = RTCPeerConnectionFactory()
     private var peerConnection: RTCPeerConnection?
+    private var inputDataChannel: RTCDataChannel?
     private var sessionID = ""
 
     @MainActor
@@ -46,6 +48,13 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
             throw RemotePeerError.peerCreationFailed
         }
         peerConnection = peer
+        let dataConfiguration = RTCDataChannelConfiguration()
+        dataConfiguration.isOrdered = false
+        dataConfiguration.maxRetransmits = 0
+        if let dataChannel = peer.dataChannel(forLabel: "codepilot-input", configuration: dataConfiguration) {
+            dataChannel.delegate = self
+            inputDataChannel = dataChannel
+        }
 
         let offer = try await createOffer(on: peer, constraints: constraints)
         try await setLocalDescription(offer, on: peer)
@@ -73,15 +82,32 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
 
     func suspend() {
         isConnected = false
+        isInputReady = false
         latencyText = "suspended"
     }
 
     func disconnect() {
+        inputDataChannel?.delegate = nil
+        inputDataChannel?.close()
+        inputDataChannel = nil
         peerConnection?.close()
         peerConnection = nil
         videoTrack = nil
         isConnected = false
+        isInputReady = false
         latencyText = "--"
+    }
+
+    func sendInput(_ event: RemoteInputEvent) -> Bool {
+        guard let inputDataChannel, inputDataChannel.readyState == .open else {
+            return false
+        }
+        do {
+            let data = try JSONEncoder().encode(event)
+            return inputDataChannel.sendData(RTCDataBuffer(data: data, isBinary: false))
+        } catch {
+            return false
+        }
     }
 
     private func createOffer(
@@ -124,6 +150,14 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
     func peerConnection(_ peerConnection: RTCPeerConnection, didGenerate candidate: RTCIceCandidate) {}
     func peerConnection(_ peerConnection: RTCPeerConnection, didRemove candidates: [RTCIceCandidate]) {}
     func peerConnection(_ peerConnection: RTCPeerConnection, didOpen dataChannel: RTCDataChannel) {}
+
+    func dataChannelDidChangeState(_ dataChannel: RTCDataChannel) {
+        DispatchQueue.main.async {
+            self.isInputReady = dataChannel.readyState == .open
+        }
+    }
+
+    func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {}
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCPeerConnectionState) {
         DispatchQueue.main.async {

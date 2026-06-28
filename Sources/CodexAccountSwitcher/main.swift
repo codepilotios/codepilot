@@ -2626,7 +2626,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
     private let remoteFrameCaptureService = RemoteFrameCaptureService()
     private let remoteInputInjector = RemoteInputInjector(validator: GatewayRemoteInputValidator())
-    private let macPeerConnection = MacPeerConnection()
+    private lazy var macPeerConnection = MacPeerConnection { [weak self] event in
+        guard let self else { return }
+        try self.remoteInputInjector.handle(event, displayFrame: CGDisplayBounds(CGMainDisplayID()))
+    }
     private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
     private var remoteDesktopSocketServer: RemoteDesktopSocketServer?
     private var statusItem: NSStatusItem!

@@ -2,6 +2,8 @@ import CoreGraphics
 import Foundation
 import LiveKitWebRTC
 
+typealias RemoteInputHandler = (RemoteInputEvent) throws -> Void
+
 enum MacPeerConnectionState: Equatable {
     case idle
     case connecting(leaseID: String)
@@ -28,17 +30,24 @@ enum MacPeerConnectionError: Error {
     case sessionDescriptionFailed
 }
 
-final class MacPeerConnection: NSObject, LKRTCPeerConnectionDelegate {
+final class MacPeerConnection: NSObject, LKRTCPeerConnectionDelegate, LKRTCDataChannelDelegate {
     private(set) var state: MacPeerConnectionState = .idle
     private var activeLeaseID: String?
     private var lastRemoteSignalSequence: UInt64 = 0
     private var pendingLocalSignals: [MacPeerSignal] = []
     private let factory = LKRTCPeerConnectionFactory()
     private let captureService = ScreenCaptureService()
+    private let inputHandler: RemoteInputHandler?
     private var peerConnection: LKRTCPeerConnection?
+    private var inputDataChannel: LKRTCDataChannel?
     private var videoSource: LKRTCVideoSource?
     private var videoTrack: LKRTCVideoTrack?
     private var frameAdapter: WebRTCFrameAdapter?
+
+    init(inputHandler: RemoteInputHandler? = nil) {
+        self.inputHandler = inputHandler
+        super.init()
+    }
 
     func start(leaseID: String) {
         activeLeaseID = leaseID
@@ -118,6 +127,9 @@ final class MacPeerConnection: NSObject, LKRTCPeerConnectionDelegate {
 
     func disconnect() {
         captureService.stop()
+        inputDataChannel?.delegate = nil
+        inputDataChannel?.close()
+        inputDataChannel = nil
         peerConnection?.close()
         peerConnection = nil
         frameAdapter = nil
@@ -135,6 +147,9 @@ final class MacPeerConnection: NSObject, LKRTCPeerConnectionDelegate {
 
     func fail() {
         captureService.stop()
+        inputDataChannel?.delegate = nil
+        inputDataChannel?.close()
+        inputDataChannel = nil
         peerConnection?.close()
         peerConnection = nil
         frameAdapter = nil
@@ -189,5 +204,21 @@ final class MacPeerConnection: NSObject, LKRTCPeerConnectionDelegate {
     func peerConnection(_ peerConnection: LKRTCPeerConnection, didChange newState: LKRTCIceGatheringState) {}
     func peerConnection(_ peerConnection: LKRTCPeerConnection, didGenerate candidate: LKRTCIceCandidate) {}
     func peerConnection(_ peerConnection: LKRTCPeerConnection, didRemove candidates: [LKRTCIceCandidate]) {}
-    func peerConnection(_ peerConnection: LKRTCPeerConnection, didOpen dataChannel: LKRTCDataChannel) {}
+    func peerConnection(_ peerConnection: LKRTCPeerConnection, didOpen dataChannel: LKRTCDataChannel) {
+        guard dataChannel.label == "codepilot-input" else { return }
+        inputDataChannel = dataChannel
+        dataChannel.delegate = self
+    }
+
+    func dataChannelDidChangeState(_ dataChannel: LKRTCDataChannel) {}
+
+    func dataChannel(_ dataChannel: LKRTCDataChannel, didReceiveMessageWith buffer: LKRTCDataBuffer) {
+        guard !buffer.isBinary else { return }
+        do {
+            let event = try JSONDecoder().decode(RemoteInputEvent.self, from: buffer.data)
+            try inputHandler?(event)
+        } catch {
+            NSLog("CodePilot remote desktop data-channel input failed: \(error.localizedDescription)")
+        }
+    }
 }
