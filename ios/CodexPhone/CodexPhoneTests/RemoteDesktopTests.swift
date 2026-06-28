@@ -3,6 +3,23 @@ import XCTest
 @testable import CodexPhone
 
 final class RemoteDesktopTests: XCTestCase {
+    func testGatewayErrorRecoveryCopyUsesStablePayload() {
+        let error = GatewayErrorPayload.ErrorBody(
+            code: "gateway_unavailable",
+            message: "Gateway unavailable",
+            recovery: "Restart CodePilot Gateway on your Mac."
+        )
+
+        XCTAssertEqual(GatewayErrorPresenter.title(for: error), "Gateway unavailable")
+        XCTAssertEqual(GatewayErrorPresenter.recovery(for: error), "Restart CodePilot Gateway on your Mac.")
+    }
+
+    func testGatewayConnectionKindUsesUserFacingTitles() {
+        XCTAssertEqual(GatewayConnectionKind.local.title, "Same Network")
+        XCTAssertEqual(GatewayConnectionKind.cloudflare.title, "Cloudflare")
+        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("same Wi-Fi"))
+    }
+
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://localhost:3000"))))
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://127.0.0.1:5173/path"))))

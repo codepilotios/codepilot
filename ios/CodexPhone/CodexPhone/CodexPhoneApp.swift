@@ -248,6 +248,7 @@ struct RootView: View {
 struct EmptySettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     private let client = CodexGatewayClient()
@@ -265,6 +266,17 @@ struct EmptySettingsView: View {
             }
 
             Section("Gateway") {
+                Picker("Connection", selection: $gatewayConnectionKind) {
+                    ForEach(GatewayConnectionKind.allCases) { kind in
+                        Text(kind.title).tag(kind.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(selectedConnectionKind.helpText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 TextField("Gateway URL", text: $gatewayURL)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
@@ -303,6 +315,10 @@ struct EmptySettingsView: View {
         !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var selectedConnectionKind: GatewayConnectionKind {
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+    }
+
     @MainActor
     private func testConnection() async {
         isTestingConnection = true
@@ -327,6 +343,8 @@ struct EmptySettingsView: View {
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
                 return "Gateway returned HTTP \(status)."
+            case .gateway(let payload):
+                return GatewayErrorPresenter.recovery(for: payload)
             case .server(let message):
                 return message
             case .invalidResponse:
@@ -334,6 +352,31 @@ struct EmptySettingsView: View {
             }
         }
         return error.localizedDescription
+    }
+}
+
+enum GatewayConnectionKind: String, CaseIterable, Identifiable {
+    case local
+    case cloudflare
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .local:
+            "Same Network"
+        case .cloudflare:
+            "Cloudflare"
+        }
+    }
+
+    var helpText: String {
+        switch self {
+        case .local:
+            "Use the Mac gateway URL while your iPhone is on the same Wi-Fi network."
+        case .cloudflare:
+            "Use your Cloudflare Tunnel hostname for access when you are away from the Mac."
+        }
     }
 }
 
@@ -1898,6 +1941,7 @@ struct SettingsView: View {
     @Binding var gatewayToken: String
     @ObservedObject var model: CodexPhoneModel
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     @State private var lastConnectedAt: Date?
@@ -1907,6 +1951,17 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Gateway") {
+                    Picker("Connection", selection: $gatewayConnectionKind) {
+                        ForEach(GatewayConnectionKind.allCases) { kind in
+                            Text(kind.title).tag(kind.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(selectedConnectionKind.helpText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
                     TextField("URL", text: $gatewayURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
@@ -1960,6 +2015,10 @@ struct SettingsView: View {
         !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var selectedConnectionKind: GatewayConnectionKind {
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+    }
+
     @MainActor
     private func testConnection() async {
         isTestingConnection = true
@@ -1986,6 +2045,8 @@ struct SettingsView: View {
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
                 return "Gateway returned HTTP \(status)."
+            case .gateway(let payload):
+                return GatewayErrorPresenter.recovery(for: payload)
             case .server(let message):
                 return message
             case .invalidResponse:
@@ -4107,7 +4168,7 @@ final class CodexPhoneModel: ObservableObject {
     private func report(_ error: Error) {
         guard !isBenignCancellationError(error) else { return }
         guard !isMissingJobError(error) else { return }
-        errorMessage = error.localizedDescription
+        errorMessage = GatewayErrorPresenter.message(for: error)
     }
 
     private func refreshAccountStatusForQueueDecision(baseURL: String, token: String) async {
@@ -4171,8 +4232,14 @@ final class CodexPhoneModel: ObservableObject {
 
     private func isAccountUnavailableError(_ error: Error) -> Bool {
         guard let gatewayError = error as? GatewayError else { return false }
-        guard case .server(let message) = gatewayError else { return false }
-        return isAccountUnavailableMessage(message)
+        switch gatewayError {
+        case .gateway(let payload):
+            return payload.code == "auth_stale" || payload.code == "account_unavailable" || isAccountUnavailableMessage(payload.message)
+        case .server(let message):
+            return isAccountUnavailableMessage(message)
+        default:
+            return false
+        }
     }
 
     private func isAccountUnavailableMessage(_ message: String) -> Bool {
@@ -4200,6 +4267,8 @@ final class CodexPhoneModel: ObservableObject {
             switch gatewayError {
             case .http(let status):
                 return status == 404
+            case .gateway(let payload):
+                return payload.code == "job_not_found"
             case .server(let message):
                 return message == "Job not found"
             default:
@@ -4573,6 +4642,9 @@ struct CodexGatewayClient {
                     throw GatewayError.invalidResponse
                 }
                 guard (200..<300).contains(http.statusCode) else {
+                    if let payload = try? JSONDecoder().decode(GatewayErrorPayload.self, from: data) {
+                        throw GatewayError.gateway(payload.error)
+                    }
                     if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
                         throw GatewayError.server(envelope.error)
                     }
@@ -4929,6 +5001,38 @@ struct GatewayAttachment: Encodable {
 
 struct ErrorEnvelope: Decodable {
     let error: String
+}
+
+struct GatewayErrorPayload: Decodable, Equatable {
+    struct ErrorBody: Decodable, Equatable {
+        let code: String
+        let message: String
+        let recovery: String
+    }
+
+    let error: ErrorBody
+}
+
+enum GatewayErrorPresenter {
+    static func title(for error: GatewayErrorPayload.ErrorBody) -> String {
+        error.message
+    }
+
+    static func recovery(for error: GatewayErrorPayload.ErrorBody) -> String {
+        error.recovery
+    }
+
+    static func message(for error: Error) -> String {
+        if let gatewayError = error as? GatewayError {
+            switch gatewayError {
+            case .gateway(let payload):
+                return recovery(for: payload)
+            default:
+                return gatewayError.localizedDescription
+            }
+        }
+        return error.localizedDescription
+    }
 }
 
 struct CodexThread: Decodable, Identifiable, Hashable {
@@ -5345,6 +5449,7 @@ enum GatewayError: LocalizedError {
     case invalidResponse
     case http(Int)
     case server(String)
+    case gateway(GatewayErrorPayload.ErrorBody)
 
     var errorDescription: String? {
         switch self {
@@ -5356,6 +5461,8 @@ enum GatewayError: LocalizedError {
             "Gateway returned HTTP \(status)"
         case .server(let message):
             message
+        case .gateway(let payload):
+            GatewayErrorPresenter.recovery(for: payload)
         }
     }
 }
