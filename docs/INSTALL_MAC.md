@@ -9,6 +9,8 @@ CodePilot Mac is a menu bar app. It currently builds from source with SwiftPM.
 - Codex installed and available as `codex`.
 - A local Codex login at `~/.codex/auth.json`.
 
+Successful setup means the menu bar app shows `CodePilot`, at least one account profile exists, and the setup window marks the gateway token and gateway as ready.
+
 ## Build
 
 ```sh
@@ -47,6 +49,8 @@ For iPhone access, install the local gateway:
 scripts/install-phone-gateway-agent.sh
 ```
 
+The script restarts the gateway only when it can verify that no phone turn is running. Use the menu bar app's **Force Restart Gateway...** action only when recovering a stuck gateway.
+
 The gateway listens on:
 
 ```text
@@ -59,3 +63,4 @@ The bearer token is stored at:
 ~/.codex-account-switcher/phone-gateway-token
 ```
 
+Copy this token into the iOS app connection screen. Do not share it in issue reports or screenshots.
