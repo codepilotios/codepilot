@@ -103,7 +103,7 @@ struct RemoteDesktopView: View {
 
                 if let frameImage {
                     Image(systemName: "cursorarrow")
-                        .font(.system(size: 22, weight: .semibold))
+                        .font(.system(size: cursorSymbolSize(), weight: .semibold))
                         .foregroundStyle(.white)
                         .shadow(color: .black, radius: 1.5, x: 0, y: 1)
                         .position(cursorPosition(container: proxy.size, image: frameImage.size))
@@ -283,7 +283,9 @@ struct RemoteDesktopView: View {
                 let acknowledgement = try await api.sendInput(event)
                 if let cursor = acknowledgement.cursor {
                     await MainActor.run {
-                        viewport.cursor = CGPoint(x: cursor.x, y: cursor.y)
+                        if event.kind != .pointer || event.deltaX == nil || event.deltaY == nil {
+                            viewport.cursor = CGPoint(x: cursor.x, y: cursor.y)
+                        }
                     }
                 }
             } catch {
@@ -303,12 +305,12 @@ struct RemoteDesktopView: View {
     }
 
     private func flushPointerDeltaIfNeeded() {
-        guard Date().timeIntervalSince(lastPointerSendAt) >= 0.05 else { return }
+        guard Date().timeIntervalSince(lastPointerSendAt) >= pointerFlushInterval else { return }
         flushPointerDelta(force: false)
     }
 
     private func flushPointerDelta(force: Bool) {
-        guard force || Date().timeIntervalSince(lastPointerSendAt) >= 0.05 else { return }
+        guard force || Date().timeIntervalSince(lastPointerSendAt) >= pointerFlushInterval else { return }
         guard pendingPointerDelta != .zero else { return }
         let delta = pendingPointerDelta
         pendingPointerDelta = .zero
@@ -342,6 +344,10 @@ struct RemoteDesktopView: View {
         min(4, max(1, zoomScale * gestureZoomScale))
     }
 
+    private var pointerFlushInterval: TimeInterval {
+        peer.isInputReady ? (1.0 / 60.0) : 0.05
+    }
+
     private func viewportOffset(container: CGSize) -> CGSize {
         guard let frameImage else { return .zero }
         var current = viewport
@@ -353,6 +359,12 @@ struct RemoteDesktopView: View {
         var current = viewport
         current.zoom = effectiveZoom
         return current.cursorPosition(container: container, image: image)
+    }
+
+    private func cursorSymbolSize() -> CGFloat {
+        var current = viewport
+        current.zoom = effectiveZoom
+        return current.cursorSymbolSize()
     }
 
     private func predictCursor(delta: CGSize) {

@@ -39,6 +39,10 @@ struct RemoteViewport: Equatable {
         )
     }
 
+    func cursorSymbolSize() -> CGFloat {
+        13 + min(1, max(0, (zoom - 1) / 3)) * 5
+    }
+
     private func scaledImageSize(container: CGSize, image: CGSize) -> CGSize {
         guard container.width > 0, container.height > 0, image.width > 0, image.height > 0 else {
             return .zero

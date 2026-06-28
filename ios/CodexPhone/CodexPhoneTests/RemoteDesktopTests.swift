@@ -242,6 +242,11 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 100, y: 100))
     }
 
+    func testViewportCursorSymbolSizeStaysCompactWhenZoomedOut() {
+        XCTAssertEqual(RemoteViewport(zoom: 1).cursorSymbolSize(), 13)
+        XCTAssertEqual(RemoteViewport(zoom: 4).cursorSymbolSize(), 18)
+    }
+
     private func assertRoundTrip<T: Codable & Equatable>(
         _ value: T,
         file: StaticString = #filePath,
