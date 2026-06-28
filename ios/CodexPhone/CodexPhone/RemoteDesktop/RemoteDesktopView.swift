@@ -377,7 +377,7 @@ struct RemoteDesktopView: View {
     private func cursorPosition(container: CGSize, image: CGSize) -> CGPoint {
         var current = viewport
         current.zoom = effectiveZoom
-        return current.cursorPosition(container: container, image: image)
+        return current.cursorMarkerPosition(container: container, image: image)
     }
 
     private func predictCursor(remoteDelta: CGSize) {

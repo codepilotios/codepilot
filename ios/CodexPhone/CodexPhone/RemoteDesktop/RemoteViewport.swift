@@ -1,6 +1,8 @@
 import CoreGraphics
 
 struct RemoteViewport: Equatable {
+    static let cursorMarkerHotspotYOffset: CGFloat = 11
+
     var zoom: CGFloat
     var cursor: CGPoint
 
@@ -37,6 +39,11 @@ struct RemoteViewport: Equatable {
             x: origin.x + viewportOffset.width + cursor.x * scaled.width,
             y: origin.y + viewportOffset.height + cursor.y * scaled.height
         )
+    }
+
+    func cursorMarkerPosition(container: CGSize, image: CGSize) -> CGPoint {
+        let rawPosition = cursorPosition(container: container, image: image)
+        return CGPoint(x: rawPosition.x, y: rawPosition.y + Self.cursorMarkerHotspotYOffset)
     }
 
     func remoteDelta(forScreenDelta delta: CGSize, container: CGSize, image: CGSize) -> CGSize {
