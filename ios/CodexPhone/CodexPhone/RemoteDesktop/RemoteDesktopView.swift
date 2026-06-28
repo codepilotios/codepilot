@@ -103,15 +103,6 @@ struct RemoteDesktopView: View {
                         }
                     }
 
-                if peer.videoTrack == nil, let imageSize = remoteImageSize {
-                    Image(systemName: "cursorarrow")
-                        .font(.system(size: cursorSymbolSize(), weight: .semibold))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black, radius: 1.5, x: 0, y: 1)
-                        .position(cursorOverlayPosition(container: proxy.size, image: imageSize))
-                        .allowsHitTesting(false)
-                }
-
                 VStack {
                     if let permissionWarning {
                         Label(permissionWarning, systemImage: "exclamationmark.triangle.fill")
@@ -365,26 +356,6 @@ struct RemoteDesktopView: View {
         var current = viewport
         current.zoom = effectiveZoom
         return current.offset(container: container, image: imageSize)
-    }
-
-    private func cursorPosition(container: CGSize, image: CGSize) -> CGPoint {
-        var current = viewport
-        current.zoom = effectiveZoom
-        return current.cursorPosition(container: container, image: image)
-    }
-
-    private func cursorSymbolSize() -> CGFloat {
-        var current = viewport
-        current.zoom = effectiveZoom
-        return current.cursorSymbolSize()
-    }
-
-    private func cursorOverlayPosition(container: CGSize, image: CGSize) -> CGPoint {
-        var current = viewport
-        current.zoom = effectiveZoom
-        let hotspot = current.cursorPosition(container: container, image: image)
-        let offset = current.cursorHotspotOffset(symbolSize: current.cursorSymbolSize())
-        return CGPoint(x: hotspot.x + offset.width, y: hotspot.y + offset.height)
     }
 
     private func predictCursor(remoteDelta: CGSize) {

@@ -248,27 +248,12 @@ final class RemoteDesktopTests: XCTestCase {
 
         var viewport = RemoteViewport(zoom: 2, cursor: CGPoint(x: 0.5, y: 0.5))
         XCTAssertEqual(viewport.offset(container: container, image: image), .zero)
-        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 50, y: 50))
 
         viewport.cursor = CGPoint(x: 0.75, y: 0.5)
         XCTAssertEqual(viewport.offset(container: container, image: image), CGSize(width: -50, height: 0))
-        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 50, y: 50))
 
         viewport.cursor = CGPoint(x: 1, y: 1)
         XCTAssertEqual(viewport.offset(container: container, image: image), CGSize(width: -50, height: -50))
-        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 100, y: 100))
-    }
-
-    func testViewportCursorSymbolSizeStaysCompactWhenZoomedOut() {
-        XCTAssertEqual(RemoteViewport(zoom: 1).cursorSymbolSize(), 13)
-        XCTAssertEqual(RemoteViewport(zoom: 4).cursorSymbolSize(), 18)
-    }
-
-    func testViewportCursorHotspotOffsetMovesSymbolCenterBelowPointerTip() {
-        let offset = RemoteViewport().cursorHotspotOffset(symbolSize: 20)
-
-        XCTAssertEqual(offset.width, 6.4, accuracy: 0.0001)
-        XCTAssertEqual(offset.height, 8.0, accuracy: 0.0001)
     }
 
     func testViewportPointerPredictionUsesMacDisplayCoordinateSpace() {
