@@ -285,7 +285,7 @@ final class RemoteDesktopTests: XCTestCase {
                 container: CGSize(width: 100, height: 100),
                 image: CGSize(width: 100, height: 100)
             ),
-            CGPoint(x: 50, y: 61)
+            CGPoint(x: 50, y: 65)
         )
     }
 

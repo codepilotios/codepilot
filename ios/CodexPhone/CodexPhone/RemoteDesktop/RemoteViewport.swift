@@ -1,7 +1,7 @@
 import CoreGraphics
 
 struct RemoteViewport: Equatable {
-    static let cursorMarkerHotspotYOffset: CGFloat = 11
+    static let cursorMarkerHotspotYOffset: CGFloat = 15
 
     var zoom: CGFloat
     var cursor: CGPoint
