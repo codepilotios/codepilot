@@ -570,6 +570,23 @@ def json_response(handler, status: int, payload: dict):
     handler.wfile.write(body)
 
 
+def error_payload(code: str, message: str, recovery: str, details: dict | None = None) -> dict:
+    payload = {
+        "error": {
+            "code": str(code or "gateway_unavailable"),
+            "message": str(message or "CodePilot Gateway request failed."),
+            "recovery": str(recovery or "Try again, then restart CodePilot Gateway if the problem continues."),
+        }
+    }
+    if details:
+        payload["error"]["details"] = details
+    return payload
+
+
+def json_error(handler, status: int, code: str, message: str, recovery: str, details: dict | None = None):
+    json_response(handler, status, error_payload(code, message, recovery, details))
+
+
 class RequestBodyTooLarge(ValueError):
     pass
 
@@ -1858,6 +1875,44 @@ class GatewayState:
             "clientRunning": client_running,
             "inSync": in_sync,
             "restartDeferred": restart_deferred,
+        }
+
+    def public_health(self) -> dict:
+        remote_desktop_status = {"available": False}
+        remote_desktop = self.remote_desktop_gateway
+        if remote_desktop is not None:
+            public_status = getattr(remote_desktop, "public_status", None)
+            if callable(public_status):
+                try:
+                    remote_desktop_status = public_status()
+                except Exception as exc:
+                    remote_desktop_status = {
+                        "available": False,
+                        "error": truncate_text(str(exc), 160),
+                    }
+            else:
+                remote_desktop_status = {"available": True}
+
+        return {
+            "gateway": {
+                "running": True,
+                "version": read_marker(DEFAULT_SWITCHER_HOME / "gateway-version", "dev"),
+            },
+            "accounts": {
+                "active": self.active_account_name(),
+                "auth": self.app_server_auth_status(),
+            },
+            "turns": {
+                "running": self.has_running_jobs(),
+            },
+            "notifications": {
+                "configured": not isinstance(self.push_notifier, DisabledPushNotifier),
+            },
+            "remoteDesktop": remote_desktop_status,
+            "localWeb": {
+                "available": True,
+                "sessionSeconds": LOCAL_WEB_SESSION_TIMEOUT_SECONDS,
+            },
         }
 
     def close_app_server_if_auth_changed_and_idle(self):
@@ -3994,7 +4049,13 @@ class Handler(BaseHTTPRequestHandler):
         header = self.headers.get("authorization", "")
         if header == f"Bearer {expected}":
             return True
-        json_response(self, 401, {"error": "Unauthorized"})
+        json_error(
+            self,
+            401,
+            "unauthorized",
+            "Unauthorized",
+            "Update the CodePilot Gateway token in the iPhone app, then try again.",
+        )
         return False
 
     def do_GET(self):
@@ -4009,23 +4070,29 @@ class Handler(BaseHTTPRequestHandler):
                     self.state().proxy_local_web_session(parts[2], parts[3:], parsed.query),
                 )
             except LookupError as exc:
-                json_response(self, 404, {"error": str(exc)})
+                json_error(
+                    self,
+                    404,
+                    "local_web_unavailable",
+                    str(exc),
+                    "Open the localhost link again from CodePilot; local web sessions expire after a short time.",
+                )
             except Exception as exc:
-                json_response(self, 502, {"error": str(exc)})
+                json_error(
+                    self,
+                    502,
+                    "local_web_unavailable",
+                    str(exc),
+                    "Make sure the local web server is running on the Mac, then reopen the link.",
+                )
             return
 
         if not self.authenticate():
             return
 
         try:
-            if path == "/health":
-                json_response(self, 200, {
-                    "ok": True,
-                    "activeAccount": self.state().active_account_name(),
-                    "appServerAuth": self.state().app_server_auth_status(),
-                    "codexHome": str(self.state().codex_home),
-                    "dangerousMode": self.state().allow_dangerous,
-                })
+            if path == "/health" or path == "/api/health":
+                json_response(self, 200, self.state().public_health())
                 return
 
             if path == "/api/threads":
@@ -4087,7 +4154,13 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "threads":
                 thread = self.state().get_thread(parts[2])
                 if not thread:
-                    json_response(self, 404, {"error": "Thread not found"})
+                    json_error(
+                        self,
+                        404,
+                        "thread_not_found",
+                        "Thread not found",
+                        "Return to the thread list and refresh. The thread may have been moved, deleted, or not synced yet.",
+                    )
                     return
                 if "messages" not in thread:
                     rollout_messages = parse_messages(Path(thread["rolloutPath"]))
@@ -4109,7 +4182,13 @@ class Handler(BaseHTTPRequestHandler):
                 with JOBS_LOCK:
                     job = JOBS.get(parts[2])
                 if not job:
-                    json_response(self, 404, {"error": "Job not found"})
+                    json_error(
+                        self,
+                        404,
+                        "job_not_found",
+                        "Job not found",
+                        "Reload the thread. The live stream may have ended and saved messages can still be loaded.",
+                    )
                     return
                 json_response(self, 200, self.state().job_response(job, after_event_seq))
                 return
@@ -4122,11 +4201,11 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, self.state().remote_account_login_status(parts[4]))
                 return
 
-            json_response(self, 404, {"error": "Not found"})
+            json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
         except LookupError as exc:
-            json_response(self, 404, {"error": str(exc)})
+            json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
         except Exception as exc:
-            json_response(self, 500, {"error": str(exc)})
+            json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
     def do_POST(self):
         if not self.authenticate():
@@ -4213,7 +4292,18 @@ class Handler(BaseHTTPRequestHandler):
 
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "local-web" and parts[2] == "sessions":
                 body = decode_body(self)
-                json_response(self, 200, self.state().start_local_web_session(str(body.get("url", ""))))
+                try:
+                    session = self.state().start_local_web_session(str(body.get("url", "")))
+                except ValueError as exc:
+                    json_error(
+                        self,
+                        400,
+                        "local_web_invalid_target",
+                        str(exc),
+                        "Open a localhost, 127.0.0.1, or ::1 URL from the iPhone app.",
+                    )
+                    return
+                json_response(self, 200, session)
                 return
 
             if len(parts) == 4 and parts[0] == "api" and parts[1] == "threads" and parts[3] == "turns":
@@ -4263,17 +4353,24 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, status, payload)
                 return
 
-            json_response(self, 404, {"error": "Not found"})
+            json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
         except LookupError as exc:
-            json_response(self, 404, {"error": str(exc)})
+            json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
         except RequestBodyTooLarge as exc:
-            json_response(self, 413, {"error": str(exc)})
+            json_error(self, 413, "gateway_unavailable", str(exc), "Send a smaller request or fewer attachments.")
         except ValueError as exc:
-            json_response(self, 400, {"error": str(exc)})
+            json_error(self, 400, "gateway_unavailable", str(exc), "Check the request and try again.")
         except RuntimeError as exc:
-            json_response(self, 409, {"error": str(exc)})
+            message = str(exc)
+            code = "auth_stale" if is_stale_auth_message(message) else "active_turn_running"
+            recovery = (
+                "Refresh login for the active account, then try again."
+                if code == "auth_stale"
+                else "Wait for the active turn to finish, then try again."
+            )
+            json_error(self, 409, code, message, recovery)
         except Exception as exc:
-            json_response(self, 500, {"error": str(exc)})
+            json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
     def log_message(self, format, *args):
         print(f"{self.address_string()} - {format % args}", flush=True)

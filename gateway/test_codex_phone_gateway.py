@@ -792,6 +792,41 @@ class StreamEventFormattingTests(unittest.TestCase):
 
 
 class GatewayStateTests(unittest.TestCase):
+    def test_public_health_exposes_safe_gateway_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+            switcher_home = Path(tmp) / "switcher"
+            codex_home = Path(tmp) / "codex"
+            try:
+                gateway.DEFAULT_SWITCHER_HOME = switcher_home
+                switcher_home.mkdir()
+                codex_home.mkdir()
+                (switcher_home / "active-account.txt").write_text("main", encoding="utf-8")
+                state = GatewayState(codex_home, "secret-token", Path("/missing-codex"), False)
+
+                health = state.public_health()
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
+
+            self.assertTrue(health["gateway"]["running"])
+            self.assertEqual(health["accounts"]["active"], "main")
+            self.assertIn("auth", health["accounts"])
+            self.assertIn("notifications", health)
+            self.assertIn("remoteDesktop", health)
+            self.assertIn("localWeb", health)
+            self.assertNotIn("secret-token", json.dumps(health))
+
+    def test_error_payload_has_stable_code_message_and_recovery(self):
+        payload = gateway.error_payload(
+            "local_web_invalid_target",
+            "Only localhost URLs can be opened.",
+            "Open a localhost, 127.0.0.1, or ::1 URL from the iPhone app.",
+        )
+
+        self.assertEqual(payload["error"]["code"], "local_web_invalid_target")
+        self.assertEqual(payload["error"]["message"], "Only localhost URLs can be opened.")
+        self.assertIn("localhost", payload["error"]["recovery"])
+
     def test_resolve_requested_file_path_accepts_absolute_file_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             file_path = Path(tmp) / "created-by-codex.txt"
