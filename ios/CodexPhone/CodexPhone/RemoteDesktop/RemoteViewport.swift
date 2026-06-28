@@ -43,6 +43,10 @@ struct RemoteViewport: Equatable {
         13 + min(1, max(0, (zoom - 1) / 3)) * 5
     }
 
+    func cursorHotspotOffset(symbolSize: CGFloat) -> CGSize {
+        CGSize(width: symbolSize * 0.32, height: symbolSize * 0.40)
+    }
+
     mutating func applyPointerDelta(
         _ delta: CGSize,
         coordinateSize: CGSize,

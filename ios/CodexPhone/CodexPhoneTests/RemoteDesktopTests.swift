@@ -264,6 +264,13 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(RemoteViewport(zoom: 4).cursorSymbolSize(), 18)
     }
 
+    func testViewportCursorHotspotOffsetMovesSymbolCenterBelowPointerTip() {
+        let offset = RemoteViewport().cursorHotspotOffset(symbolSize: 20)
+
+        XCTAssertEqual(offset.width, 6.4, accuracy: 0.0001)
+        XCTAssertEqual(offset.height, 8.0, accuracy: 0.0001)
+    }
+
     func testViewportPointerPredictionUsesMacDisplayCoordinateSpace() {
         var viewport = RemoteViewport(cursor: CGPoint(x: 0.5, y: 0.5))
 
