@@ -22,8 +22,7 @@ struct RemoteDesktopView: View {
     @State private var interactionMode: InteractionMode = .control
     @State private var zoomScale: CGFloat = 1
     @State private var gestureZoomScale: CGFloat = 1
-    @State private var panOffset: CGSize = .zero
-    @State private var gesturePanOffset: CGSize = .zero
+    @State private var viewport = RemoteViewport()
     @State private var keyboardText = ""
     @State private var lastDragTranslation: CGSize = .zero
     @State private var pendingPointerDelta: CGSize = .zero
@@ -41,7 +40,7 @@ struct RemoteDesktopView: View {
                                 .scaledToFit()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .scaleEffect(effectiveZoom)
-                                .offset(effectivePan)
+                                .offset(viewportOffset(container: proxy.size))
                                 .background(Color.black)
                         } else {
                             VStack(spacing: 10) {
@@ -68,28 +67,12 @@ struct RemoteDesktopView: View {
                                 lastDragTranslation = value.translation
                                 pendingPointerDelta.width += delta.width
                                 pendingPointerDelta.height += delta.height
-
-                                if interactionMode == .pan || effectiveZoom > 1 {
-                                    gesturePanOffset = value.translation
-                                }
+                                predictCursor(delta: delta)
                                 flushPointerDeltaIfNeeded()
                             }
                             .onEnded { value in
                                 flushPointerDelta(force: true)
                                 lastDragTranslation = .zero
-                                if interactionMode == .pan || effectiveZoom > 1 {
-                                    panOffset = clampedPan(
-                                        CGSize(width: panOffset.width + value.translation.width,
-                                               height: panOffset.height + value.translation.height),
-                                        container: proxy.size
-                                    )
-                                    gesturePanOffset = .zero
-                                    if value.translation == .zero {
-                                        send(mapper.buttonDown())
-                                        send(mapper.buttonUp())
-                                    }
-                                    return
-                                }
                                 if value.translation == .zero {
                                     send(mapper.buttonDown())
                                     send(mapper.buttonUp())
@@ -101,18 +84,25 @@ struct RemoteDesktopView: View {
                             .onChanged { gestureZoomScale = $0 }
                             .onEnded { value in
                                 zoomScale = min(4, max(1, zoomScale * value))
+                                viewport.zoom = zoomScale
                                 gestureZoomScale = 1
-                                panOffset = clampedPan(panOffset, container: proxy.size)
-                                if zoomScale == 1 { panOffset = .zero }
                             }
                     )
                     .onTapGesture(count: 2) {
                         withAnimation(.easeOut(duration: 0.18)) {
                             zoomScale = zoomScale > 1 ? 1 : 2
-                            panOffset = .zero
-                            gesturePanOffset = .zero
+                            viewport.zoom = zoomScale
                         }
                     }
+
+                if let frameImage {
+                    Image(systemName: "cursorarrow")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black, radius: 1.5, x: 0, y: 1)
+                        .position(cursorPosition(container: proxy.size, image: frameImage.size))
+                        .allowsHitTesting(false)
+                }
 
                 VStack {
                     if let permissionWarning {
@@ -246,7 +236,12 @@ struct RemoteDesktopView: View {
             _ = await previous?.result
             guard !Task.isCancelled else { return }
             do {
-                try await api.sendInput(event)
+                let acknowledgement = try await api.sendInput(event)
+                if let cursor = acknowledgement.cursor {
+                    await MainActor.run {
+                        viewport.cursor = CGPoint(x: cursor.x, y: cursor.y)
+                    }
+                }
             } catch {
                 await MainActor.run {
                     frameError = "Control unavailable: \(Self.errorText(error))"
@@ -299,35 +294,28 @@ struct RemoteDesktopView: View {
         }
     }
 
-    private func mappedPoint(_ point: CGPoint, container: CGSize) -> (point: CGPoint, size: CGSize)? {
-        guard let image = frameImage, image.size.width > 0, image.size.height > 0 else { return nil }
-        let scale = min(container.width / image.size.width, container.height / image.size.height) * effectiveZoom
-        let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let pan = effectivePan
-        let origin = CGPoint(
-            x: (container.width - size.width) / 2 + pan.width,
-            y: (container.height - size.height) / 2 + pan.height
-        )
-        guard point.x >= origin.x, point.x <= origin.x + size.width,
-              point.y >= origin.y, point.y <= origin.y + size.height else { return nil }
-        return (CGPoint(x: point.x - origin.x, y: point.y - origin.y), size)
-    }
-
     private var effectiveZoom: CGFloat {
         min(4, max(1, zoomScale * gestureZoomScale))
     }
 
-    private var effectivePan: CGSize {
-        CGSize(width: panOffset.width + gesturePanOffset.width,
-               height: panOffset.height + gesturePanOffset.height)
+    private func viewportOffset(container: CGSize) -> CGSize {
+        guard let frameImage else { return .zero }
+        var current = viewport
+        current.zoom = effectiveZoom
+        return current.offset(container: container, image: frameImage.size)
     }
 
-    private func clampedPan(_ proposed: CGSize, container: CGSize) -> CGSize {
-        let horizontalLimit = max(0, container.width * (effectiveZoom - 1) / 2)
-        let verticalLimit = max(0, container.height * (effectiveZoom - 1) / 2)
-        return CGSize(
-            width: min(horizontalLimit, max(-horizontalLimit, proposed.width)),
-            height: min(verticalLimit, max(-verticalLimit, proposed.height))
+    private func cursorPosition(container: CGSize, image: CGSize) -> CGPoint {
+        var current = viewport
+        current.zoom = effectiveZoom
+        return current.cursorPosition(container: container, image: image)
+    }
+
+    private func predictCursor(delta: CGSize) {
+        guard let frameImage, frameImage.size.width > 0, frameImage.size.height > 0 else { return }
+        viewport.cursor = CGPoint(
+            x: min(1, max(0, viewport.cursor.x + delta.width * 1.35 / frameImage.size.width)),
+            y: min(1, max(0, viewport.cursor.y + delta.height * 1.35 / frameImage.size.height))
         )
     }
 

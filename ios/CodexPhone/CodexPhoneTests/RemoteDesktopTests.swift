@@ -179,7 +179,8 @@ final class RemoteDesktopTests: XCTestCase {
             )
         }
 
-        try await api.sendInput(event)
+        let acknowledgement = try await api.sendInput(event)
+        XCTAssertTrue(acknowledgement.ok)
     }
 
     func testRemoteInputMapperCreatesMonotonicNormalizedEvents() {
@@ -222,6 +223,23 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(session.phase, .disconnected)
         XCTAssertEqual(session.transportPath, .unknown)
         XCTAssertTrue(session.pendingInputs.isEmpty)
+    }
+
+    func testViewportCentersCursorAndClampsAtDisplayEdges() {
+        let container = CGSize(width: 100, height: 100)
+        let image = CGSize(width: 100, height: 100)
+
+        var viewport = RemoteViewport(zoom: 2, cursor: CGPoint(x: 0.5, y: 0.5))
+        XCTAssertEqual(viewport.offset(container: container, image: image), .zero)
+        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 50, y: 50))
+
+        viewport.cursor = CGPoint(x: 0.75, y: 0.5)
+        XCTAssertEqual(viewport.offset(container: container, image: image), CGSize(width: -50, height: 0))
+        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 50, y: 50))
+
+        viewport.cursor = CGPoint(x: 1, y: 1)
+        XCTAssertEqual(viewport.offset(container: container, image: image), CGSize(width: -50, height: -50))
+        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 100, y: 100))
     }
 
     private func assertRoundTrip<T: Codable & Equatable>(

@@ -87,7 +87,7 @@ struct RemoteDesktopAPI {
         return data
     }
 
-    func sendInput(_ event: RemoteInputEvent) async throws {
+    func sendInput(_ event: RemoteInputEvent) async throws -> RemoteInputAcknowledgement {
         guard let url = URL(string: "/api/remote/input", relativeTo: baseURL)?.absoluteURL else {
             throw RemoteDesktopAPIError.invalidURL
         }
@@ -102,6 +102,7 @@ struct RemoteDesktopAPI {
             let code = (try? JSONDecoder().decode(RemoteDesktopAPIErrorResponse.self, from: data).error) ?? "remote_desktop_error"
             throw RemoteDesktopAPIError.server(status: response.statusCode, code: code)
         }
+        return try JSONDecoder().decode(RemoteInputAcknowledgement.self, from: data)
     }
 
     private func request<T: Decodable>(_ method: String, path: String, body: [String: Any]?) async throws -> T {
@@ -137,6 +138,16 @@ struct RemoteDesktopAPI {
         }
         return (data, http)
     }
+}
+
+struct RemoteInputAcknowledgement: Decodable, Equatable {
+    struct Cursor: Decodable, Equatable {
+        let x: Double
+        let y: Double
+    }
+
+    let ok: Bool
+    let cursor: Cursor?
 }
 
 struct RemoteDesktopHostStatus: Codable, Equatable {

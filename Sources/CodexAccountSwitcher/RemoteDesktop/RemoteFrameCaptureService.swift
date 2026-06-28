@@ -30,7 +30,6 @@ final class RemoteFrameCaptureService {
         NSGraphicsContext.current?.imageInterpolation = .medium
         NSImage(cgImage: image, size: CGSize(width: image.width, height: image.height))
             .draw(in: NSRect(origin: .zero, size: size))
-        drawCursor(in: size)
         output.unlockFocus()
 
         guard let tiff = output.tiffRepresentation,
@@ -41,26 +40,4 @@ final class RemoteFrameCaptureService {
         return data
     }
 
-    private func drawCursor(in outputSize: CGSize) {
-        guard let mouseLocation = CGEvent(source: nil)?.location else { return }
-        let displayBounds = CGDisplayBounds(CGMainDisplayID())
-        guard displayBounds.contains(mouseLocation) else { return }
-
-        let scaleX = outputSize.width / displayBounds.width
-        let scaleY = outputSize.height / displayBounds.height
-        let cursor = NSCursor.arrow
-        let cursorSize = CGSize(
-            width: max(18, cursor.image.size.width * scaleX),
-            height: max(18, cursor.image.size.height * scaleY)
-        )
-        let x = (mouseLocation.x - displayBounds.minX) * scaleX - cursor.hotSpot.x * scaleX
-        let yFromTop = (mouseLocation.y - displayBounds.minY) * scaleY - cursor.hotSpot.y * scaleY
-        let rect = NSRect(
-            x: x,
-            y: outputSize.height - yFromTop - cursorSize.height,
-            width: cursorSize.width,
-            height: cursorSize.height
-        )
-        cursor.image.draw(in: rect)
-    }
 }

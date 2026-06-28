@@ -2877,8 +2877,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 let decoder = JSONDecoder()
                 let event = try decoder.decode(RemoteInputEvent.self, from: request.payload)
-                try remoteInputInjector.handle(event, displayFrame: CGDisplayBounds(CGMainDisplayID()))
-                return try Self.remoteDesktopRPCJSON(request.id, ["ok": true])
+                let displayFrame = CGDisplayBounds(CGMainDisplayID())
+                try remoteInputInjector.handle(event, displayFrame: displayFrame)
+                let cursor = CGEvent(source: nil)?.location ?? .zero
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "ok": true,
+                    "cursor": [
+                        "x": min(1, max(0, (cursor.x - displayFrame.minX) / displayFrame.width)),
+                        "y": min(1, max(0, (cursor.y - displayFrame.minY) / displayFrame.height))
+                    ]
+                ])
 
             default:
                 return Self.remoteDesktopRPCError(request.id, status: 404, code: "unsupported_method")
