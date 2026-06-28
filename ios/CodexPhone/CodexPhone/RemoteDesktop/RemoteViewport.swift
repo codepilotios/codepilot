@@ -26,6 +26,19 @@ struct RemoteViewport: Equatable {
         )
     }
 
+    func cursorPosition(container: CGSize, image: CGSize) -> CGPoint {
+        let scaled = scaledImageSize(container: container, image: image)
+        let origin = CGPoint(
+            x: (container.width - scaled.width) / 2,
+            y: (container.height - scaled.height) / 2
+        )
+        let viewportOffset = offset(container: container, image: image)
+        return CGPoint(
+            x: origin.x + viewportOffset.width + cursor.x * scaled.width,
+            y: origin.y + viewportOffset.height + cursor.y * scaled.height
+        )
+    }
+
     func remoteDelta(forScreenDelta delta: CGSize, container: CGSize, image: CGSize) -> CGSize {
         let scaled = scaledImageSize(container: container, image: image)
         guard scaled.width > 0, scaled.height > 0 else { return .zero }

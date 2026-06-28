@@ -248,12 +248,15 @@ final class RemoteDesktopTests: XCTestCase {
 
         var viewport = RemoteViewport(zoom: 2, cursor: CGPoint(x: 0.5, y: 0.5))
         XCTAssertEqual(viewport.offset(container: container, image: image), .zero)
+        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 50, y: 50))
 
         viewport.cursor = CGPoint(x: 0.75, y: 0.5)
         XCTAssertEqual(viewport.offset(container: container, image: image), CGSize(width: -50, height: 0))
+        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 50, y: 50))
 
         viewport.cursor = CGPoint(x: 1, y: 1)
         XCTAssertEqual(viewport.offset(container: container, image: image), CGSize(width: -50, height: -50))
+        XCTAssertEqual(viewport.cursorPosition(container: container, image: image), CGPoint(x: 100, y: 100))
     }
 
     func testViewportPointerPredictionUsesMacDisplayCoordinateSpace() {

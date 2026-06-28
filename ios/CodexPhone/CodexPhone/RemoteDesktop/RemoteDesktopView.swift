@@ -103,6 +103,21 @@ struct RemoteDesktopView: View {
                         }
                     }
 
+                if let imageSize = remoteImageSize {
+                    Circle()
+                        .strokeBorder(.black.opacity(0.75), lineWidth: 3)
+                        .background(Circle().fill(.white.opacity(0.92)))
+                        .frame(width: 11, height: 11)
+                        .overlay {
+                            Circle()
+                                .fill(.cyan)
+                                .frame(width: 4, height: 4)
+                        }
+                        .shadow(color: .black.opacity(0.45), radius: 2, x: 0, y: 1)
+                        .position(cursorPosition(container: proxy.size, image: imageSize))
+                        .allowsHitTesting(false)
+                }
+
                 VStack {
                     if let permissionWarning {
                         Label(permissionWarning, systemImage: "exclamationmark.triangle.fill")
@@ -356,6 +371,12 @@ struct RemoteDesktopView: View {
         var current = viewport
         current.zoom = effectiveZoom
         return current.offset(container: container, image: imageSize)
+    }
+
+    private func cursorPosition(container: CGSize, image: CGSize) -> CGPoint {
+        var current = viewport
+        current.zoom = effectiveZoom
+        return current.cursorPosition(container: container, image: image)
     }
 
     private func predictCursor(remoteDelta: CGSize) {
