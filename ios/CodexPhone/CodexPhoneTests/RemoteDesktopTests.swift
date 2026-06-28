@@ -220,6 +220,24 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(scroll.deltaY, -4)
     }
 
+    func testRemoteInputMapperClicksAtNormalizedRemoteCursor() {
+        var mapper = RemoteInputMapper(sessionID: "lease-1")
+
+        let down = mapper.buttonDown(atNormalizedCursor: CGPoint(x: 0.4, y: 0.6))
+        let up = mapper.buttonUp(atNormalizedCursor: CGPoint(x: 0.4, y: 0.6))
+
+        XCTAssertEqual(down.sequence, 1)
+        XCTAssertEqual(down.kind, .buttonDown)
+        XCTAssertEqual(down.x, 0.4)
+        XCTAssertEqual(down.y, 0.6)
+        XCTAssertEqual(down.button, 0)
+        XCTAssertEqual(up.sequence, 2)
+        XCTAssertEqual(up.kind, .buttonUp)
+        XCTAssertEqual(up.x, 0.4)
+        XCTAssertEqual(up.y, 0.6)
+        XCTAssertEqual(up.button, 0)
+    }
+
     func testRemoteDesktopSessionBackgroundGraceAndDisconnectCleanup() {
         var session = RemoteDesktopSessionState(leaseID: "lease-1", now: Date(timeIntervalSince1970: 100))
 

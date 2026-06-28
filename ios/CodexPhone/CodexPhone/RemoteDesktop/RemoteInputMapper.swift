@@ -41,6 +41,14 @@ struct RemoteInputMapper {
         make(kind: .buttonUp, button: button)
     }
 
+    mutating func buttonDown(atNormalizedCursor cursor: CGPoint, button: Int = 0) -> RemoteInputEvent {
+        make(kind: .buttonDown, x: normalizedUnit(cursor.x), y: normalizedUnit(cursor.y), button: button)
+    }
+
+    mutating func buttonUp(atNormalizedCursor cursor: CGPoint, button: Int = 0) -> RemoteInputEvent {
+        make(kind: .buttonUp, x: normalizedUnit(cursor.x), y: normalizedUnit(cursor.y), button: button)
+    }
+
     mutating func scroll(delta: CGSize) -> RemoteInputEvent {
         make(kind: .scroll, deltaX: delta.width, deltaY: delta.height)
     }
@@ -99,5 +107,9 @@ struct RemoteInputMapper {
     private func normalized(_ value: CGFloat, _ dimension: CGFloat) -> Double {
         guard dimension > 0 else { return 0 }
         return min(1, max(0, Double(value / dimension)))
+    }
+
+    private func normalizedUnit(_ value: CGFloat) -> Double {
+        min(1, max(0, Double(value)))
     }
 }

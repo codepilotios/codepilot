@@ -82,8 +82,8 @@ struct RemoteDesktopView: View {
                                 flushPointerDelta(force: true)
                                 lastDragTranslation = .zero
                                 if value.translation == .zero {
-                                    send(mapper.buttonDown())
-                                    send(mapper.buttonUp())
+                                    send(mapper.buttonDown(atNormalizedCursor: viewport.cursor))
+                                    send(mapper.buttonUp(atNormalizedCursor: viewport.cursor))
                                 }
                             }
                     )
