@@ -38,6 +38,7 @@ struct RemoteDesktopView: View {
                     .overlay {
                         if let videoTrack = peer.videoTrack {
                             RemoteVideoView(track: videoTrack)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .scaleEffect(effectiveZoom)
                                 .offset(viewportOffset(container: proxy.size))
                                 .background(Color.black)
