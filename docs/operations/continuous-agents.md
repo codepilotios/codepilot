@@ -4,7 +4,7 @@ The preferred implementation is Codex recurring automations attached to this thr
 
 On 2026-07-01, the automation creation backend hung twice while creating the first job. No automation files were created.
 
-This repository therefore includes a local LaunchAgent fallback:
+This repository therefore includes a local LaunchAgent scheduler fallback:
 
 ```sh
 scripts/install-codepilot-local-agents.sh
@@ -29,6 +29,8 @@ When an agent writes or changes `ops/agents/escalations/<job>.md`, the runner se
 ```sh
 codex exec resume <thread-id>
 ```
+
+The scheduler runs every 15 minutes and starts at most one due agent per tick. This avoids spending usage on seven concurrent Codex turns.
 
 Logs are written to:
 

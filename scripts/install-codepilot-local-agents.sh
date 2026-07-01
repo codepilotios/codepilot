@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="${CODEPILOT_REPO_ROOT:-/Users/homeserver/Developer/CodexAccountSwitcher}"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 RUNNER="$ROOT/scripts/codepilot-agent-runner.sh"
+SCHEDULER="$ROOT/scripts/codepilot-agent-scheduler.sh"
 STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 THREAD_ID="${CODEPILOT_AGENT_THREAD_ID:-${CODEX_THREAD_ID:-}}"
 
@@ -24,26 +25,31 @@ if [[ -z "$THREAD_ID" ]]; then
   exit 66
 fi
 
-chmod +x "$RUNNER" "$ROOT/scripts/codepilot-agent-escalate.sh"
+chmod +x "$RUNNER" "$SCHEDULER" "$ROOT/scripts/codepilot-agent-escalate.sh"
 mkdir -p "$PLIST_DIR"
 mkdir -p "$STATE_DIR"
 printf '%s\n' "$THREAD_ID" > "$STATE_DIR/thread-id"
 
-write_plist() {
+for old_plist in "$PLIST_DIR"/io.codepilot.agent.*.plist; do
+  [ -f "$old_plist" ] || continue
+  launchctl unload "$old_plist" 2>/dev/null || true
+  rm -f "$old_plist"
+done
+
+write_scheduler_plist() {
   local name="$1"
   local interval="$2"
-  local plist="$PLIST_DIR/io.codepilot.agent.$name.plist"
+  local plist="$PLIST_DIR/io.codepilot.agents.scheduler.plist"
   cat > "$plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>Label</key>
-  <string>io.codepilot.agent.$name</string>
+  <string>io.codepilot.agents.scheduler</string>
   <key>ProgramArguments</key>
   <array>
-    <string>$RUNNER</string>
-    <string>$name</string>
+    <string>$SCHEDULER</string>
   </array>
   <key>StartInterval</key>
   <integer>$interval</integer>
@@ -57,9 +63,9 @@ write_plist() {
     <string>$THREAD_ID</string>
   </dict>
   <key>StandardOutPath</key>
-  <string>$HOME/Library/Logs/CodePilotAgents/$name.launchd.out.log</string>
+  <string>$HOME/Library/Logs/CodePilotAgents/scheduler.launchd.out.log</string>
   <key>StandardErrorPath</key>
-  <string>$HOME/Library/Logs/CodePilotAgents/$name.launchd.err.log</string>
+  <string>$HOME/Library/Logs/CodePilotAgents/scheduler.launchd.err.log</string>
 </dict>
 </plist>
 EOF
@@ -67,13 +73,7 @@ EOF
   launchctl load "$plist"
 }
 
-write_plist health-watch 3600
-write_plist issue-triage 7200
-write_plist setup-audit 86400
-write_plist release-readiness 86400
-write_plist presence-maintenance 604800
-write_plist community-drafts 604800
-write_plist security-scan 604800
+write_scheduler_plist scheduler 900
 
-echo "Installed CodePilot local LaunchAgents."
+echo "Installed CodePilot local agent scheduler."
 echo "Escalations will be sent to Codex thread: $THREAD_ID"

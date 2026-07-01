@@ -7,6 +7,7 @@ STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 WORKTREE_ROOT="$STATE_DIR/worktrees"
 THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
+CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-gpt-5-codex}"
 
 if [[ -z "$JOB" ]]; then
   echo "Usage: $0 <job-name>" >&2
@@ -82,6 +83,7 @@ else
 
 "$CODEX_BIN" exec \
   --cd "$PWD" \
+  -m "$CODEX_MODEL" \
   --sandbox danger-full-access \
   - < "$PROMPT"
 
