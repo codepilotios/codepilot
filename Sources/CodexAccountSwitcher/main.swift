@@ -2531,6 +2531,7 @@ enum CodePilotSetupRequirement: Equatable {
 private final class CodePilotSetupWindowController: NSWindowController {
     private let statusStack = NSStackView()
     private let outputLabel = NSTextField(labelWithString: "")
+    private var cloudflareWizardController: CodePilotCloudflareWizardController?
 
     convenience init() {
         let window = NSWindow(
@@ -2590,9 +2591,10 @@ private final class CodePilotSetupWindowController: NSWindowController {
             ]
         ))
         root.addArrangedSubview(section(
-            title: "Cloudflare",
+            title: "Cloudflare Remote Access",
             buttons: [
-                button("Install Cloudflare Service", #selector(installCloudflare)),
+                button("Set Up Remote Access...", #selector(openCloudflareWizard)),
+                button("Restart Tunnel", #selector(restartCloudflareTunnel)),
                 button("Open Cloudflare Guide", #selector(openCloudflareGuide))
             ]
         ))
@@ -2668,8 +2670,17 @@ private final class CodePilotSetupWindowController: NSWindowController {
         runBundledScript(named: "install-phone-gateway-agent.sh", force: true)
     }
 
-    @objc private func installCloudflare() {
-        runBundledScript(named: "install-phone-cloudflared-agent.sh")
+    @objc private func openCloudflareWizard() {
+        let controller = CodePilotCloudflareWizardController()
+        cloudflareWizardController = controller
+        window?.beginSheet(controller.window!) { [weak self] _ in
+            self?.cloudflareWizardController = nil
+            self?.refreshStatus()
+        }
+    }
+
+    @objc private func restartCloudflareTunnel() {
+        runBundledScript(named: "setup-cloudflare-remote-access.sh", arguments: ["restart-service"])
     }
 
     @objc private func copyToken() {
@@ -2695,7 +2706,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         }
     }
 
-    private func runBundledScript(named name: String, force: Bool = false) {
+    private func runBundledScript(named name: String, arguments: [String] = [], force: Bool = false) {
         let candidates = [
             Bundle.main.resourceURL?.appendingPathComponent("scripts/\(name)"),
             URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/\(name)")
@@ -2707,7 +2718,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = force ? [script.path, "--force"] : [script.path]
+        process.arguments = [script.path] + arguments + (force ? ["--force"] : [])
         process.standardOutput = pipe
         process.standardError = pipe
         process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -2742,6 +2753,222 @@ private final class CodePilotSetupWindowController: NSWindowController {
         if let error {
             outputLabel.stringValue = String(describing: error)
         }
+    }
+}
+
+private final class CodePilotCloudflareWizardController: NSWindowController {
+    private let outputLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostnameField = NSTextField(string: "")
+    private let tunnelNameField = NSTextField(string: "codepilot")
+    private let detailsLabel = NSTextField(wrappingLabelWithString: "")
+
+    convenience init() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 560),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Set Up Cloudflare Remote Access"
+        self.init(window: window)
+        buildUI()
+    }
+
+    private func buildUI() {
+        guard let contentView = window?.contentView else { return }
+        let root = NSStackView()
+        root.orientation = .vertical
+        root.alignment = .leading
+        root.spacing = 14
+        root.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(root)
+
+        NSLayoutConstraint.activate([
+            root.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            root.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            root.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            root.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20)
+        ])
+
+        let title = NSTextField(labelWithString: "Cloudflare Remote Access")
+        title.font = .systemFont(ofSize: 22, weight: .semibold)
+        root.addArrangedSubview(title)
+
+        let intro = NSTextField(wrappingLabelWithString: """
+        CodePilot can use Cloudflare Tunnel so your iPhone can reach the Mac gateway away from your local network. Setup may install cloudflared, sign in to Cloudflare, create a tunnel, add a DNS route, write ~/.cloudflared/codepilot-config.yaml, and install a LaunchAgent to keep the tunnel running. No inbound ports are opened; the iOS app still needs the gateway token.
+        """)
+        intro.textColor = .secondaryLabelColor
+        root.addArrangedSubview(intro)
+
+        let fields = NSGridView(views: [
+            [NSTextField(labelWithString: "Hostname"), hostnameField],
+            [NSTextField(labelWithString: "Tunnel name"), tunnelNameField]
+        ])
+        fields.column(at: 0).xPlacement = .trailing
+        fields.column(at: 1).width = 420
+        hostnameField.placeholderString = "codepilot.example.com"
+        root.addArrangedSubview(fields)
+
+        root.addArrangedSubview(buttonRow([
+            button("Install cloudflared", #selector(installCloudflared)),
+            button("Sign In or Create Account", #selector(loginCloudflare))
+        ]))
+        root.addArrangedSubview(buttonRow([
+            button("Configure Permanent Hostname", #selector(configurePermanent)),
+            button("Start Temporary Test URL", #selector(startTemporary))
+        ]))
+        root.addArrangedSubview(buttonRow([
+            button("Open Cloudflare Dashboard", #selector(openCloudflareDashboard)),
+            button("Close", #selector(closeSheet))
+        ]))
+
+        outputLabel.textColor = .labelColor
+        outputLabel.stringValue = "Choose a setup step."
+        root.addArrangedSubview(outputLabel)
+
+        detailsLabel.textColor = .secondaryLabelColor
+        detailsLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        detailsLabel.maximumNumberOfLines = 8
+        detailsLabel.stringValue = "Details will appear here after a step runs."
+        root.addArrangedSubview(detailsLabel)
+    }
+
+    private func buttonRow(_ buttons: [NSButton]) -> NSView {
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.spacing = 8
+        buttons.forEach { row.addArrangedSubview($0) }
+        return row
+    }
+
+    private func button(_ title: String, _ action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.bezelStyle = .rounded
+        return button
+    }
+
+    @objc private func installCloudflared() {
+        runCloudflareStep(["install-cloudflared"], successMessage: "cloudflared is installed.")
+    }
+
+    @objc private func loginCloudflare() {
+        guard let script = scriptURL() else {
+            outputLabel.stringValue = "Could not find setup-cloudflare-remote-access.sh."
+            return
+        }
+        let command = "cd \(shellQuoted(FileManager.default.currentDirectoryPath)) && \(shellQuoted(script.path)) login"
+        runInTerminal(command)
+        outputLabel.stringValue = "Cloudflare sign-in opened in Terminal. Return here after the browser flow completes."
+        detailsLabel.stringValue = command
+    }
+
+    @objc private func configurePermanent() {
+        let hostname = hostnameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawTunnelName = tunnelNameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tunnelName = rawTunnelName.isEmpty ? "codepilot" : rawTunnelName
+        guard !hostname.isEmpty else {
+            outputLabel.stringValue = "Enter a hostname such as codepilot.example.com."
+            return
+        }
+
+        runCloudflareSteps([
+            ["configure-permanent", "--hostname", hostname, "--tunnel-name", tunnelName],
+            ["install-service"],
+            ["verify", "--url", "https://\(hostname)"]
+        ], successMessage: "Remote access is configured for https://\(hostname).")
+    }
+
+    @objc private func startTemporary() {
+        runCloudflareStep(["start-trycloudflare"], successMessage: "Temporary Cloudflare URL started. Use this only for testing.")
+    }
+
+    @objc private func openCloudflareDashboard() {
+        if let url = URL(string: "https://dash.cloudflare.com/") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc private func closeSheet() {
+        guard let window else { return }
+        window.sheetParent?.endSheet(window)
+    }
+
+    private func runCloudflareStep(_ arguments: [String], successMessage: String) {
+        runCloudflareSteps([arguments], successMessage: successMessage)
+    }
+
+    private func runCloudflareSteps(_ steps: [[String]], successMessage: String) {
+        guard let script = scriptURL() else {
+            outputLabel.stringValue = "Could not find setup-cloudflare-remote-access.sh."
+            return
+        }
+        outputLabel.stringValue = "Running Cloudflare setup..."
+        detailsLabel.stringValue = steps.map { ([script.path] + $0).joined(separator: " ") }.joined(separator: "\n")
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            var combinedOutput: [String] = []
+            for arguments in steps {
+                let result = self.runProcess(script: script, arguments: arguments)
+                combinedOutput.append(result.output)
+                if result.status != 0 {
+                    DispatchQueue.main.async {
+                        self.outputLabel.stringValue = CodePilotCloudflareErrorMapper.message(forExitCode: result.status)
+                        self.detailsLabel.stringValue = combinedOutput.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    return
+                }
+            }
+
+            DispatchQueue.main.async {
+                self.outputLabel.stringValue = successMessage
+                self.detailsLabel.stringValue = combinedOutput.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+    }
+
+    private func runProcess(script: URL, arguments: [String]) -> (status: Int32, output: String) {
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = [script.path] + arguments
+        process.standardOutput = pipe
+        process.standardError = pipe
+        process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            return (process.terminationStatus, output)
+        } catch {
+            return (1, error.localizedDescription)
+        }
+    }
+
+    private func scriptURL() -> URL? {
+        let candidates = [
+            Bundle.main.resourceURL?.appendingPathComponent("scripts/setup-cloudflare-remote-access.sh"),
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/setup-cloudflare-remote-access.sh")
+        ].compactMap { $0 }
+        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    private func runInTerminal(_ command: String) {
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "\(command.replacingOccurrences(of: "\"", with: "\\\""))"
+        end tell
+        """
+        var error: NSDictionary?
+        NSAppleScript(source: script)?.executeAndReturnError(&error)
+        if let error {
+            outputLabel.stringValue = String(describing: error)
+        }
+    }
+
+    private func shellQuoted(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
     }
 }
 
