@@ -71,7 +71,6 @@ else
 "$CODEX_BIN" exec \
   --cd "$PWD" \
   --sandbox danger-full-access \
-  --ask-for-approval never \
   - < "$PROMPT"
 
 fi
