@@ -6,7 +6,8 @@ Remote write policy: read-only GitHub inspection only. No remote comments, label
 
 - #1 Add permissions and notification readiness to the Mac setup checklist
   - Proposed labels: `setup`, `remote-desktop`, `mac`, `notifications`, `severity: low`.
-  - Triage: confirmed from existing issue body/comment that the setup checklist still needs visible Screen Recording, Accessibility, and notification/APNs readiness rows. No local fix in this pass.
+  - Triage: confirmed from existing issue body/comment that the setup checklist still needed visible Screen Recording, Accessibility, and notification/APNs readiness rows.
+  - Local fix: added setup checklist rows for Screen Recording, Accessibility, and Notifications; added setup-window recovery buttons for the macOS permission prompts and iOS notification guide; added status-label coverage for the new Ready/Optional/Missing states.
 - #2 Support or disable the iOS Same Network setup path
   - Proposed labels: `setup`, `ios`, `gateway`, `severity: medium`.
   - Triage: product/security decision required because default gateway binding is loopback-only while iOS exposes Same Network setup. Already escalated locally.
@@ -28,6 +29,14 @@ Remote write policy: read-only GitHub inspection only. No remote comments, label
 
 - `swift test --filter CloudflareSetupTests/testTryCloudflareTerminalCommandUsesLongRunningSubcommand` failed before implementation because `CodePilotTryCloudflareCommand` was missing.
 - `swift test --filter CloudflareSetupTests` passed after implementation.
+- `swift test --filter SetupStatusTests` passed after adding setup readiness rows for #1.
+- `swift test` passed after the #1 setup checklist changes.
+
+## Local Branches And Commits
+
+- Branch: `agent/issue-triage`.
+- Existing local commit: `1d46890 fix: launch trycloudflare setup in terminal`.
+- New local commit: `fix: show setup readiness for remote desktop`.
 
 ## Escalations
 

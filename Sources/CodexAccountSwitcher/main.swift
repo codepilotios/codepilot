@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import CryptoKit
 import Darwin
 import Foundation
@@ -2342,6 +2343,8 @@ private struct CodePilotSetupStatus {
             cloudflareRequirement = .cloudflareNeedsConfiguration
             cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
         }
+        let permissions = SystemRemoteDesktopPermissions()
+        let notificationsConfigured = apnsConfigured()
         return CodePilotSetupStatus(rows: [
             CodePilotSetupRow(
                 title: "Codex CLI",
@@ -2372,6 +2375,27 @@ private struct CodePilotSetupStatus {
                 title: "Cloudflare",
                 requirement: cloudflareRequirement,
                 detail: cloudflareDetail
+            ),
+            CodePilotSetupRow(
+                title: "Screen Recording",
+                requirement: permissions.screenRecordingGranted ? .screenRecordingReady : .screenRecordingMissing,
+                detail: permissions.screenRecordingGranted
+                    ? "Remote Desktop viewing is allowed."
+                    : "Allow CodePilot in System Settings to view the Mac screen."
+            ),
+            CodePilotSetupRow(
+                title: "Accessibility",
+                requirement: permissions.accessibilityGranted ? .accessibilityReady : .accessibilityMissing,
+                detail: permissions.accessibilityGranted
+                    ? "Remote Desktop control is allowed."
+                    : "Allow CodePilot in System Settings to control the Mac."
+            ),
+            CodePilotSetupRow(
+                title: "Notifications",
+                requirement: notificationsConfigured ? .notificationsReady : .notificationsOptional,
+                detail: notificationsConfigured
+                    ? "APNs credentials are configured for turn-finished alerts."
+                    : "Configure APNs only if background iPhone alerts are needed."
             )
         ])
     }
@@ -2454,6 +2478,22 @@ private struct CodePilotSetupStatus {
         guard let data = try? Data(contentsOf: path) else { return nil }
         return try? JSONDecoder().decode(CodePilotCloudflareMetadata.self, from: data)
     }
+
+    private static func apnsConfigured(
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        fileExists: (String) -> Bool = { FileManager.default.fileExists(atPath: NSString(string: $0).expandingTildeInPath) }
+    ) -> Bool {
+        let certPath = environment["CODEX_PHONE_APNS_CERT_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let certKeyPath = environment["CODEX_PHONE_APNS_CERT_KEY_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !certPath.isEmpty, !certKeyPath.isEmpty, fileExists(certPath), fileExists(certKeyPath) {
+            return true
+        }
+
+        let teamID = environment["CODEX_PHONE_APNS_TEAM_ID"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let keyID = environment["CODEX_PHONE_APNS_KEY_ID"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let keyPath = environment["CODEX_PHONE_APNS_KEY_PATH"]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !teamID.isEmpty && !keyID.isEmpty && !keyPath.isEmpty && fileExists(keyPath)
+    }
 }
 
 struct CodePilotSetupRow: Equatable {
@@ -2516,13 +2556,16 @@ enum CodePilotSetupRequirement: Equatable {
     case cloudflareOptional
     case cloudflareMissing
     case cloudflareNeedsConfiguration
+    case screenRecordingReady
     case screenRecordingMissing
+    case accessibilityReady
     case accessibilityMissing
+    case notificationsReady
     case notificationsOptional
 
     var statusLabel: String {
         switch self {
-        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady:
+        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady, .screenRecordingReady, .accessibilityReady, .notificationsReady:
             return "Ready"
         case .cloudflareNeedsConfiguration:
             return "Needs setup"
@@ -2606,6 +2649,14 @@ private final class CodePilotSetupWindowController: NSWindowController {
                 button("Set Up Remote Access...", #selector(openCloudflareWizard)),
                 button("Restart Tunnel", #selector(restartCloudflareTunnel)),
                 button("Open Cloudflare Guide", #selector(openCloudflareGuide))
+            ]
+        ))
+        root.addArrangedSubview(section(
+            title: "Remote Desktop & Notifications",
+            buttons: [
+                button("Request Screen Recording", #selector(requestScreenRecordingPermission)),
+                button("Request Accessibility", #selector(requestAccessibilityPermission)),
+                button("Open iOS Notification Guide", #selector(openIOSNotificationGuide))
             ]
         ))
 
@@ -2714,6 +2765,25 @@ private final class CodePilotSetupWindowController: NSWindowController {
         } else if let url = URL(string: "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    @objc private func requestScreenRecordingPermission() {
+        _ = CGRequestScreenCaptureAccess()
+        outputLabel.stringValue = "Screen Recording prompt requested. Reopen CodePilot after changing System Settings."
+        refreshStatus()
+    }
+
+    @objc private func requestAccessibilityPermission() {
+        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        outputLabel.stringValue = "Accessibility prompt requested. Refresh after changing System Settings."
+        refreshStatus()
+    }
+
+    @objc private func openIOSNotificationGuide() {
+        let sourceURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent("docs/INSTALL_IOS.md")
+        NSWorkspace.shared.open(sourceURL)
     }
 
     private func runBundledScript(named name: String, arguments: [String] = [], force: Bool = false) {
