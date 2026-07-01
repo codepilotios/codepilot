@@ -9,6 +9,12 @@ CodePilot iOS connects to a Mac running the CodePilot gateway.
 - The gateway bearer token from the Mac.
 - Optional: Cloudflare Tunnel for remote access outside the local network.
 
+## Beta Installation
+
+TestFlight is the intended iPhone distribution path during the public beta. Install the beta build from the TestFlight invite shared by the maintainers, then connect it to your own Mac gateway.
+
+Developers building from source can open the Xcode project under `ios/CodexPhone/` and build the `CodexPhone` scheme for a simulator or device configured with their own signing setup.
+
 ## Connection
 
 On first launch:
@@ -21,28 +27,6 @@ On first launch:
 Success means the app shows the active account from the Mac gateway.
 
 The app stores these values locally on the device.
-
-## App Store Connect Setup
-
-The local Fastlane credentials live in the ignored file:
-
-```sh
-ios/CodexPhone/fastlane/.env
-```
-
-To create an Apple web session for App Store record creation, run from the repo root:
-
-```sh
-scripts/apple-spaceauth.sh
-```
-
-Paste the generated `FASTLANE_SESSION` into `ios/CodexPhone/fastlane/.env`, then run:
-
-```sh
-scripts/create-app-store-record.sh
-```
-
-The App Store Connect API key can manage signing resources, but Apple still requires an Apple ID web session for creating a new App Store app record.
 
 ## Notifications
 

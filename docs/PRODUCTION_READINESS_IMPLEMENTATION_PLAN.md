@@ -323,7 +323,7 @@ curl -fsS -X POST http://127.0.0.1:8787/codexphone/api/build
 curl -fsS http://127.0.0.1:8787/codexphone/api/status
 ```
 
-Wait until `current.state == "complete"`, then verify the manifest and IPA from `https://ota.sprenkeling.co` return HTTP 200.
+Wait until `current.state == "complete"`, then verify the manifest and IPA from the configured OTA domain return HTTP 200.
 
 - [ ] **Step 8: Commit**
 
@@ -497,8 +497,8 @@ Expected: `current.state` becomes `complete`.
 Run:
 
 ```sh
-curl -I https://ota.sprenkeling.co/codexphone/manifest.plist
-curl -I https://ota.sprenkeling.co/codexphone/CodePilot.ipa
+curl -I https://ota.example.com/codexphone/manifest.plist
+curl -I https://ota.example.com/codexphone/CodePilot.ipa
 ```
 
 Expected: HTTP 200 or the exact current generated manifest/IPA paths return HTTP 200.

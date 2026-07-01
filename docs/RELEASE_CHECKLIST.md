@@ -9,4 +9,6 @@
 - [ ] Public manifest and IPA return HTTP 200 from the OTA domain
 - [ ] TestFlight upload if shipping a beta build
 - [ ] Public docs checked for personal names, private email addresses, tokens, hostnames, Apple team IDs, and machine-specific paths
+- [ ] Public screenshots use sanitized demo data only
+- [ ] Privacy, support, FAQ, and README copy reviewed for beta positioning
 - [ ] `.superpowers/` scratch files are not committed
