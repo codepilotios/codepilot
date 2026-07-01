@@ -7,7 +7,7 @@ STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 WORKTREE_ROOT="$STATE_DIR/worktrees"
 THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
-CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-gpt-5-codex}"
+CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-}"
 
 if [[ -z "$JOB" ]]; then
   echo "Usage: $0 <job-name>" >&2
@@ -81,9 +81,14 @@ if [[ "${CODEPILOT_AGENT_TEST_ESCALATION:-}" == "1" ]]; then
   } > "$ESCALATION_FILE"
 else
 
+model_args=()
+if [[ -n "$CODEX_MODEL" ]]; then
+  model_args=(-m "$CODEX_MODEL")
+fi
+
 "$CODEX_BIN" exec \
   --cd "$PWD" \
-  -m "$CODEX_MODEL" \
+  "${model_args[@]}" \
   --sandbox danger-full-access \
   - < "$PROMPT"
 
