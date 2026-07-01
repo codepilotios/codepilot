@@ -1,0 +1,14 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+REAL_GIT="${CODEPILOT_AGENT_REAL_GIT:-/usr/bin/git}"
+
+for arg in "$@"; do
+  if [[ "$arg" == "push" ]]; then
+    echo "CodePilot agent guard blocked git push." >&2
+    echo "Local branches and commits are allowed; a maintainer must publish them." >&2
+    exit 77
+  fi
+done
+
+exec "$REAL_GIT" "$@"

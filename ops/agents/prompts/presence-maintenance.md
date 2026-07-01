@@ -8,10 +8,10 @@ Rules:
 - Keep promotion beta-focused.
 - Target AI coding users and existing Codex CLI users.
 - Remove private names, hosts, paths, tokens, and private screenshots.
-- Create draft PRs for public content changes.
+- Create local branches and commits for proposed public content changes.
 - If intervention is needed, write a concise escalation note to `ops/agents/escalations/presence-maintenance.md`.
 
 Report:
 - Content reviewed.
-- PRs/issues created.
+- Local branches, commits, or issue drafts created.
 - Approval needed.

@@ -8,6 +8,7 @@ WORKTREE_ROOT="$STATE_DIR/worktrees"
 THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
 CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-}"
+GUARD_BIN="$ROOT/scripts/agent-guard-bin"
 
 if [[ -z "$JOB" ]]; then
   echo "Usage: $0 <job-name>" >&2
@@ -67,6 +68,12 @@ if [[ -d "$WORKTREE/.git" || -f "$WORKTREE/.git" ]]; then
   cd "$WORKTREE"
 fi
 
+REAL_GIT="$(command -v git)"
+REAL_GH="$(command -v gh 2>/dev/null || true)"
+export CODEPILOT_AGENT_REAL_GIT="$REAL_GIT"
+export CODEPILOT_AGENT_REAL_GH="$REAL_GH"
+export PATH="$GUARD_BIN:$PATH"
+
 ESCALATION_FILE="$ROOT/ops/agents/escalations/$JOB.md"
 BEFORE_HASH=""
 if [[ -f "$ESCALATION_FILE" ]]; then
@@ -86,11 +93,43 @@ if [[ -n "$CODEX_MODEL" ]]; then
   model_args=(-m "$CODEX_MODEL")
 fi
 
-"$CODEX_BIN" exec \
-  --cd "$PWD" \
-  "${model_args[@]}" \
-  --sandbox danger-full-access \
-  - < "$PROMPT"
+REASONING_EFFORT="${CODEPILOT_AGENT_REASONING_EFFORT:-}"
+if [[ -z "$REASONING_EFFORT" ]]; then
+  case "$JOB" in
+    security-scan|release-readiness)
+      REASONING_EFFORT="high"
+      ;;
+    *)
+      REASONING_EFFORT="medium"
+      ;;
+  esac
+fi
+
+PUBLIC_WRITE_POLICY=$(cat <<'EOF'
+# Public write policy
+
+This unattended run MUST NOT mutate public or external systems. Do not create,
+edit, label, comment on, close, merge, submit, publish, upload, or push GitHub
+issues, pull requests, releases, App Store records, social posts, websites, or
+other remote resources. This applies to shell commands, connectors, apps,
+browsers, HTTP APIs, and any other tool. Do not bypass the command guards or
+invoke absolute binary paths to evade them.
+
+Read-only remote inspection is allowed. Local files, local branches, and local
+commits are allowed. Put proposed public changes in local draft files and write
+an escalation when maintainer action is required.
+EOF
+)
+
+{
+  printf '%s\n\n' "$PUBLIC_WRITE_POLICY"
+  cat "$PROMPT"
+} | "$CODEX_BIN" exec \
+    --cd "$PWD" \
+    "${model_args[@]}" \
+    --config "model_reasoning_effort=\"$REASONING_EFFORT\"" \
+    --sandbox danger-full-access \
+    -
 
 fi
 

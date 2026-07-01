@@ -32,6 +32,19 @@ codex exec resume <thread-id>
 
 The scheduler runs every 15 minutes and starts at most one due agent per tick. This avoids spending usage on seven concurrent Codex turns.
 
+## Usage and publication controls
+
+Routine jobs run with medium reasoning. Security and release-readiness jobs run
+with high reasoning. Set `CODEPILOT_AGENT_REASONING_EFFORT` only when a manual
+run needs a different level.
+
+Unattended agents may inspect public systems, create local draft files, and
+commit to their local worktree branches. They may not publish changes. The
+runner injects this policy into every prompt and places guarded `gh` and `git`
+commands first on `PATH`; mutating GitHub commands and `git push` are rejected.
+Publishing an issue, pull request, release, store record, website update, or
+social post requires maintainer action.
+
 Logs are written to:
 
 - logs to `~/Library/Logs/CodePilotAgents`

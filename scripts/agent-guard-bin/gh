@@ -1,0 +1,24 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+REAL_GH="${CODEPILOT_AGENT_REAL_GH:-}"
+if [[ -z "$REAL_GH" || ! -x "$REAL_GH" ]]; then
+  echo "CodePilot agent guard: GitHub CLI is unavailable." >&2
+  exit 127
+fi
+
+top="${1:-}"
+sub="${2:-}"
+
+case "$top:$sub" in
+  auth:status|repo:view|repo:list|issue:list|issue:view|issue:status|pr:list|pr:view|pr:status|pr:checks|pr:diff|run:list|run:view|run:watch|workflow:list|workflow:view|release:list|release:view|label:list|search:*)
+    exec "$REAL_GH" "$@"
+    ;;
+  --version:|version:|help:|*:--help)
+    exec "$REAL_GH" "$@"
+    ;;
+esac
+
+echo "CodePilot agent guard blocked a public GitHub write: gh $*" >&2
+echo "Create a local draft under ops/agents instead; a maintainer must publish it." >&2
+exit 77
