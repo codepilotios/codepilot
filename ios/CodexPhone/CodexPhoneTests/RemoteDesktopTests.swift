@@ -17,7 +17,17 @@ final class RemoteDesktopTests: XCTestCase {
     func testGatewayConnectionKindUsesUserFacingTitles() {
         XCTAssertEqual(GatewayConnectionKind.local.title, "Same Network")
         XCTAssertEqual(GatewayConnectionKind.cloudflare.title, "Cloudflare")
-        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("same Wi-Fi"))
+        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("LAN address"))
+        XCTAssertTrue(GatewayConnectionKind.cloudflare.helpText.contains("Cloudflare Tunnel"))
+    }
+
+    func testGatewayRootURLRequiresHTTPOrHTTPSWithHost() throws {
+        let url = try gatewayRootURL(from: " https://codepilot.example.com ")
+
+        XCTAssertEqual(url.absoluteString, "https://codepilot.example.com")
+        assertInvalidGatewayRootURL("codepilot.example.com")
+        assertInvalidGatewayRootURL("file:///tmp/codepilot")
+        assertInvalidGatewayRootURL("http:///missing-host")
     }
 
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
@@ -450,5 +460,18 @@ final class RemoteDesktopTests: XCTestCase {
         decoder.dateDecodingStrategy = .iso8601
         decoder.dataDecodingStrategy = .base64
         return decoder
+    }
+
+    private func assertInvalidGatewayRootURL(
+        _ value: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        XCTAssertThrowsError(try gatewayRootURL(from: value), file: file, line: line) { error in
+            guard case GatewayError.invalidURL = error else {
+                XCTFail("Expected GatewayError.invalidURL, got \(error)", file: file, line: line)
+                return
+            }
+        }
     }
 }
