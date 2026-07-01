@@ -168,6 +168,14 @@ configure_permanent() {
   }
   create_output="$("$cf" tunnel create "$tunnel_name" 2>&1 || true)"
   tunnel_id="$(printf '%s' "$create_output" | parse_tunnel_id)"
+  if [ -z "$tunnel_id" ]; then
+    echo "Could not determine Cloudflare tunnel ID for '$tunnel_name'." >&2
+    if [ -n "$create_output" ]; then
+      printf '%s\n' "$create_output" >&2
+    fi
+    echo "Choose another tunnel name or remove the existing tunnel, then rerun configure-permanent." >&2
+    exit 22
+  fi
   "$cf" tunnel route dns "$tunnel_name" "$hostname"
 
   cat > "$CONFIG_PATH" <<EOF
