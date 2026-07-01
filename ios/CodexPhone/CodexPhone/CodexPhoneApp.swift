@@ -472,7 +472,7 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     var helpText: String {
         switch self {
         case .local:
-            "Same Network is disabled for public beta until LAN binding has explicit firewall and trust guidance."
+            "Use only after configuring the Mac gateway to listen on a LAN address."
         case .cloudflare:
             "Use your Cloudflare Tunnel hostname for access when you are away from the Mac."
         }
@@ -1825,8 +1825,20 @@ func isMacLocalWebURL(_ url: URL) -> Bool {
     return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
+func gatewayRootURL(from rawValue: String) throws -> URL {
+    let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let url = URL(string: trimmed),
+          let scheme = url.scheme?.lowercased(),
+          ["http", "https"].contains(scheme),
+          let host = url.host,
+          !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        throw GatewayError.invalidURL
+    }
+    return url
+}
+
 func localWebSessionURL(path: String, baseURL: String) -> URL? {
-    guard let root = GatewayEndpoint.baseURL(from: baseURL),
+    guard let root = try? gatewayRootURL(from: baseURL),
           var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
         return nil
     }
@@ -4892,9 +4904,7 @@ struct CodexGatewayClient {
     }
 
     func downloadRemoteFile(path: String, baseURL: String, token: String) async throws -> URL {
-        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
-            throw GatewayError.invalidURL
-        }
+        let root = try gatewayRootURL(from: baseURL)
         guard var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
             throw GatewayError.invalidURL
         }
@@ -4955,9 +4965,7 @@ struct CodexGatewayClient {
         baseURL: String,
         token: String
     ) async throws -> T {
-        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
-            throw GatewayError.invalidURL
-        }
+        let root = try gatewayRootURL(from: baseURL)
         guard let url = URL(string: path, relativeTo: root)?.absoluteURL else {
             throw GatewayError.invalidURL
         }

@@ -4812,14 +4812,14 @@ class Handler(BaseHTTPRequestHandler):
                 )
             return
 
+        if path == "/health" or path == "/api/health":
+            json_response(self, 200, self.state().public_health())
+            return
+
         if not self.authenticate():
             return
 
         try:
-            if path == "/health" or path == "/api/health":
-                json_response(self, 200, self.state().public_health())
-                return
-
             if path == "/api/threads":
                 json_response(self, 200, {
                     "activeAccount": self.state().active_account_name(),

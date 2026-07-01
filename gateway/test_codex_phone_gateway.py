@@ -5,7 +5,9 @@ import os
 import socket
 import subprocess
 import tempfile
+import threading
 import tomllib
+import urllib.request
 import unittest
 import urllib.request
 from unittest import mock
@@ -1256,6 +1258,39 @@ class GatewayStateTests(unittest.TestCase):
             self.assertIn("remoteDesktop", health)
             self.assertIn("localWeb", health)
             self.assertNotIn("secret-token", json.dumps(health))
+
+    def test_health_endpoint_is_available_without_bearer_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+            switcher_home = Path(tmp) / "switcher"
+            codex_home = Path(tmp) / "codex"
+            server = None
+            thread = None
+            try:
+                gateway.DEFAULT_SWITCHER_HOME = switcher_home
+                switcher_home.mkdir()
+                codex_home.mkdir()
+                (switcher_home / "active-account.txt").write_text("main", encoding="utf-8")
+                state = GatewayState(codex_home, "secret-token", Path("/missing-codex"), False)
+                server = gateway.GatewayServer(("127.0.0.1", 0), state)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+
+                url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+                with urllib.request.urlopen(url, timeout=2) as response:
+                    status = response.status
+                    payload = json.loads(response.read().decode("utf-8"))
+            finally:
+                if server is not None:
+                    server.shutdown()
+                    server.server_close()
+                if thread is not None:
+                    thread.join(timeout=2)
+                gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
+
+            self.assertEqual(status, 200)
+            self.assertTrue(payload["gateway"]["running"])
+            self.assertNotIn("secret-token", json.dumps(payload))
 
     def test_error_payload_has_stable_code_message_and_recovery(self):
         payload = gateway.error_payload(
