@@ -2330,6 +2330,18 @@ private struct CodePilotSetupStatus {
 
         let codexCLI = executablePath(named: "codex")
         let cloudflared = executablePath(named: "cloudflared")
+        let cloudflareRequirement: CodePilotSetupRequirement
+        let cloudflareDetail: String
+        if cloudflared == nil {
+            cloudflareRequirement = .cloudflareMissing
+            cloudflareDetail = "Install cloudflared to enable remote iPhone access."
+        } else if cloudflareMetadataExists() || cloudflareConfigExists() {
+            cloudflareRequirement = .cloudflareReady
+            cloudflareDetail = cloudflareReadyDetail(defaultPath: cloudflared)
+        } else {
+            cloudflareRequirement = .cloudflareNeedsConfiguration
+            cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
+        }
         return CodePilotSetupStatus(rows: [
             CodePilotSetupRow(
                 title: "Codex CLI",
@@ -2358,8 +2370,8 @@ private struct CodePilotSetupStatus {
             ),
             CodePilotSetupRow(
                 title: "Cloudflare",
-                requirement: cloudflared == nil ? .cloudflareOptional : .cloudflareReady,
-                detail: cloudflared ?? "Optional for access away from your local network."
+                requirement: cloudflareRequirement,
+                detail: cloudflareDetail
             )
         ])
     }
@@ -2415,12 +2427,67 @@ private struct CodePilotSetupStatus {
             ? "Reachable on 127.0.0.1:18790"
             : "Not reachable on 127.0.0.1:18790"
     }
+
+    private static func cloudflareMetadataExists() -> Bool {
+        let path = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/cloudflare-setup.json")
+        return FileManager.default.fileExists(atPath: path.path)
+    }
+
+    private static func cloudflareConfigExists() -> Bool {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let modern = home.appendingPathComponent(".cloudflared/codepilot-config.yaml")
+        let legacy = home.appendingPathComponent(".cloudflared/codex-phone-config.yaml")
+        return FileManager.default.fileExists(atPath: modern.path) || FileManager.default.fileExists(atPath: legacy.path)
+    }
+
+    private static func cloudflareReadyDetail(defaultPath: String?) -> String {
+        if let metadata = loadCloudflareMetadata(), !metadata.hostname.isEmpty {
+            return metadata.hostname
+        }
+        return defaultPath ?? "Configured"
+    }
+
+    private static func loadCloudflareMetadata() -> CodePilotCloudflareMetadata? {
+        let path = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/cloudflare-setup.json")
+        guard let data = try? Data(contentsOf: path) else { return nil }
+        return try? JSONDecoder().decode(CodePilotCloudflareMetadata.self, from: data)
+    }
 }
 
 struct CodePilotSetupRow: Equatable {
     let title: String
     let requirement: CodePilotSetupRequirement
     let detail: String
+}
+
+struct CodePilotCloudflareMetadata: Codable, Equatable {
+    let mode: String
+    let hostname: String
+    let tunnelName: String
+    let tunnelId: String
+    let configPath: String
+    let launchAgentLabel: String
+    let lastVerifiedAt: String?
+
+    var safeSummary: String {
+        let host = hostname.isEmpty ? "No hostname configured" : hostname
+        return "\(mode) tunnel \(tunnelName) for \(host)"
+    }
+}
+
+enum CodePilotCloudflareErrorMapper {
+    static func message(forExitCode code: Int32) -> String {
+        switch code {
+        case 20:
+            return "Homebrew is missing. Install Homebrew or use Cloudflare's manual cloudflared installer, then retry."
+        case 21:
+            return "cloudflared is missing. Install it from the Cloudflare setup step before continuing."
+        default:
+            return "Cloudflare setup did not finish. Open details, review the last command output, and retry the failed step."
+        }
+    }
 }
 
 enum CodePilotSetupRequirement: Equatable {
@@ -2437,6 +2504,8 @@ enum CodePilotSetupRequirement: Equatable {
     case gatewayBlockedByActiveTurn
     case cloudflareReady
     case cloudflareOptional
+    case cloudflareMissing
+    case cloudflareNeedsConfiguration
     case screenRecordingMissing
     case accessibilityMissing
     case notificationsOptional
@@ -2445,13 +2514,15 @@ enum CodePilotSetupRequirement: Equatable {
         switch self {
         case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady:
             return "Ready"
+        case .cloudflareNeedsConfiguration:
+            return "Needs setup"
         case .gatewayStopped:
             return "Stopped"
         case .gatewayBlockedByActiveTurn:
             return "Blocked by active turn"
         case .cloudflareOptional, .notificationsOptional:
             return "Optional"
-        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .screenRecordingMissing, .accessibilityMissing:
+        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing, .screenRecordingMissing, .accessibilityMissing:
             return "Missing"
         }
     }
