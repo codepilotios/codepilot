@@ -35,4 +35,14 @@ final class CloudflareSetupTests: XCTestCase {
             "cloudflared is missing. Install it from the Cloudflare setup step before continuing."
         )
     }
+
+    func testTryCloudflareTerminalCommandUsesLongRunningSubcommand() {
+        let command = CodePilotTryCloudflareCommand.terminalCommand(
+            scriptPath: "/tmp/Code Pilot/scripts/setup-cloudflare-remote-access.sh",
+            currentDirectory: "/tmp/Code Pilot"
+        )
+
+        XCTAssertTrue(command.contains("cd '/tmp/Code Pilot'"))
+        XCTAssertTrue(command.contains("'/tmp/Code Pilot/scripts/setup-cloudflare-remote-access.sh' start-trycloudflare"))
+    }
 }

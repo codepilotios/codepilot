@@ -2490,6 +2490,16 @@ enum CodePilotCloudflareErrorMapper {
     }
 }
 
+enum CodePilotTryCloudflareCommand {
+    static func terminalCommand(scriptPath: String, currentDirectory: String) -> String {
+        "cd \(shellQuoted(currentDirectory)) && \(shellQuoted(scriptPath)) start-trycloudflare"
+    }
+
+    private static func shellQuoted(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+}
+
 enum CodePilotSetupRequirement: Equatable {
     case codexCLIInstalled
     case codexCLIMissing
@@ -2879,7 +2889,17 @@ private final class CodePilotCloudflareWizardController: NSWindowController {
     }
 
     @objc private func startTemporary() {
-        runCloudflareStep(["start-trycloudflare"], successMessage: "Temporary Cloudflare URL started. Use this only for testing.")
+        guard let script = scriptURL() else {
+            outputLabel.stringValue = "Could not find setup-cloudflare-remote-access.sh."
+            return
+        }
+        let command = CodePilotTryCloudflareCommand.terminalCommand(
+            scriptPath: script.path,
+            currentDirectory: FileManager.default.currentDirectoryPath
+        )
+        runInTerminal(command)
+        outputLabel.stringValue = "Temporary Cloudflare URL is starting in Terminal. Copy the trycloudflare.com URL from the Terminal output when it appears."
+        detailsLabel.stringValue = command
     }
 
     @objc private func openCloudflareDashboard() {
