@@ -23,10 +23,22 @@ if [[ ! -f "$PROMPT" ]]; then
 fi
 
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-  echo "CodePilot agent already running: $JOB"
-  exit 0
+  if [[ -f "$LOCK_DIR/pid" ]]; then
+    existing_pid="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
+    if [[ -n "$existing_pid" ]] && ! kill -0 "$existing_pid" 2>/dev/null; then
+      rm -rf "$LOCK_DIR"
+      mkdir "$LOCK_DIR"
+    else
+      echo "CodePilot agent already running: $JOB"
+      exit 0
+    fi
+  else
+    rm -rf "$LOCK_DIR"
+    mkdir "$LOCK_DIR"
+  fi
 fi
-trap 'rmdir "$LOCK_DIR" 2>/dev/null || true' EXIT
+printf '%s\n' "$$" > "$LOCK_DIR/pid"
+trap 'rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
 
 mkdir -p "$LOG_DIR" "$ROOT/ops/agents/escalations" "$WORKTREE_ROOT"
 
