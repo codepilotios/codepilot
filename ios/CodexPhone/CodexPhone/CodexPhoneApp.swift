@@ -1623,7 +1623,7 @@ private func normalizedRemoteFilePath(_ raw: String) -> String {
     return trimmed.replacingOccurrences(of: #":\d+(?::\d+)?$"#, with: "", options: .regularExpression)
 }
 
-private func remoteFilePreviewURL(path: String) -> URL? {
+func remoteFilePreviewURL(path: String) -> URL? {
     var components = URLComponents()
     components.scheme = remoteFileURLScheme
     components.host = "open"
@@ -1631,12 +1631,28 @@ private func remoteFilePreviewURL(path: String) -> URL? {
     return components.url
 }
 
-private func remoteFilePath(from url: URL) -> String? {
+func remoteFilePath(from url: URL) -> String? {
     guard url.scheme == remoteFileURLScheme,
           let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-        return nil
+        return macAbsoluteFilePath(from: url)
     }
     return components.queryItems?.first(where: { $0.name == "path" })?.value
+}
+
+func macAbsoluteFilePath(from url: URL) -> String? {
+    if url.isFileURL {
+        return normalizedRemoteFilePath(url.path)
+    }
+
+    guard url.scheme == nil else {
+        return nil
+    }
+
+    let path = url.path
+    guard path.hasPrefix("/") else {
+        return nil
+    }
+    return normalizedRemoteFilePath(path)
 }
 
 func isMacLocalWebURL(_ url: URL) -> Bool {

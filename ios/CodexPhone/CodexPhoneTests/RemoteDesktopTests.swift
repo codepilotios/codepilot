@@ -37,6 +37,33 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertEqual(url.absoluteString, "https://gateway.example/api/local-web/session-1/dashboard?tab=logs")
     }
 
+    func testRemoteFilePathAcceptsCustomPreviewURL() throws {
+        let url = try XCTUnwrap(remoteFilePreviewURL(path: "/Users/homeserver/Developer/CodePilot/README.md"))
+
+        XCTAssertEqual(remoteFilePath(from: url), "/Users/homeserver/Developer/CodePilot/README.md")
+    }
+
+    func testRemoteFilePathAcceptsMarkdownAbsolutePathURL() throws {
+        let url = try XCTUnwrap(URL(string: "/Users/homeserver/Developer/CodexAccountSwitcher/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"))
+
+        XCTAssertEqual(
+            remoteFilePath(from: url),
+            "/Users/homeserver/Developer/CodexAccountSwitcher/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"
+        )
+    }
+
+    func testRemoteFilePathAcceptsFileURLAndStripsLineSuffix() throws {
+        let url = URL(fileURLWithPath: "/Users/homeserver/Developer/CodePilot/Sources/App.swift:42")
+
+        XCTAssertEqual(remoteFilePath(from: url), "/Users/homeserver/Developer/CodePilot/Sources/App.swift")
+    }
+
+    func testRemoteFilePathRejectsWebURLs() throws {
+        let url = try XCTUnwrap(URL(string: "https://example.com/Users/homeserver/README.md"))
+
+        XCTAssertNil(remoteFilePath(from: url))
+    }
+
     func testRenderedMessageMarkdownPreservesChatLineBreaks() {
         let input = """
         Adjusted the Remote Desktop marker a little lower: offset is now 15pt instead of 11pt.
