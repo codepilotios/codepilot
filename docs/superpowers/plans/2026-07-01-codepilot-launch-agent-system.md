@@ -275,13 +275,13 @@ Do not ping Tony for:
 - **Task:** Scan for secrets, private data, unsafe remote access, auth problems, and public repo leaks.
 - **Ping:** Immediately for high-risk findings.
 
-## First Decisions Needed From Tony
+## Launch Decisions
 
-1. Confirm whether the public product name is final: `CodePilot`.
-2. Confirm whether Reddit posting should use the `codepilotios` identity or a separate Reddit identity.
-3. Confirm whether promotion may say “paid subscription planned” during TestFlight or should stay beta-focused.
-4. Confirm the first target audience: indie iOS/Mac developers, AI coding users, remote Mac users, or existing Codex CLI users.
-5. Confirm whether agents may create draft GitHub issues/PRs autonomously on `main` or must use branches.
+1. Public product name is final: `CodePilot`.
+2. Reddit and community promotion should use the `codepilotios` identity.
+3. TestFlight promotion should stay beta-focused and avoid future pricing/subscription claims.
+4. First target audiences are AI coding users and existing Codex CLI users.
+5. Continuous agents may create draft GitHub issues and PRs autonomously.
 
 ## Success Metrics
 
@@ -292,4 +292,3 @@ Do not ping Tony for:
 - Public repo contains no private names, tokens, personal hosts, private screenshots, or local paths.
 - Weekly community feedback produces actionable issues.
 - Subscription readiness is reached only after setup success, support burden, and retention are measurable.
-
