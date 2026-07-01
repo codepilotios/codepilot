@@ -1410,8 +1410,8 @@ struct OpenableText: View {
                 return .systemAction
             })
             .sheet(item: $previewItem) { item in
-                QuickLookPreview(url: item.url)
-                    .ignoresSafeArea()
+                FilePreviewSheet(url: item.url)
+                    .presentationDragIndicator(.visible)
             }
             .sheet(item: $localWebItem) { item in
                 LocalWebBrowserView(item: item)
@@ -1465,6 +1465,67 @@ struct LocalWebItem: Identifiable {
     let id = UUID()
     let originalURL: URL
     let sessionURL: URL
+}
+
+struct FilePreviewSheet: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+    @State private var dragOffset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            QuickLookPreview(url: url)
+                .ignoresSafeArea()
+
+            VStack(spacing: 8) {
+                Capsule()
+                    .fill(.secondary.opacity(0.55))
+                    .frame(width: 42, height: 5)
+                    .padding(.top, 10)
+                    .accessibilityHidden(true)
+
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.primary)
+                    .padding(.trailing, 14)
+                    .accessibilityLabel("Close document")
+                }
+            }
+            .padding(.top, 4)
+            .background(.ultraThinMaterial.opacity(0.85))
+        }
+        .offset(y: max(0, dragOffset))
+        .gesture(
+            DragGesture(minimumDistance: 16)
+                .onChanged { value in
+                    dragOffset = max(0, value.translation.height)
+                }
+                .onEnded { value in
+                    if shouldDismissFilePreview(translation: value.translation, predictedEndTranslation: value.predictedEndTranslation) {
+                        dismiss()
+                    } else {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
+    }
+}
+
+func shouldDismissFilePreview(translation: CGSize, predictedEndTranslation: CGSize) -> Bool {
+    let downwardDistance = translation.height
+    let predictedDownwardDistance = predictedEndTranslation.height
+    let horizontalDistance = abs(translation.width)
+    return (downwardDistance > 90 || predictedDownwardDistance > 150) && downwardDistance > horizontalDistance
 }
 
 struct QuickLookPreview: UIViewControllerRepresentable {

@@ -64,6 +64,28 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertNil(remoteFilePath(from: url))
     }
 
+    func testFilePreviewDismissesForIntentionalDownwardDrag() {
+        XCTAssertTrue(shouldDismissFilePreview(
+            translation: CGSize(width: 8, height: 96),
+            predictedEndTranslation: CGSize(width: 10, height: 110)
+        ))
+        XCTAssertTrue(shouldDismissFilePreview(
+            translation: CGSize(width: 12, height: 40),
+            predictedEndTranslation: CGSize(width: 14, height: 180)
+        ))
+    }
+
+    func testFilePreviewKeepsOpenForSmallOrHorizontalDrag() {
+        XCTAssertFalse(shouldDismissFilePreview(
+            translation: CGSize(width: 6, height: 45),
+            predictedEndTranslation: CGSize(width: 7, height: 70)
+        ))
+        XCTAssertFalse(shouldDismissFilePreview(
+            translation: CGSize(width: 160, height: 100),
+            predictedEndTranslation: CGSize(width: 180, height: 170)
+        ))
+    }
+
     func testRenderedMessageMarkdownPreservesChatLineBreaks() {
         let input = """
         Adjusted the Remote Desktop marker a little lower: offset is now 15pt instead of 11pt.
