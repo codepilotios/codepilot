@@ -64,3 +64,7 @@ The bearer token is stored at:
 ```
 
 Copy this token into the iOS app connection screen. Do not share it in issue reports or screenshots.
+
+## Remote iPhone Access
+
+For access away from the local network, open **Setup CodePilot...** in the Mac menu bar app and use **Cloudflare Remote Access**. The setup wizard can install `cloudflared`, sign in to Cloudflare, configure a permanent hostname, or start a temporary TryCloudflare URL for testing.

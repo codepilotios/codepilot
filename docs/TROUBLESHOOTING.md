@@ -6,6 +6,16 @@ Cloudflare reached your hostname, but the Mac gateway was not reachable. Open Co
 
 If the Mac is asleep, offline, or the Cloudflare tunnel is stopped, bring the Mac online and restart the tunnel.
 
+## Cloudflare Setup Fails
+
+Open **Setup CodePilot... > Cloudflare Remote Access** and review the details for the failed step.
+
+- If `cloudflared` is missing, run the install step or install it manually from Cloudflare.
+- If Homebrew is missing, install Homebrew or use Cloudflare's manual package.
+- If login fails, rerun **Sign In or Create Account**.
+- If DNS routing fails, confirm the hostname belongs to a Cloudflare-managed domain.
+- If public verification fails, confirm the local gateway is running and restart the tunnel.
+
 ## iPhone Shows 401 Or 403
 
 The saved gateway token is missing or wrong. Copy the current token from CodePilot on the Mac and update the iPhone connection.
