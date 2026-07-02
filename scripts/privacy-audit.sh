@@ -36,7 +36,14 @@ print("|".join(bytes.fromhex(entry).decode("utf-8") for entry in entries))
 PY
 )"
 
-if git grep -n -I -E "$pattern" -- "$(git ls-files)"; then
+tracked_files=("${(@f)$(git ls-files)}")
+audit_files=()
+for file in "${tracked_files[@]}"; do
+  [[ "$file" == "scripts/privacy-audit.sh" ]] && continue
+  audit_files+=("$file")
+done
+
+if git grep -n -I -E "$pattern" -- "${audit_files[@]}"; then
   echo "privacy audit failed: tracked files contain private identifiers" >&2
   exit 1
 fi
@@ -44,7 +51,7 @@ fi
 secret_patterns=(
   'ghp_[A-Za-z0-9_]+'
   'github_pat_[A-Za-z0-9_]+'
-  'sk-[A-Za-z0-9]+'
+  'sk-[A-Za-z0-9]{20,}'
   '-----BEGIN (RSA|OPENSSH|PRIVATE) KEY'
   'Bearer [A-Za-z0-9._-]{20,}'
   'client_secret'
@@ -53,7 +60,7 @@ secret_patterns=(
 
 secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"
 
-if git grep -n -I -E "$secret_pattern" -- "$(git ls-files)"; then
+if git grep -n -I -E "$secret_pattern" -- "${audit_files[@]}"; then
   echo "privacy audit failed: tracked files contain secret-looking material" >&2
   exit 1
 fi

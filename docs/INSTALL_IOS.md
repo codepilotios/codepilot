@@ -9,6 +9,12 @@ CodePilot iOS connects to a Mac running the CodePilot gateway.
 - The gateway bearer token from the Mac.
 - Optional: Cloudflare Tunnel for remote access outside the local network.
 
+## Beta Installation
+
+TestFlight is the intended iPhone distribution path during the public beta. Install the beta build from the TestFlight invite shared by the maintainers, then connect it to your own Mac gateway.
+
+Developers building from source can open the Xcode project under `ios/CodexPhone/` and build the `CodexPhone` scheme for a simulator or device configured with their own signing setup.
+
 ## Connection
 
 On first launch:
