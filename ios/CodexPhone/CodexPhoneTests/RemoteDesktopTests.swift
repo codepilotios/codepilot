@@ -54,6 +54,33 @@ final class RemoteDesktopTests: XCTestCase {
         assertInvalidGatewayRootURL("http:///missing-host")
     }
 
+    func testGatewaySetupValidationExplainsMissingFields() {
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "", token: "token", connectionKind: .cloudflare),
+            "Enter the gateway URL from the Mac setup screen."
+        )
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://codepilot.example.com", token: "", connectionKind: .cloudflare),
+            "Enter the bearer token from the Mac setup screen."
+        )
+    }
+
+    func testGatewaySetupValidationRejectsUnreachableLocalhostForSameNetwork() {
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local),
+            "Same Network needs the Mac's LAN address, not localhost or 127.0.0.1."
+        )
+        XCTAssertNil(gatewaySetupValidationMessage(url: "http://192.0.2.10:18790", token: "token", connectionKind: .local))
+    }
+
+    func testGatewaySetupValidationRequiresHTTPSForCloudflare() {
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "http://codepilot.example.com", token: "token", connectionKind: .cloudflare),
+            "Cloudflare connections should use an https:// tunnel URL."
+        )
+        XCTAssertNil(gatewaySetupValidationMessage(url: "https://codepilot.example.com", token: "token", connectionKind: .cloudflare))
+    }
+
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://localhost:3000"))))
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://127.0.0.1:5173/path"))))

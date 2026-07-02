@@ -14,6 +14,9 @@ struct RemotePairingView: View {
             Form {
                 Section("Mac") {
                     Text(statusText)
+                    Text("Start Pairing signs a one-time challenge from the Mac gateway using this device key.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 Section("Device") {

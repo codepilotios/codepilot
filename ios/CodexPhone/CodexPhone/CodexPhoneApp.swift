@@ -350,6 +350,12 @@ struct EmptySettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                if let setupValidationMessage {
+                    Text(setupValidationMessage)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+
                 TextField("Gateway URL", text: $gatewayURL)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
@@ -389,8 +395,15 @@ struct EmptySettingsView: View {
     }
 
     private var canTestConnection: Bool {
-        !gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        setupValidationMessage == nil
+    }
+
+    private var setupValidationMessage: String? {
+        gatewaySetupValidationMessage(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind
+        )
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
@@ -1837,6 +1850,30 @@ func gatewayRootURL(from rawValue: String) throws -> URL {
     return url
 }
 
+func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, connectionKind: GatewayConnectionKind) -> String? {
+    let trimmedURL = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmedToken = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmedURL.isEmpty {
+        return "Enter the gateway URL from the Mac setup screen."
+    }
+    if trimmedToken.isEmpty {
+        return "Enter the bearer token from the Mac setup screen."
+    }
+    guard let url = try? gatewayRootURL(from: trimmedURL) else {
+        return "Gateway URL must start with http:// or https:// and include a host."
+    }
+    let scheme = url.scheme?.lowercased()
+    let host = url.host?.lowercased() ?? ""
+    switch connectionKind {
+    case .local where host == "localhost" || host == "127.0.0.1" || host == "::1":
+        return "Same Network needs the Mac's LAN address, not localhost or 127.0.0.1."
+    case .cloudflare where scheme != "https":
+        return "Cloudflare connections should use an https:// tunnel URL."
+    default:
+        return nil
+    }
+}
+
 func localWebSessionURL(path: String, baseURL: String) -> URL? {
     guard let root = try? gatewayRootURL(from: baseURL),
           var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
@@ -2152,6 +2189,12 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
+                    if let setupValidationMessage {
+                        Text(setupValidationMessage)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+
                     TextField("URL", text: $gatewayURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
@@ -2225,8 +2268,15 @@ struct SettingsView: View {
     }
 
     private var canTestConnection: Bool {
-        !gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        setupValidationMessage == nil
+    }
+
+    private var setupValidationMessage: String? {
+        gatewaySetupValidationMessage(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind
+        )
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
