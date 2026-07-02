@@ -1,8 +1,8 @@
 # CodePilot
 
-CodePilot is a Mac menu bar app and iPhone companion for running coding-agent sessions from a Mac you control. It currently focuses on Codex account switching, usage visibility, remote iPhone access, file uploads, connector status, notifications, and gateway-backed conversation control.
+CodePilot is a public-beta Mac menu bar app and iPhone companion for running coding-agent sessions from a Mac you control. It is built first for Codex CLI users who want mobile visibility, account switching, file uploads, connector status, notifications, and gateway-backed conversation control without exposing their Mac directly to the internet.
 
-The project is designed to become provider-neutral over time, including future Claude Code compatibility.
+The product name is provider-neutral, but the current implementation is Codex-focused. Future provider support, including Claude Code compatibility, is planned only after the Codex beta path is stable.
 
 ## License
 
@@ -17,9 +17,13 @@ Commercial use requires a separate written license. See [LICENSE.md](LICENSE.md)
 - **CodePilot iOS**: an iPhone app that connects to the gateway for remote chat, file uploads, usage status, steering, stopping turns, and notifications.
 - **Cloudflare Tunnel support**: optional remote access to the gateway through a user-owned Cloudflare Tunnel.
 
+## Beta Audience
+
+CodePilot is for AI coding users who already run Codex CLI on a Mac and are comfortable with beta software. The beta is focused on installation, connection reliability, safe remote access, and clear recovery steps. It does not make pricing, subscription, App Store availability, or future-provider compatibility promises.
+
 ## Current Provider Support
 
-CodePilot currently supports Codex by working with the local Codex home on the Mac:
+CodePilot currently supports Codex by working with the local Codex home and CodePilot state directory on the Mac:
 
 - `~/.codex/auth.json`
 - `~/.codex/state_5.sqlite`
@@ -50,9 +54,15 @@ The public product name is provider-neutral, but the first implementation remain
 
 See:
 
+- [Public beta site](docs/index.md)
 - [Mac Installation](docs/INSTALL_MAC.md)
 - [iOS Installation](docs/INSTALL_IOS.md)
 - [Cloudflare Setup](docs/CLOUDFLARE_SETUP.md)
+- [FAQ](docs/FAQ.md)
+- [Privacy](docs/PRIVACY.md)
+- [Support](docs/SUPPORT.md)
+- [Changelog](docs/CHANGELOG.md)
+- [Screenshot Plan](docs/SCREENSHOTS.md)
 - [Security](docs/SECURITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
@@ -73,8 +83,8 @@ See:
 
 ## Screenshots
 
-Screenshots will be added before the first public release.
+Public-safe screenshots are being prepared for the beta. The screenshot checklist is tracked in [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md); no private account names, hosts, tokens, file paths, or personal screenshots should be committed.
 
 ## Public Release Status
 
-CodePilot is being prepared for broader publishing. Expect some internal names, bundle identifiers, LaunchAgent labels, and local state paths to still contain legacy Codex-specific names during the first migration phase.
+CodePilot is being prepared for a TestFlight-first iOS beta and GitHub/source distribution for the Mac app, gateway, and docs. Expect some internal names, bundle identifiers, LaunchAgent labels, and local state paths to still contain legacy Codex-specific names during the first migration phase.

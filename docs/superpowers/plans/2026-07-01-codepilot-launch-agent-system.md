@@ -15,14 +15,14 @@
 - Agents must not invent credentials, create accounts with fake identity, spam communities, or bypass platform rules.
 - Reddit promotion must be transparent: disclose the creator relationship and follow subreddit rules.
 - Anything involving App Store submission, payments, pricing, legal terms, public claims, or user data policy requires explicit human approval.
-- Agents should ping Tony in the current Codex thread only when intervention is necessary.
+- Agents should ping the maintainer in the current Codex thread only when intervention is necessary.
 - Routine findings should become GitHub issues, PRs, docs updates, or release notes without a ping.
 - Every code change must be tested before being marked complete.
 - Every iOS app change must trigger the project OTA build process before completion.
 
 ## Escalation Rules
 
-Ping Tony only for:
+Ping the maintainer only for:
 
 - Apple, Cloudflare, GitHub, Reddit, or payment-provider authentication.
 - App Store Connect agreements, pricing, tax, banking, privacy, age rating, export compliance, or review submission approval.
@@ -31,7 +31,7 @@ Ping Tony only for:
 - A public post, launch announcement, paid promotion, or subreddit submission that needs final approval.
 - A product decision that affects subscription value, pricing, usage limits, or public positioning.
 
-Do not ping Tony for:
+Do not ping the maintainer for:
 
 - Routine dependency updates that pass tests.
 - GitHub issue triage.
@@ -146,7 +146,7 @@ Do not ping Tony for:
 - Track feedback and convert real product problems into GitHub issues.
 - Maintain a transparent creator profile.
 
-**Important constraint:** The agent can prepare the Reddit account plan, profile text, and posts, but Tony must create or approve any Reddit account and final posts. Creating accounts and posting must comply with Reddit rules and subreddit rules.
+**Important constraint:** The agent can prepare the Reddit account plan, profile text, and posts, but the maintainer must create or approve any Reddit account and final posts. Creating accounts and posting must comply with Reddit rules and subreddit rules.
 
 **Outputs:**
 
@@ -216,7 +216,7 @@ Do not ping Tony for:
 
 4. **Prepare community launch**
    - Community Growth Agent drafts Reddit account profile and launch posts.
-   - Tony approves account/posting strategy.
+   - the maintainer approves account/posting strategy.
    - Agent schedules staged, rule-compliant posts.
 
 5. **Start beta loop**
@@ -229,7 +229,7 @@ Do not ping Tony for:
    - Revenue Agent proposes tiers and pricing.
    - Presence Agent updates website and App Store copy.
    - Security Agent signs off on public release.
-   - Tony approves pricing, legal, and App Store submission.
+   - the maintainer approves pricing, legal, and App Store submission.
 
 ## Proposed Recurring Automations
 

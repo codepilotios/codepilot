@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-ROOT="${CODEPILOT_REPO_ROOT:-/Users/homeserver/Developer/CodexAccountSwitcher}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 JOB="${1:-}"
 
 if [[ -z "$JOB" ]]; then

@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-ROOT="${CODEPILOT_REPO_ROOT:-/Users/homeserver/Developer/CodexAccountSwitcher}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
