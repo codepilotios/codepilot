@@ -4,30 +4,22 @@ set -euo pipefail
 ROOT="${CODEPILOT_REPO_ROOT:-/Users/homeserver/Developer/CodexAccountSwitcher}"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 RUNNER="$ROOT/scripts/codepilot-agent-runner.sh"
-STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
-THREAD_ID="${CODEPILOT_AGENT_THREAD_ID:-${CODEX_THREAD_ID:-}}"
 
 if [[ "${1:-}" != "--install" ]]; then
   cat <<'EOF'
 This installs local LaunchAgents for CodePilot background agents.
 
-Escalations are sent back to the configured Codex thread with `codex exec resume`.
-Agent logs are written to ~/Library/Logs/CodePilotAgents.
+Important limitation:
+Local LaunchAgents cannot ping the current Codex thread. They write logs to
+~/Library/Logs/CodePilotAgents and intervention notes to ops/agents/escalations.
 
 Run with --install only if that fallback escalation path is acceptable.
 EOF
   exit 64
 fi
 
-if [[ -z "$THREAD_ID" ]]; then
-  echo "No thread id found. Set CODEPILOT_AGENT_THREAD_ID or run from a Codex thread with CODEX_THREAD_ID." >&2
-  exit 66
-fi
-
-chmod +x "$RUNNER" "$ROOT/scripts/codepilot-agent-escalate.sh"
+chmod +x "$RUNNER"
 mkdir -p "$PLIST_DIR"
-mkdir -p "$STATE_DIR"
-printf '%s\n' "$THREAD_ID" > "$STATE_DIR/thread-id"
 
 write_plist() {
   local name="$1"
@@ -48,14 +40,7 @@ write_plist() {
   <key>StartInterval</key>
   <integer>$interval</integer>
   <key>RunAtLoad</key>
-  <true/>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>CODEPILOT_REPO_ROOT</key>
-    <string>$ROOT</string>
-    <key>CODEPILOT_AGENT_THREAD_ID</key>
-    <string>$THREAD_ID</string>
-  </dict>
+  <false/>
   <key>StandardOutPath</key>
   <string>$HOME/Library/Logs/CodePilotAgents/$name.launchd.out.log</string>
   <key>StandardErrorPath</key>
@@ -76,4 +61,3 @@ write_plist community-drafts 604800
 write_plist security-scan 604800
 
 echo "Installed CodePilot local LaunchAgents."
-echo "Escalations will be sent to Codex thread: $THREAD_ID"

@@ -4,36 +4,24 @@ The preferred implementation is Codex recurring automations attached to this thr
 
 On 2026-07-01, the automation creation backend hung twice while creating the first job. No automation files were created.
 
-This repository therefore includes a local LaunchAgent fallback:
+This repository therefore includes a disabled local LaunchAgent fallback:
 
 ```sh
 scripts/install-codepilot-local-agents.sh
 ```
 
-The installer exits unless called with:
+The installer prints the limitation and exits unless called with:
 
 ```sh
 scripts/install-codepilot-local-agents.sh --install
 ```
 
-## Escalation
+## Limitation
 
-The installer stores the current Codex thread id in:
-
-```text
-~/.codex-account-switcher/agents/thread-id
-```
-
-When an agent writes or changes `ops/agents/escalations/<job>.md`, the runner sends that escalation back into the configured thread with:
-
-```sh
-codex exec resume <thread-id>
-```
-
-Logs are written to:
+Local LaunchAgents cannot ping the current Codex thread. They write:
 
 - logs to `~/Library/Logs/CodePilotAgents`
-- worktrees to `~/.codex-account-switcher/agents/worktrees`
 - escalation notes to `ops/agents/escalations`
 
-Use this fallback until Codex recurring automation creation works. If native recurring automations become reliable, migrate the same prompt files to native jobs and unload the LaunchAgents.
+Use this fallback only if file/GitHub-based escalation is acceptable. Otherwise, wait until Codex recurring automation creation works and create the jobs from `docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md`.
+
