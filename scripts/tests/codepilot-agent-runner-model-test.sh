@@ -57,6 +57,16 @@ if ! grep -q 'Public write policy' "$PROMPT_CAPTURE"; then
   exit 1
 fi
 
+if ! grep -q 'Autonomy mode: launch' "$PROMPT_CAPTURE"; then
+  echo "Runner did not inject launch autonomy mode" >&2
+  exit 1
+fi
+
+if ! grep -q 'Use the public CodePilot identity' "$PROMPT_CAPTURE"; then
+  echo "Runner did not inject anonymous identity guidance" >&2
+  exit 1
+fi
+
 CODEPILOT_AGENT_MODEL="test-model" run_runner
 
 if ! grep -A1 -x -- '-m' "$CAPTURE" | grep -qx 'test-model'; then

@@ -1,0 +1,23 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+REAL_ASC="${CODEPILOT_AGENT_REAL_ASC:-}"
+if [[ -z "$REAL_ASC" ]]; then
+  REAL_ASC="$(command -v asc 2>/dev/null || true)"
+fi
+
+top="${1:-}"
+sub="${2:-}"
+
+case "$top:$sub" in
+  --help:|help:|version:|appstore:info|appstore:list|builds:list|builds:info)
+    if [[ -n "$REAL_ASC" && -x "$REAL_ASC" ]]; then
+      exec "$REAL_ASC" "$@"
+    fi
+    exit 0
+    ;;
+esac
+
+echo "CodePilot agent guard blocked asc $*." >&2
+echo "Launch autonomy may inspect App Store state and prepare local metadata only." >&2
+exit 77

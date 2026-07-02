@@ -32,18 +32,27 @@ codex exec resume <thread-id>
 
 The scheduler runs every 15 minutes and starts at most one due agent per tick. This avoids spending usage on seven concurrent Codex turns.
 
-## Usage and publication controls
+## Usage, anonymity, and publication controls
 
 Routine jobs run with medium reasoning. Security and release-readiness jobs run
 with high reasoning. Set `CODEPILOT_AGENT_REASONING_EFFORT` only when a manual
 run needs a different level.
 
-Unattended agents may inspect public systems, create local draft files, and
-commit to their local worktree branches. They may not publish changes. The
-runner injects this policy into every prompt and places guarded `gh` and `git`
-commands first on `PATH`; mutating GitHub commands and `git push` are rejected.
-Publishing an issue, pull request, release, store record, website update, or
-social post requires maintainer action.
+Unattended agents run in launch-autonomous mode by default. They use the public
+CodePilot identity, not a personal identity, and must keep private names, email
+addresses, hosts, paths, tokens, and screenshots out of commits, issues, pull
+requests, docs, metadata, logs, and escalations.
+
+Agents may inspect public systems, create local draft files, commit to local
+worktree branches, push `agent/*` branches, create GitHub issues, and open draft
+GitHub pull requests when that directly advances public launch readiness. The
+runner injects this policy into every prompt and places guarded commands first on
+`PATH`; allowed public writes run the privacy audit first.
+
+Agents must not merge pull requests, publish releases, submit App Store review,
+upload TestFlight/App Store builds, alter pricing or legal metadata, create
+accounts, post publicly on social/community sites, change credentials, or mutate
+non-GitHub external systems. These still require maintainer action.
 
 Logs are written to:
 

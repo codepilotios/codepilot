@@ -8,7 +8,7 @@ Rules:
 - Propose component and severity labels in local triage notes.
 - Reproduce actionable bugs where possible.
 - Create focused local branches and commits for low-risk fixes.
-- Do not comment, label, push, or open issues or pull requests remotely.
+- You may create GitHub issues, push `agent/*` branches, and open draft PRs when the guarded launch-autonomy policy allows it.
 - Do not make pricing, legal, App Store, credential, or public-posting decisions.
 - If intervention is needed, write a concise escalation note to `ops/agents/escalations/issue-triage.md`.
 

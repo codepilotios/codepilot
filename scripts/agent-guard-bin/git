@@ -2,13 +2,26 @@
 set -euo pipefail
 
 REAL_GIT="${CODEPILOT_AGENT_REAL_GIT:-/usr/bin/git}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
+AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
 
-for arg in "$@"; do
-  if [[ "$arg" == "push" ]]; then
-    echo "CodePilot agent guard blocked git push." >&2
-    echo "Local branches and commits are allowed; a maintainer must publish them." >&2
-    exit 77
+if [[ "${1:-}" == "push" ]]; then
+  if [[ "$AUTONOMY" == "launch" ]]; then
+    for arg in "$@"; do
+      case "$arg" in
+        agent/*|HEAD:agent/*|refs/heads/agent/*)
+          if [[ -x "$ROOT/scripts/privacy-audit.sh" ]]; then
+            (cd "$ROOT" && "$ROOT/scripts/privacy-audit.sh" >/dev/null)
+          fi
+          exec "$REAL_GIT" "$@"
+          ;;
+      esac
+    done
   fi
-done
+
+  echo "CodePilot agent guard blocked git push." >&2
+  echo "Only launch-autonomy pushes to agent/* branches are allowed." >&2
+  exit 77
+fi
 
 exec "$REAL_GIT" "$@"

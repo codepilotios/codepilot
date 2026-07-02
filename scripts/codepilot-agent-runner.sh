@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-ROOT="${CODEPILOT_REPO_ROOT:-/Users/homeserver/Developer/CodexAccountSwitcher}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 JOB="${1:-}"
 STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 WORKTREE_ROOT="$STATE_DIR/worktrees"
@@ -9,6 +9,7 @@ THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
 CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-}"
 GUARD_BIN="$ROOT/scripts/agent-guard-bin"
+PUBLIC_AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-launch}"
 
 if [[ -z "$JOB" ]]; then
   echo "Usage: $0 <job-name>" >&2
@@ -72,6 +73,8 @@ REAL_GIT="$(command -v git)"
 REAL_GH="$(command -v gh 2>/dev/null || true)"
 export CODEPILOT_AGENT_REAL_GIT="$REAL_GIT"
 export CODEPILOT_AGENT_REAL_GH="$REAL_GH"
+export CODEPILOT_AGENT_PUBLIC_AUTONOMY="$PUBLIC_AUTONOMY"
+export CODEPILOT_REPO_ROOT="$ROOT"
 export PATH="$GUARD_BIN:$PATH"
 
 ESCALATION_FILE="$ROOT/ops/agents/escalations/$JOB.md"
@@ -108,16 +111,27 @@ fi
 PUBLIC_WRITE_POLICY=$(cat <<'EOF'
 # Public write policy
 
-This unattended run MUST NOT mutate public or external systems. Do not create,
-edit, label, comment on, close, merge, submit, publish, upload, or push GitHub
-issues, pull requests, releases, App Store records, social posts, websites, or
-other remote resources. This applies to shell commands, connectors, apps,
-browsers, HTTP APIs, and any other tool. Do not bypass the command guards or
-invoke absolute binary paths to evade them.
+Autonomy mode: launch.
 
-Read-only remote inspection is allowed. Local files, local branches, and local
-commits are allowed. Put proposed public changes in local draft files and write
-an escalation when maintainer action is required.
+Use the public CodePilot identity. Do not mention private names, private email
+addresses, personal hosts, local usernames, machine-specific paths, tokens, or
+private screenshots in commits, issues, pull requests, docs, metadata, logs, or
+escalations.
+
+This unattended run may inspect public systems, create local branches and
+commits, push `agent/*` branches, create GitHub issues, and open draft GitHub
+pull requests when that directly advances public launch readiness. Run the
+privacy audit before any public write.
+
+This unattended run MUST NOT merge pull requests, publish releases, submit App
+Store review, upload TestFlight/App Store builds, alter pricing or legal
+metadata, create accounts, post publicly on social/community sites, change
+credentials, or mutate non-GitHub external systems. This applies to shell
+commands, connectors, apps, browsers, HTTP APIs, and any other tool. Do not
+bypass the command guards or invoke absolute binary paths to evade them.
+
+Prepare TestFlight/App Store metadata as local files or draft PRs only. Write an
+escalation only when maintainer intervention is genuinely required.
 EOF
 )
 
