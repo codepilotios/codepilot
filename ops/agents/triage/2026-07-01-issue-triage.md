@@ -34,7 +34,7 @@ Remote write policy: read-only GitHub inspection only. No remote comments, label
 
 ## Local Branches And Commits
 
-- Branch: `agent/issue-triage`.
+- Branch: `agent/setup-readiness-fixes`.
 - Existing local commit: `1d46890 fix: launch trycloudflare setup in terminal`.
 - New local commit: `fix: show setup readiness for remote desktop`.
 
