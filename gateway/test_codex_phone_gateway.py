@@ -40,6 +40,20 @@ class RecordingPushNotifier:
         self.sent.append((devices, notification))
 
 
+class RecordingLocalWebFetcher:
+    def __init__(self):
+        self.urls = []
+
+    def __call__(self, url):
+        self.urls.append(url)
+        return 200, {"Content-Type": "text/html; charset=utf-8"}, (
+            b'<html><head></head><body>'
+            b'<script src="/app.js"></script>'
+            b'<a href="http://localhost:3000/settings">Settings</a>'
+            b"</body></html>"
+        )
+
+
 class FakeRemoteLoginProcess:
     def __init__(self, codex_home: Path, auth_url: str):
         self.codex_home = codex_home
@@ -75,6 +89,16 @@ class FakeRemoteLoginProcess:
 
 
 class AppServerClientTests(unittest.TestCase):
+    def setUp(self):
+        self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+        self._switcher_home_tempdir = tempfile.TemporaryDirectory()
+        gateway.DEFAULT_SWITCHER_HOME = Path(self._switcher_home_tempdir.name)
+        gateway.DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
+
+    def tearDown(self):
+        gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
+        self._switcher_home_tempdir.cleanup()
+
     def test_codex_child_env_prepends_homebrew_path_and_sets_codex_home(self):
         old_env = dict(gateway.os.environ)
         try:
@@ -778,6 +802,51 @@ class StreamEventFormattingTests(unittest.TestCase):
 
 
 class GatewayStateTests(unittest.TestCase):
+    def setUp(self):
+        self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+        self._switcher_home_tempdir = tempfile.TemporaryDirectory()
+        gateway.DEFAULT_SWITCHER_HOME = Path(self._switcher_home_tempdir.name)
+        gateway.DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
+
+    def tearDown(self):
+        gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
+        self._switcher_home_tempdir.cleanup()
+
+    def test_public_health_exposes_safe_gateway_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+            switcher_home = Path(tmp) / "switcher"
+            codex_home = Path(tmp) / "codex"
+            try:
+                gateway.DEFAULT_SWITCHER_HOME = switcher_home
+                switcher_home.mkdir()
+                codex_home.mkdir()
+                (switcher_home / "active-account.txt").write_text("main", encoding="utf-8")
+                state = GatewayState(codex_home, "secret-token", Path("/missing-codex"), False)
+
+                health = state.public_health()
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
+
+            self.assertTrue(health["gateway"]["running"])
+            self.assertEqual(health["accounts"]["active"], "main")
+            self.assertIn("auth", health["accounts"])
+            self.assertIn("notifications", health)
+            self.assertIn("remoteDesktop", health)
+            self.assertIn("localWeb", health)
+            self.assertNotIn("secret-token", json.dumps(health))
+
+    def test_error_payload_has_stable_code_message_and_recovery(self):
+        payload = gateway.error_payload(
+            "local_web_invalid_target",
+            "Only localhost URLs can be opened.",
+            "Open a localhost, 127.0.0.1, or ::1 URL from the iPhone app.",
+        )
+
+        self.assertEqual(payload["error"]["code"], "local_web_invalid_target")
+        self.assertEqual(payload["error"]["message"], "Only localhost URLs can be opened.")
+        self.assertIn("localhost", payload["error"]["recovery"])
+
     def test_resolve_requested_file_path_accepts_absolute_file_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             file_path = Path(tmp) / "created-by-codex.txt"
@@ -802,6 +871,41 @@ class GatewayStateTests(unittest.TestCase):
             self.assertEqual(metadata["filename"], "created-by-codex.txt")
             self.assertEqual(metadata["mimeType"], "text/plain")
             self.assertEqual(metadata["size"], 5)
+
+    def test_local_web_session_rejects_non_loopback_url(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+
+        with self.assertRaises(ValueError):
+            state.start_local_web_session("https://example.com")
+
+    def test_local_web_session_returns_gateway_path_for_localhost_url(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+
+        session = state.start_local_web_session("http://localhost:3000/dashboard?tab=logs")
+
+        self.assertEqual(session["targetOrigin"], "http://127.0.0.1:3000")
+        self.assertRegex(session["path"], r"^/api/local-web/[^/]+/dashboard\?tab=logs$")
+        self.assertGreater(session["expiresAt"], 0)
+
+    def test_local_web_session_proxies_localhost_content_and_rewrites_same_origin_links(self):
+        fetcher = RecordingLocalWebFetcher()
+        state = GatewayState(
+            Path("/tmp/codex"),
+            "token",
+            Path("/missing-codex"),
+            False,
+            local_web_fetcher=fetcher,
+        )
+        session = state.start_local_web_session("http://localhost:3000/dashboard")
+        session_id = session["sessionId"]
+
+        response = state.proxy_local_web_session(session_id, ["dashboard"], "")
+
+        self.assertEqual(fetcher.urls, ["http://127.0.0.1:3000/dashboard"])
+        self.assertEqual(response["status"], 200)
+        self.assertEqual(response["contentType"], "text/html; charset=utf-8")
+        self.assertIn(b'src="/api/local-web/', response["body"])
+        self.assertIn(b'href="/api/local-web/', response["body"])
 
     def test_prepare_workspace_can_create_new_project_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1009,6 +1113,52 @@ class GatewayStateTests(unittest.TestCase):
                 self.assertEqual(statuses["Main"]["weeklyRemainingPercent"], 45)
                 self.assertEqual(statuses["Main"]["fiveHourResetsAt"], 1778973006)
             finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_switch_account_persists_refreshed_active_auth_before_installing_next_account(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            codex_home = tmp_path / "codex"
+            codex_home.mkdir()
+            switcher_home = tmp_path / "switcher"
+            accounts_dir = switcher_home / "accounts"
+            (accounts_dir / "Main").mkdir(parents=True)
+            (accounts_dir / "Free").mkdir(parents=True)
+            active_auth = {
+                "last_refresh": "2026-06-24T08:00:00Z",
+                "tokens": {"account_id": "main-account", "access_token": "active-refreshed"},
+            }
+            main_profile_auth = {
+                "last_refresh": "2026-06-23T08:00:00Z",
+                "tokens": {"account_id": "main-account", "access_token": "old-profile"},
+            }
+            free_profile_auth = {
+                "last_refresh": "2026-06-24T07:00:00Z",
+                "tokens": {"account_id": "free-account", "access_token": "free"},
+            }
+            (codex_home / "auth.json").write_text(json.dumps(active_auth), encoding="utf-8")
+            (accounts_dir / "Main" / "auth.json").write_text(json.dumps(main_profile_auth), encoding="utf-8")
+            (accounts_dir / "Free" / "auth.json").write_text(json.dumps(free_profile_auth), encoding="utf-8")
+            (switcher_home / "active-account.txt").write_text("Main\n", encoding="utf-8")
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            with gateway.JOBS_LOCK:
+                old_jobs = dict(gateway.JOBS)
+                gateway.JOBS.clear()
+            try:
+                state = GatewayState(codex_home, "token", Path("/missing-codex"), False)
+
+                state.switch_account("Free")
+
+                persisted_main = json.loads((accounts_dir / "Main" / "auth.json").read_text(encoding="utf-8"))
+                installed_active = json.loads((codex_home / "auth.json").read_text(encoding="utf-8"))
+                self.assertEqual(persisted_main["tokens"]["access_token"], "active-refreshed")
+                self.assertEqual(installed_active["tokens"]["access_token"], "free")
+            finally:
+                with gateway.JOBS_LOCK:
+                    gateway.JOBS.clear()
+                    gateway.JOBS.update(old_jobs)
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
     def test_parse_mcp_list_output_marks_reconnectable_auth_states(self):

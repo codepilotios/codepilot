@@ -669,6 +669,10 @@ final class CodexAccountSwitcher {
         guard !events.isEmpty else { return }
         let active = activeAccountName()
         applyTurnTracking(from: events)
+        if events.contains(where: { $0.isTerminalTurnActivity || $0.clearsThreadTurns }),
+           activeTurnTracker.activeTurnCount == 0 {
+            persistActiveAuthToProfile(context: "after turn finished")
+        }
 
         if pendingSwitchReason == nil, let exhausted = events.first(where: { $0.isTokenExhaustion }) {
             pendingSwitchReason = exhausted.summary
@@ -677,6 +681,22 @@ final class CodexAccountSwitcher {
             statusMessage = "Limit detected; waiting for Codex to finish"
             appendAudit("Queued automatic switch for \(active): \(Self.singleLine(exhausted.summary, limit: 180))")
             startRateLimitRefreshIfNeeded(force: true)
+        }
+    }
+
+    private func persistActiveAuthToProfile(context: String) {
+        do {
+            let didSync = try AuthProfileSynchronizer.syncActiveAuthToProfile(
+                activeAuth: settings.activeAuth,
+                activeAccountMarker: settings.activeAccountMarker,
+                accountsDir: settings.accountsDir,
+                fileManager: fileManager
+            )
+            if didSync {
+                appendAudit("Synced active auth to profile \(context)")
+            }
+        } catch {
+            appendAudit("Skipped active auth sync \(context): \(error.localizedDescription)")
         }
     }
 
@@ -1246,6 +1266,7 @@ final class CodexAccountSwitcher {
             throw SwitchError.activeTurnsRunning(blockers.count)
         }
 
+        persistActiveAuthToProfile(context: "before switching to \(next.name)")
         try backupActiveAuth()
         let temporary = settings.activeAuth.deletingLastPathComponent()
             .appendingPathComponent(".auth.json.codex-account-switcher.tmp")
@@ -1478,6 +1499,115 @@ struct CodexQuitGuard {
         phoneGatewayJobDescriptions: [String]
     ) -> [String] {
         Array(Set(activeTurnDescriptions + phoneGatewayJobDescriptions)).sorted()
+    }
+}
+
+enum AuthProfileSynchronizer {
+    @discardableResult
+    static func syncActiveAuthToProfile(
+        activeAuth: URL,
+        activeAccountMarker: URL,
+        accountsDir: URL,
+        fileManager: FileManager = .default
+    ) throws -> Bool {
+        guard fileManager.fileExists(atPath: activeAuth.path) else { return false }
+        guard let accountName = try? String(contentsOf: activeAccountMarker, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+              !accountName.isEmpty,
+              accountName != "unknown" else {
+            return false
+        }
+
+        let profileAuth = accountsDir
+            .appendingPathComponent(accountName, isDirectory: true)
+            .appendingPathComponent("auth.json")
+        guard fileManager.fileExists(atPath: profileAuth.path) else { return false }
+
+        return try withAuthFileLock(near: activeAccountMarker, fileManager: fileManager) {
+            let activeData = try Data(contentsOf: activeAuth)
+            let profileData = try Data(contentsOf: profileAuth)
+            guard activeData != profileData else { return false }
+
+            let decoder = JSONDecoder()
+            let activeSnapshot = try decoder.decode(AuthFileSnapshot.self, from: activeData)
+            let profileSnapshot = try decoder.decode(AuthFileSnapshot.self, from: profileData)
+            let activeAccountID = activeSnapshot.tokens?.accountID ?? ""
+            let profileAccountID = profileSnapshot.tokens?.accountID ?? ""
+            if !activeAccountID.isEmpty, !profileAccountID.isEmpty, activeAccountID != profileAccountID {
+                return false
+            }
+
+            if let activeRefresh = activeSnapshot.lastRefreshDate,
+               let profileRefresh = profileSnapshot.lastRefreshDate,
+               activeRefresh < profileRefresh {
+                return false
+            }
+
+            try installAuth(from: activeAuth, to: profileAuth, fileManager: fileManager)
+            return true
+        }
+    }
+
+    private static func withAuthFileLock<T>(
+        near marker: URL,
+        fileManager: FileManager,
+        body: () throws -> T
+    ) throws -> T {
+        let lockURL = marker.deletingLastPathComponent().appendingPathComponent("auth-files.lock")
+        fileManager.createFile(atPath: lockURL.path, contents: nil)
+        let fd = open(lockURL.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        guard fd >= 0 else { throw POSIXError(.EIO) }
+        defer { close(fd) }
+        guard flock(fd, LOCK_EX) == 0 else { throw POSIXError(.EIO) }
+        defer { flock(fd, LOCK_UN) }
+        return try body()
+    }
+
+    private static func installAuth(
+        from source: URL,
+        to destination: URL,
+        fileManager: FileManager
+    ) throws {
+        try fileManager.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        let temporary = destination
+            .deletingLastPathComponent()
+            .appendingPathComponent(".auth.json.codex-account-switcher.tmp")
+        if fileManager.fileExists(atPath: temporary.path) {
+            try fileManager.removeItem(at: temporary)
+        }
+        try fileManager.copyItem(at: source, to: temporary)
+        if fileManager.fileExists(atPath: destination.path) {
+            _ = try fileManager.replaceItemAt(destination, withItemAt: temporary)
+        } else {
+            try fileManager.moveItem(at: temporary, to: destination)
+        }
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: destination.path)
+    }
+}
+
+private struct AuthFileSnapshot: Decodable {
+    let lastRefresh: String?
+    let tokens: AuthFileSnapshotTokens?
+
+    var lastRefreshDate: Date? {
+        guard let lastRefresh else { return nil }
+        return ISO8601DateFormatter().date(from: lastRefresh)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case lastRefresh = "last_refresh"
+        case tokens
+    }
+}
+
+private struct AuthFileSnapshotTokens: Decodable {
+    let accountID: String?
+
+    enum CodingKeys: String, CodingKey {
+        case accountID = "account_id"
     }
 }
 
@@ -2184,12 +2314,7 @@ enum SwitchError: LocalizedError {
 }
 
 private struct CodePilotSetupStatus {
-    let codexCLI: String
-    let codexAuth: String
-    let accounts: String
-    let gatewayToken: String
-    let gateway: String
-    let cloudflared: String
+    let rows: [CodePilotSetupRow]
 
     static func load() -> CodePilotSetupStatus {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -2203,14 +2328,52 @@ private struct CodePilotSetupStatus {
             options: [.skipsHiddenFiles]
         ).filter { FileManager.default.fileExists(atPath: $0.appendingPathComponent("auth.json").path) }.count) ?? 0
 
-        return CodePilotSetupStatus(
-            codexCLI: executablePath(named: "codex") ?? "Not found",
-            codexAuth: FileManager.default.fileExists(atPath: codexAuth) ? "Signed in" : "Missing auth.json",
-            accounts: accountCount == 1 ? "1 profile" : "\(accountCount) profiles",
-            gatewayToken: FileManager.default.fileExists(atPath: tokenPath.path) ? "Token present" : "Missing token",
-            gateway: gatewayHealth(),
-            cloudflared: executablePath(named: "cloudflared") ?? "Not found"
-        )
+        let codexCLI = executablePath(named: "codex")
+        let cloudflared = executablePath(named: "cloudflared")
+        let cloudflareRequirement: CodePilotSetupRequirement
+        let cloudflareDetail: String
+        if cloudflared == nil {
+            cloudflareRequirement = .cloudflareMissing
+            cloudflareDetail = "Install cloudflared to enable remote iPhone access."
+        } else if cloudflareMetadataExists() || cloudflareConfigExists() {
+            cloudflareRequirement = .cloudflareReady
+            cloudflareDetail = cloudflareReadyDetail(defaultPath: cloudflared)
+        } else {
+            cloudflareRequirement = .cloudflareNeedsConfiguration
+            cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
+        }
+        return CodePilotSetupStatus(rows: [
+            CodePilotSetupRow(
+                title: "Codex CLI",
+                requirement: codexCLI == nil ? .codexCLIMissing : .codexCLIInstalled,
+                detail: codexCLI ?? "Install Codex before using CodePilot."
+            ),
+            CodePilotSetupRow(
+                title: "Codex Login",
+                requirement: FileManager.default.fileExists(atPath: codexAuth) ? .codexSignedIn : .codexSignedOut,
+                detail: FileManager.default.fileExists(atPath: codexAuth) ? "Signed in" : "Missing auth.json"
+            ),
+            CodePilotSetupRow(
+                title: "Account Profiles",
+                requirement: accountCount > 0 ? .profilesCreated : .profilesMissing,
+                detail: accountCount == 1 ? "1 profile" : "\(accountCount) profiles"
+            ),
+            CodePilotSetupRow(
+                title: "Gateway Token",
+                requirement: FileManager.default.fileExists(atPath: tokenPath.path) ? .gatewayTokenPresent : .gatewayTokenMissing,
+                detail: FileManager.default.fileExists(atPath: tokenPath.path) ? "Token present" : "Missing token"
+            ),
+            CodePilotSetupRow(
+                title: "Gateway",
+                requirement: gatewayHealthRequirement(),
+                detail: gatewayHealthDetail()
+            ),
+            CodePilotSetupRow(
+                title: "Cloudflare",
+                requirement: cloudflareRequirement,
+                detail: cloudflareDetail
+            )
+        ])
     }
 
     private static func executablePath(named name: String) -> String? {
@@ -2231,19 +2394,144 @@ private struct CodePilotSetupStatus {
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private static func gatewayHealth() -> String {
-        guard let url = URL(string: "http://127.0.0.1:18790/api/health"),
-              let data = try? Data(contentsOf: url),
-              !data.isEmpty else {
-            return "Not reachable"
+    private static func gatewayHealthRequirement() -> CodePilotSetupRequirement {
+        let tokenPath = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
+        guard let token = try? String(contentsOf: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
+              !token.isEmpty,
+              let url = URL(string: "http://127.0.0.1:18790/api/health") else {
+            return .gatewayStopped
         }
-        return "Reachable"
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        guard let data = synchronousData(for: request), !data.isEmpty else {
+            return .gatewayStopped
+        }
+        return .gatewayRunning
+    }
+
+    private static func synchronousData(for request: URLRequest) -> Data? {
+        let semaphore = DispatchSemaphore(value: 0)
+        var result: Data?
+        let task = URLSession.shared.dataTask(with: request) { data, _, _ in
+            result = data
+            semaphore.signal()
+        }
+        task.resume()
+        _ = semaphore.wait(timeout: .now() + 2)
+        return result
+    }
+
+    private static func gatewayHealthDetail() -> String {
+        gatewayHealthRequirement() == .gatewayRunning
+            ? "Reachable on 127.0.0.1:18790"
+            : "Not reachable on 127.0.0.1:18790"
+    }
+
+    private static func cloudflareMetadataExists() -> Bool {
+        let path = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/cloudflare-setup.json")
+        return FileManager.default.fileExists(atPath: path.path)
+    }
+
+    private static func cloudflareConfigExists() -> Bool {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let modern = home.appendingPathComponent(".cloudflared/codepilot-config.yaml")
+        let legacy = home.appendingPathComponent(".cloudflared/codex-phone-config.yaml")
+        return FileManager.default.fileExists(atPath: modern.path) || FileManager.default.fileExists(atPath: legacy.path)
+    }
+
+    private static func cloudflareReadyDetail(defaultPath: String?) -> String {
+        if let metadata = loadCloudflareMetadata(), !metadata.hostname.isEmpty {
+            return metadata.hostname
+        }
+        return defaultPath ?? "Configured"
+    }
+
+    private static func loadCloudflareMetadata() -> CodePilotCloudflareMetadata? {
+        let path = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/cloudflare-setup.json")
+        guard let data = try? Data(contentsOf: path) else { return nil }
+        return try? JSONDecoder().decode(CodePilotCloudflareMetadata.self, from: data)
+    }
+}
+
+struct CodePilotSetupRow: Equatable {
+    let title: String
+    let requirement: CodePilotSetupRequirement
+    let detail: String
+}
+
+struct CodePilotCloudflareMetadata: Codable, Equatable {
+    let mode: String
+    let hostname: String
+    let tunnelName: String
+    let tunnelId: String
+    let configPath: String
+    let launchAgentLabel: String
+    let lastVerifiedAt: String?
+
+    var safeSummary: String {
+        let host = hostname.isEmpty ? "No hostname configured" : hostname
+        return "\(mode) tunnel \(tunnelName) for \(host)"
+    }
+}
+
+enum CodePilotCloudflareErrorMapper {
+    static func message(forExitCode code: Int32) -> String {
+        switch code {
+        case 20:
+            return "Homebrew is missing. Install Homebrew or use Cloudflare's manual cloudflared installer, then retry."
+        case 21:
+            return "cloudflared is missing. Install it from the Cloudflare setup step before continuing."
+        default:
+            return "Cloudflare setup did not finish. Open details, review the last command output, and retry the failed step."
+        }
+    }
+}
+
+enum CodePilotSetupRequirement: Equatable {
+    case codexCLIInstalled
+    case codexCLIMissing
+    case codexSignedIn
+    case codexSignedOut
+    case profilesCreated
+    case profilesMissing
+    case gatewayTokenPresent
+    case gatewayTokenMissing
+    case gatewayRunning
+    case gatewayStopped
+    case gatewayBlockedByActiveTurn
+    case cloudflareReady
+    case cloudflareOptional
+    case cloudflareMissing
+    case cloudflareNeedsConfiguration
+    case screenRecordingMissing
+    case accessibilityMissing
+    case notificationsOptional
+
+    var statusLabel: String {
+        switch self {
+        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady:
+            return "Ready"
+        case .cloudflareNeedsConfiguration:
+            return "Needs setup"
+        case .gatewayStopped:
+            return "Stopped"
+        case .gatewayBlockedByActiveTurn:
+            return "Blocked by active turn"
+        case .cloudflareOptional, .notificationsOptional:
+            return "Optional"
+        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing, .screenRecordingMissing, .accessibilityMissing:
+            return "Missing"
+        }
     }
 }
 
 private final class CodePilotSetupWindowController: NSWindowController {
     private let statusStack = NSStackView()
     private let outputLabel = NSTextField(labelWithString: "")
+    private var cloudflareWizardController: CodePilotCloudflareWizardController?
 
     convenience init() {
         let window = NSWindow(
@@ -2297,14 +2585,16 @@ private final class CodePilotSetupWindowController: NSWindowController {
         root.addArrangedSubview(section(
             title: "Gateway",
             buttons: [
-                button("Install / Restart Gateway", #selector(installGateway)),
+                button("Restart Gateway When Idle", #selector(restartGatewayWhenIdle)),
+                button("Force Restart Gateway...", #selector(forceRestartGateway)),
                 button("Copy iOS Token", #selector(copyToken))
             ]
         ))
         root.addArrangedSubview(section(
-            title: "Cloudflare",
+            title: "Cloudflare Remote Access",
             buttons: [
-                button("Install Cloudflare Service", #selector(installCloudflare)),
+                button("Set Up Remote Access...", #selector(openCloudflareWizard)),
+                button("Restart Tunnel", #selector(restartCloudflareTunnel)),
                 button("Open Cloudflare Guide", #selector(openCloudflareGuide))
             ]
         ))
@@ -2344,15 +2634,8 @@ private final class CodePilotSetupWindowController: NSWindowController {
     private func refreshStatus() {
         statusStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
         let status = CodePilotSetupStatus.load()
-        [
-            ("Codex CLI", status.codexCLI),
-            ("Codex Auth", status.codexAuth),
-            ("Accounts", status.accounts),
-            ("Gateway Token", status.gatewayToken),
-            ("Gateway", status.gateway),
-            ("Cloudflare", status.cloudflared)
-        ].forEach { label, value in
-            let row = NSTextField(labelWithString: "\(label): \(value)")
+        status.rows.forEach { status in
+            let row = NSTextField(labelWithString: "\(status.title): \(status.requirement.statusLabel) - \(status.detail)")
             row.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
             statusStack.addArrangedSubview(row)
         }
@@ -2372,12 +2655,32 @@ private final class CodePilotSetupWindowController: NSWindowController {
         NSWorkspace.shared.open(url)
     }
 
-    @objc private func installGateway() {
+    @objc private func restartGatewayWhenIdle() {
         runBundledScript(named: "install-phone-gateway-agent.sh")
     }
 
-    @objc private func installCloudflare() {
-        runBundledScript(named: "install-phone-cloudflared-agent.sh")
+    @objc private func forceRestartGateway() {
+        let alert = NSAlert()
+        alert.messageText = "Force Restart Gateway?"
+        alert.informativeText = "This can interrupt active phone turns. Use Restart Gateway When Idle unless you need to recover a stuck gateway."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Force Restart")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        runBundledScript(named: "install-phone-gateway-agent.sh", force: true)
+    }
+
+    @objc private func openCloudflareWizard() {
+        let controller = CodePilotCloudflareWizardController()
+        cloudflareWizardController = controller
+        window?.beginSheet(controller.window!) { [weak self] _ in
+            self?.cloudflareWizardController = nil
+            self?.refreshStatus()
+        }
+    }
+
+    @objc private func restartCloudflareTunnel() {
+        runBundledScript(named: "setup-cloudflare-remote-access.sh", arguments: ["restart-service"])
     }
 
     @objc private func copyToken() {
@@ -2403,7 +2706,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         }
     }
 
-    private func runBundledScript(named name: String) {
+    private func runBundledScript(named name: String, arguments: [String] = [], force: Bool = false) {
         let candidates = [
             Bundle.main.resourceURL?.appendingPathComponent("scripts/\(name)"),
             URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/\(name)")
@@ -2415,7 +2718,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         let process = Process()
         let pipe = Pipe()
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
-        process.arguments = [script.path, "--force"]
+        process.arguments = [script.path] + arguments + (force ? ["--force"] : [])
         process.standardOutput = pipe
         process.standardError = pipe
         process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
@@ -2453,19 +2756,308 @@ private final class CodePilotSetupWindowController: NSWindowController {
     }
 }
 
+private final class CodePilotCloudflareWizardController: NSWindowController {
+    private let outputLabel = NSTextField(wrappingLabelWithString: "")
+    private let hostnameField = NSTextField(string: "")
+    private let tunnelNameField = NSTextField(string: "codepilot")
+    private let detailsLabel = NSTextField(wrappingLabelWithString: "")
+
+    convenience init() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 680, height: 560),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "Set Up Cloudflare Remote Access"
+        self.init(window: window)
+        buildUI()
+    }
+
+    private func buildUI() {
+        guard let contentView = window?.contentView else { return }
+        let root = NSStackView()
+        root.orientation = .vertical
+        root.alignment = .leading
+        root.spacing = 14
+        root.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(root)
+
+        NSLayoutConstraint.activate([
+            root.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
+            root.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
+            root.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
+            root.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20)
+        ])
+
+        let title = NSTextField(labelWithString: "Cloudflare Remote Access")
+        title.font = .systemFont(ofSize: 22, weight: .semibold)
+        root.addArrangedSubview(title)
+
+        let intro = NSTextField(wrappingLabelWithString: """
+        CodePilot can use Cloudflare Tunnel so your iPhone can reach the Mac gateway away from your local network. Setup may install cloudflared, sign in to Cloudflare, create a tunnel, add a DNS route, write ~/.cloudflared/codepilot-config.yaml, and install a LaunchAgent to keep the tunnel running. No inbound ports are opened; the iOS app still needs the gateway token.
+        """)
+        intro.textColor = .secondaryLabelColor
+        root.addArrangedSubview(intro)
+
+        let fields = NSGridView(views: [
+            [NSTextField(labelWithString: "Hostname"), hostnameField],
+            [NSTextField(labelWithString: "Tunnel name"), tunnelNameField]
+        ])
+        fields.column(at: 0).xPlacement = .trailing
+        fields.column(at: 1).width = 420
+        hostnameField.placeholderString = "codepilot.example.com"
+        root.addArrangedSubview(fields)
+
+        root.addArrangedSubview(buttonRow([
+            button("Install cloudflared", #selector(installCloudflared)),
+            button("Sign In or Create Account", #selector(loginCloudflare))
+        ]))
+        root.addArrangedSubview(buttonRow([
+            button("Configure Permanent Hostname", #selector(configurePermanent)),
+            button("Start Temporary Test URL", #selector(startTemporary))
+        ]))
+        root.addArrangedSubview(buttonRow([
+            button("Open Cloudflare Dashboard", #selector(openCloudflareDashboard)),
+            button("Close", #selector(closeSheet))
+        ]))
+
+        outputLabel.textColor = .labelColor
+        outputLabel.stringValue = "Choose a setup step."
+        root.addArrangedSubview(outputLabel)
+
+        detailsLabel.textColor = .secondaryLabelColor
+        detailsLabel.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
+        detailsLabel.maximumNumberOfLines = 8
+        detailsLabel.stringValue = "Details will appear here after a step runs."
+        root.addArrangedSubview(detailsLabel)
+    }
+
+    private func buttonRow(_ buttons: [NSButton]) -> NSView {
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.spacing = 8
+        buttons.forEach { row.addArrangedSubview($0) }
+        return row
+    }
+
+    private func button(_ title: String, _ action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.bezelStyle = .rounded
+        return button
+    }
+
+    @objc private func installCloudflared() {
+        runCloudflareStep(["install-cloudflared"], successMessage: "cloudflared is installed.")
+    }
+
+    @objc private func loginCloudflare() {
+        guard let script = scriptURL() else {
+            outputLabel.stringValue = "Could not find setup-cloudflare-remote-access.sh."
+            return
+        }
+        let command = "cd \(shellQuoted(FileManager.default.currentDirectoryPath)) && \(shellQuoted(script.path)) login"
+        runInTerminal(command)
+        outputLabel.stringValue = "Cloudflare sign-in opened in Terminal. Return here after the browser flow completes."
+        detailsLabel.stringValue = command
+    }
+
+    @objc private func configurePermanent() {
+        let hostname = hostnameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rawTunnelName = tunnelNameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tunnelName = rawTunnelName.isEmpty ? "codepilot" : rawTunnelName
+        guard !hostname.isEmpty else {
+            outputLabel.stringValue = "Enter a hostname such as codepilot.example.com."
+            return
+        }
+
+        runCloudflareSteps([
+            ["configure-permanent", "--hostname", hostname, "--tunnel-name", tunnelName],
+            ["install-service"],
+            ["verify", "--url", "https://\(hostname)"]
+        ], successMessage: "Remote access is configured for https://\(hostname).")
+    }
+
+    @objc private func startTemporary() {
+        runCloudflareStep(["start-trycloudflare"], successMessage: "Temporary Cloudflare URL started. Use this only for testing.")
+    }
+
+    @objc private func openCloudflareDashboard() {
+        if let url = URL(string: "https://dash.cloudflare.com/") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    @objc private func closeSheet() {
+        guard let window else { return }
+        window.sheetParent?.endSheet(window)
+    }
+
+    private func runCloudflareStep(_ arguments: [String], successMessage: String) {
+        runCloudflareSteps([arguments], successMessage: successMessage)
+    }
+
+    private func runCloudflareSteps(_ steps: [[String]], successMessage: String) {
+        guard let script = scriptURL() else {
+            outputLabel.stringValue = "Could not find setup-cloudflare-remote-access.sh."
+            return
+        }
+        outputLabel.stringValue = "Running Cloudflare setup..."
+        detailsLabel.stringValue = steps.map { ([script.path] + $0).joined(separator: " ") }.joined(separator: "\n")
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            var combinedOutput: [String] = []
+            for arguments in steps {
+                let result = self.runProcess(script: script, arguments: arguments)
+                combinedOutput.append(result.output)
+                if result.status != 0 {
+                    DispatchQueue.main.async {
+                        self.outputLabel.stringValue = CodePilotCloudflareErrorMapper.message(forExitCode: result.status)
+                        self.detailsLabel.stringValue = combinedOutput.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                    return
+                }
+            }
+
+            DispatchQueue.main.async {
+                self.outputLabel.stringValue = successMessage
+                self.detailsLabel.stringValue = combinedOutput.joined(separator: "\n\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
+    }
+
+    private func runProcess(script: URL, arguments: [String]) -> (status: Int32, output: String) {
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = [script.path] + arguments
+        process.standardOutput = pipe
+        process.standardError = pipe
+        process.currentDirectoryURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        do {
+            try process.run()
+            process.waitUntilExit()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            return (process.terminationStatus, output)
+        } catch {
+            return (1, error.localizedDescription)
+        }
+    }
+
+    private func scriptURL() -> URL? {
+        let candidates = [
+            Bundle.main.resourceURL?.appendingPathComponent("scripts/setup-cloudflare-remote-access.sh"),
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent("scripts/setup-cloudflare-remote-access.sh")
+        ].compactMap { $0 }
+        return candidates.first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
+    private func runInTerminal(_ command: String) {
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "\(command.replacingOccurrences(of: "\"", with: "\\\""))"
+        end tell
+        """
+        var error: NSDictionary?
+        NSAppleScript(source: script)?.executeAndReturnError(&error)
+        if let error {
+            outputLabel.stringValue = String(describing: error)
+        }
+    }
+
+    private func shellQuoted(_ value: String) -> String {
+        "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+}
+
+private enum RemoteDesktopRPCValidationError: Error {
+    case invalidRequest
+}
+
+private struct RemoteDesktopSignalResponse: Codable {
+    let signals: [MacPeerSignal]
+}
+
+private final class RemoteDesktopResultBox<Value>: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value: Result<Value, Error>?
+
+    func store(_ value: Result<Value, Error>) {
+        lock.lock()
+        self.value = value
+        lock.unlock()
+    }
+
+    func load() -> Result<Value, Error>? {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
+}
+
+private final class GatewayRemoteInputValidator: RemoteInputLeaseValidating {
+    private let lock = NSLock()
+    private var lastSequenceBySession: [String: UInt64] = [:]
+
+    func validateInput(sessionID: String, sequence: UInt64) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        if let last = lastSequenceBySession[sessionID], sequence <= last {
+            throw RemoteDesktopSecurityError.sequenceReplay
+        }
+        lastSequenceBySession[sessionID] = sequence
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
+    private let remoteFrameCaptureService = RemoteFrameCaptureService()
+    private let remoteInputInjector = RemoteInputInjector(validator: GatewayRemoteInputValidator())
+    private lazy var macPeerConnection = MacPeerConnection { [weak self] event in
+        guard let self else { return nil }
+        let displayFrame = CGDisplayBounds(CGMainDisplayID())
+        try self.remoteInputInjector.handle(event, displayFrame: displayFrame)
+        let cursor = CGEvent(source: nil)?.location ?? .zero
+        return CGPoint(
+            x: min(1, max(0, (cursor.x - displayFrame.minX) / displayFrame.width)),
+            y: min(1, max(0, (cursor.y - displayFrame.minY) / displayFrame.height))
+        )
+    }
+    private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
+    private var remoteDesktopSocketServer: RemoteDesktopSocketServer?
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var setupWindowController: CodePilotSetupWindowController?
+    private var remoteDesktopWindowController: RemoteDesktopWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+
+        if !CGPreflightScreenCaptureAccess() {
+            _ = CGRequestScreenCaptureAccess()
+        }
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "CodePilot"
         menu.delegate = self
         statusItem.menu = menu
+        remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
+        if let remoteDesktopCoordinator {
+            do {
+                let server = RemoteDesktopSocketServer { [weak self, weak remoteDesktopCoordinator] request in
+                    guard let self, let remoteDesktopCoordinator else {
+                        return Self.remoteDesktopRPCError(request.id, status: 503, code: "host_unavailable")
+                    }
+                    return self.handleRemoteDesktopRPC(request, coordinator: remoteDesktopCoordinator)
+                }
+                try server.start()
+                remoteDesktopSocketServer = server
+            } catch {
+                NSLog("CodePilot remote desktop host failed to start: \(error.localizedDescription)")
+            }
+        }
         switcher.onChange = { [weak self] in self?.updateStatusTitle() }
         switcher.start()
         updateStatusTitle()
@@ -2477,6 +3069,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let usage = self.switcher.usage(for: active)
             let warning = self.switcher.staleAuthProfiles().isEmpty ? "" : "! "
             self.statusItem.button?.title = "CodePilot: \(warning)\(active) \(self.compactRateLimitSummary(usage))"
+            let isRemoteControlled = self.remoteDesktopCoordinator?.snapshot.activeSession != nil
+            self.statusItem.button?.contentTintColor = isRemoteControlled ? .systemRed : nil
         }
     }
 
@@ -2516,6 +3110,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let setup = NSMenuItem(title: "Setup CodePilot...", action: #selector(openSetup), keyEquivalent: ",")
         setup.target = self
         menu.addItem(setup)
+
+        let remoteDesktop = NSMenuItem(title: "Remote Desktop...", action: #selector(openRemoteDesktop), keyEquivalent: "r")
+        remoteDesktop.target = self
+        remoteDesktop.isEnabled = remoteDesktopCoordinator != nil
+        menu.addItem(remoteDesktop)
 
         let profiles = switcher.profiles()
         if profiles.isEmpty {
@@ -2602,6 +3201,269 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupWindowController?.showWindow(nil)
         setupWindowController?.window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func openRemoteDesktop() {
+        guard let remoteDesktopCoordinator else { return }
+        if remoteDesktopWindowController == nil {
+            remoteDesktopWindowController = RemoteDesktopWindowController(coordinator: remoteDesktopCoordinator)
+        }
+        remoteDesktopWindowController?.showWindow(nil)
+        remoteDesktopWindowController?.window?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func handleRemoteDesktopRPC(
+        _ request: HostRPCRequest,
+        coordinator: RemoteDesktopCoordinator
+    ) -> HostRPCResponse {
+        do {
+            switch request.method {
+            case "status":
+                coordinator.refreshStatus()
+                let status = coordinator.snapshot
+                let displayFrame = CGDisplayBounds(CGMainDisplayID())
+                let cursor = CGEvent(source: nil)?.location ?? .zero
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "ok": true,
+                    "screenRecordingGranted": status.screenRecordingGranted,
+                    "accessibilityGranted": status.accessibilityGranted,
+                    "macUnlocked": status.macUnlocked,
+                    "trustedDeviceCount": status.trustedDevices.count,
+                    "displayFrame": [
+                        "width": displayFrame.width,
+                        "height": displayFrame.height
+                    ],
+                    "cursor": [
+                        "x": min(1, max(0, (cursor.x - displayFrame.minX) / displayFrame.width)),
+                        "y": min(1, max(0, (cursor.y - displayFrame.minY) / displayFrame.height))
+                    ],
+                    "capabilities": [
+                        "pairing": true,
+                        "sessions": true,
+                        "screen": true,
+                        "input": status.accessibilityGranted
+                    ]
+                ])
+
+            case "pairing.start":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let name = try Self.remoteDesktopString(payload["name"])
+                let publicKey = try Self.remoteDesktopBase64(payload["publicKey"])
+                let pending = try coordinator.beginPairing(
+                    deviceID: deviceID,
+                    name: name,
+                    publicKeyRawRepresentation: publicKey,
+                    macName: Host.current().localizedName ?? "Mac"
+                )
+                return try Self.remoteDesktopRPCCodable(request.id, pending.challenge)
+
+            case "pairing.complete":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let challengeID = try Self.remoteDesktopString(payload["challengeId"])
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let signature = try Self.remoteDesktopBase64(payload["signature"])
+                guard let challenge = coordinator.pairingStore.challenge(id: challengeID) else {
+                    return Self.remoteDesktopRPCError(request.id, status: 410, code: "pairing_expired")
+                }
+                let token = try coordinator.pairingStore.verifyChallenge(
+                    challenge,
+                    deviceID: deviceID,
+                    signature: signature
+                )
+                let device = try coordinator.pairingStore.approveDevice(using: token)
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCCodable(request.id, device)
+
+            case "devices.list":
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "devices": try Self.remoteDesktopJSONArray(coordinator.snapshot.trustedDevices)
+                ])
+
+            case "devices.revoke":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let device = try coordinator.pairingStore.revokeDevice(id: deviceID)
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCCodable(request.id, device)
+
+            case "audit.list":
+                coordinator.refreshStatus()
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "events": try Self.remoteDesktopJSONArray(coordinator.snapshot.auditEvents),
+                    "nextCursor": NSNull()
+                ])
+
+            case "frame.capture":
+                let frame = try remoteFrameCaptureService.captureMainDisplayJPEG()
+                return HostRPCResponse(id: request.id, status: 200, payload: frame, errorCode: nil)
+
+            case "session.signal":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let sessionID = try Self.remoteDesktopString(payload["sessionId"])
+                let sequence = try Self.remoteDesktopUInt64(payload["sequence"])
+                let kindRaw = try Self.remoteDesktopString(payload["kind"])
+                guard let kind = MacPeerSignal.Kind(rawValue: kindRaw) else {
+                    throw RemoteDesktopRPCValidationError.invalidRequest
+                }
+                let signalPayload = try Self.remoteDesktopBase64(payload["payload"])
+                if macPeerConnection.state == .idle || macPeerConnection.state == .disconnected(leaseID: sessionID) {
+                    macPeerConnection.start(leaseID: sessionID)
+                }
+                let signal = MacPeerSignal(
+                    leaseID: sessionID,
+                    sequence: sequence,
+                    kind: kind,
+                    payload: signalPayload
+                )
+                try macPeerConnection.acceptRemoteSignal(signal)
+                guard kind == .offer, let offer = String(data: signalPayload, encoding: .utf8) else {
+                    return try Self.remoteDesktopRPCCodable(request.id, RemoteDesktopSignalResponse(signals: []))
+                }
+                let answer = try Self.remoteDesktopAwait {
+                    try await self.macPeerConnection.answer(offerSDP: offer)
+                }
+                let answerSignal = MacPeerSignal(
+                    leaseID: sessionID,
+                    sequence: 1,
+                    kind: .answer,
+                    payload: Data(answer.utf8)
+                )
+                return try Self.remoteDesktopRPCCodable(
+                    request.id,
+                    RemoteDesktopSignalResponse(signals: [answerSignal])
+                )
+
+            case "session.end":
+                macPeerConnection.disconnect()
+                return try Self.remoteDesktopRPCJSON(request.id, ["ok": true])
+
+            case "input.inject":
+                coordinator.refreshStatus()
+                guard coordinator.snapshot.accessibilityGranted else {
+                    return Self.remoteDesktopRPCError(request.id, status: 403, code: "accessibility_required")
+                }
+                let decoder = JSONDecoder()
+                let event = try decoder.decode(RemoteInputEvent.self, from: request.payload)
+                let displayFrame = CGDisplayBounds(CGMainDisplayID())
+                try remoteInputInjector.handle(event, displayFrame: displayFrame)
+                let cursor = CGEvent(source: nil)?.location ?? .zero
+                return try Self.remoteDesktopRPCJSON(request.id, [
+                    "ok": true,
+                    "cursor": [
+                        "x": min(1, max(0, (cursor.x - displayFrame.minX) / displayFrame.width)),
+                        "y": min(1, max(0, (cursor.y - displayFrame.minY) / displayFrame.height))
+                    ]
+                ])
+
+            default:
+                return Self.remoteDesktopRPCError(request.id, status: 404, code: "unsupported_method")
+            }
+        } catch {
+            return Self.remoteDesktopRPCError(
+                request.id,
+                status: 400,
+                code: Self.remoteDesktopRPCErrorCode(error)
+            )
+        }
+    }
+
+    private static func remoteDesktopRPCPayload(_ data: Data) throws -> [String: Any] {
+        if data.isEmpty {
+            return [:]
+        }
+        let object = try JSONSerialization.jsonObject(with: data)
+        guard let payload = object as? [String: Any] else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return payload
+    }
+
+    private static func remoteDesktopString(_ value: Any?) throws -> String {
+        guard let string = value as? String, !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return string
+    }
+
+    private static func remoteDesktopUInt64(_ value: Any?) throws -> UInt64 {
+        if let number = value as? NSNumber, number.uint64Value > 0 {
+            return number.uint64Value
+        }
+        throw RemoteDesktopRPCValidationError.invalidRequest
+    }
+
+    private static func remoteDesktopBase64(_ value: Any?) throws -> Data {
+        let string = try remoteDesktopString(value)
+        guard let data = Data(base64Encoded: string) else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return data
+    }
+
+    private static func remoteDesktopRPCCodable<T: Encodable>(_ id: UUID, _ value: T) throws -> HostRPCResponse {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.dataEncodingStrategy = .base64
+        return HostRPCResponse(id: id, status: 200, payload: try encoder.encode(value), errorCode: nil)
+    }
+
+    private static func remoteDesktopJSONArray<T: Encodable>(_ values: [T]) throws -> [[String: Any]] {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.dataEncodingStrategy = .base64
+        let data = try encoder.encode(values)
+        return (try JSONSerialization.jsonObject(with: data) as? [[String: Any]]) ?? []
+    }
+
+    private static func remoteDesktopRPCJSON(_ id: UUID, _ value: [String: Any]) throws -> HostRPCResponse {
+        HostRPCResponse(
+            id: id,
+            status: 200,
+            payload: try JSONSerialization.data(withJSONObject: value),
+            errorCode: nil
+        )
+    }
+
+    private static func remoteDesktopRPCError(_ id: UUID, status: Int, code: String) -> HostRPCResponse {
+        HostRPCResponse(id: id, status: status, payload: Data(), errorCode: code)
+    }
+
+    private static func remoteDesktopRPCErrorCode(_ error: Error) -> String {
+        switch error as? RemoteDesktopSecurityError {
+        case .challengeExpired, .challengeAlreadyUsed, .challengeUnknown:
+            return "pairing_expired"
+        case .invalidSignature:
+            return "invalid_signature"
+        case .deviceRevoked, .untrustedDevice:
+            return "untrusted_device"
+        default:
+            return "invalid_request"
+        }
+    }
+
+    private static func remoteDesktopAwait<T>(
+        timeout: TimeInterval = 10,
+        operation: @escaping () async throws -> T
+    ) throws -> T {
+        let semaphore = DispatchSemaphore(value: 0)
+        let result = RemoteDesktopResultBox<T>()
+        Task {
+            let value: Result<T, Error>
+            do { value = .success(try await operation()) }
+            catch { value = .failure(error) }
+            result.store(value)
+            semaphore.signal()
+        }
+        guard semaphore.wait(timeout: .now() + timeout) == .success else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        guard let value = result.load() else {
+            throw RemoteDesktopRPCValidationError.invalidRequest
+        }
+        return try value.get()
     }
 
     @objc private func switchToProfile(_ sender: NSMenuItem) {
