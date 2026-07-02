@@ -33,6 +33,7 @@ remote-projects-*.js
 # Generated OTA artifacts
 ios/CodexPhone/build/
 ios/CodexPhone/fastlane/report.xml
+.worktrees/
 
 # macOS
 .DS_Store

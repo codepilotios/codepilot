@@ -8,6 +8,7 @@ import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
+import WebKit
 
 @main
 struct CodexPhoneApp: App {
@@ -117,6 +118,7 @@ struct RootView: View {
     @State private var showingStatus = false
     @State private var showingNewThread = false
     @State private var showingAccountSwitcher = false
+    @State private var showingRemoteDesktop = false
     @State private var openedThread: CodexThread?
 
     var body: some View {
@@ -127,7 +129,9 @@ struct RootView: View {
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
-                    ThreadListView(model: model)
+                    ThreadListView(model: model) {
+                        showingRemoteDesktop = true
+                    }
                 }
             }
             .navigationTitle("CodePilot")
@@ -157,6 +161,15 @@ struct RootView: View {
                         Image(systemName: "square.and.pencil")
                     }
                     .accessibilityLabel("New Thread")
+                    .disabled(gatewayToken.isEmpty)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingRemoteDesktop = true
+                    } label: {
+                        Image(systemName: "desktopcomputer")
+                    }
+                    .accessibilityLabel("Remote Desktop")
                     .disabled(gatewayToken.isEmpty)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -199,6 +212,9 @@ struct RootView: View {
             .sheet(isPresented: $showingStatus) {
                 AccountStatusView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
+            .fullScreenCover(isPresented: $showingRemoteDesktop) {
+                RemotePairingView()
+            }
             .sheet(isPresented: $showingAccountSwitcher) {
                 AccountSwitcherView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                     .presentationDetents([.medium, .large])
@@ -232,6 +248,7 @@ struct RootView: View {
 struct EmptySettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     private let client = CodexGatewayClient()
@@ -249,6 +266,17 @@ struct EmptySettingsView: View {
             }
 
             Section("Gateway") {
+                Picker("Connection", selection: $gatewayConnectionKind) {
+                    ForEach(GatewayConnectionKind.allCases) { kind in
+                        Text(kind.title).tag(kind.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(selectedConnectionKind.helpText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 TextField("Gateway URL", text: $gatewayURL)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
@@ -287,6 +315,10 @@ struct EmptySettingsView: View {
         !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var selectedConnectionKind: GatewayConnectionKind {
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+    }
+
     @MainActor
     private func testConnection() async {
         isTestingConnection = true
@@ -311,6 +343,8 @@ struct EmptySettingsView: View {
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
                 return "Gateway returned HTTP \(status)."
+            case .gateway(let payload):
+                return GatewayErrorPresenter.recovery(for: payload)
             case .server(let message):
                 return message
             case .invalidResponse:
@@ -318,6 +352,31 @@ struct EmptySettingsView: View {
             }
         }
         return error.localizedDescription
+    }
+}
+
+enum GatewayConnectionKind: String, CaseIterable, Identifiable {
+    case local
+    case cloudflare
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .local:
+            "Same Network"
+        case .cloudflare:
+            "Cloudflare"
+        }
+    }
+
+    var helpText: String {
+        switch self {
+        case .local:
+            "Use the Mac gateway URL while your iPhone is on the same Wi-Fi network."
+        case .cloudflare:
+            "Use your Cloudflare Tunnel hostname for access when you are away from the Mac."
+        }
     }
 }
 
@@ -453,6 +512,7 @@ struct ReasoningLevelPicker: View {
 
 struct ThreadListView: View {
     @ObservedObject var model: CodexPhoneModel
+    var onRemoteDesktop: () -> Void = {}
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var renamingThread: CodexThread?
@@ -464,6 +524,13 @@ struct ThreadListView: View {
             AggregateCreditBar(accounts: model.accountStatuses)
 
             List {
+                Section {
+                    Button(action: onRemoteDesktop) {
+                        Label("Remote Desktop", systemImage: "desktopcomputer")
+                    }
+                    .accessibilityIdentifier("remoteDesktopHomeButton")
+                }
+
                 if !pinnedThreads.isEmpty {
                     Section {
                         ForEach(pinnedThreads) { thread in
@@ -1319,24 +1386,35 @@ struct OpenableText: View {
     let gatewayURL: String
     let gatewayToken: String
     @State private var previewItem: FilePreviewItem?
+    @State private var localWebItem: LocalWebItem?
     @State private var openError: String?
 
     var body: some View {
-        Text(linkifiedAttributedString(text))
+        Text(renderedMessageAttributedString(text))
             .font(font)
             .foregroundStyle(foregroundColor)
             .textSelection(.enabled)
             .environment(\.openURL, OpenURLAction { url in
-                guard let path = remoteFilePath(from: url) else {
-                    return .systemAction
+                if let path = remoteFilePath(from: url) {
+                    Task {
+                        await openRemoteFile(path)
+                    }
+                    return .handled
                 }
-                Task {
-                    await openRemoteFile(path)
+                if isMacLocalWebURL(url) {
+                    Task {
+                        await openLocalWebURL(url)
+                    }
+                    return .handled
                 }
-                return .handled
+                return .systemAction
             })
             .sheet(item: $previewItem) { item in
-                QuickLookPreview(url: item.url)
+                FilePreviewSheet(url: item.url)
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(item: $localWebItem) { item in
+                LocalWebBrowserView(item: item)
                     .ignoresSafeArea()
             }
             .alert("File Could Not Be Opened", isPresented: Binding(
@@ -1362,11 +1440,92 @@ struct OpenableText: View {
             openError = error.localizedDescription
         }
     }
+
+    @MainActor
+    private func openLocalWebURL(_ url: URL) async {
+        do {
+            let sessionURL = try await CodexGatewayClient().startLocalWebSession(
+                url: url,
+                baseURL: gatewayURL,
+                token: gatewayToken
+            )
+            localWebItem = LocalWebItem(originalURL: url, sessionURL: sessionURL)
+        } catch {
+            openError = error.localizedDescription
+        }
+    }
 }
 
 struct FilePreviewItem: Identifiable {
     let id = UUID()
     let url: URL
+}
+
+struct LocalWebItem: Identifiable {
+    let id = UUID()
+    let originalURL: URL
+    let sessionURL: URL
+}
+
+struct FilePreviewSheet: View {
+    let url: URL
+    @Environment(\.dismiss) private var dismiss
+    @State private var dragOffset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            QuickLookPreview(url: url)
+                .ignoresSafeArea()
+
+            VStack(spacing: 8) {
+                Capsule()
+                    .fill(.secondary.opacity(0.55))
+                    .frame(width: 42, height: 5)
+                    .padding(.top, 10)
+                    .accessibilityHidden(true)
+
+                HStack {
+                    Spacer()
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 30, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.primary)
+                    .padding(.trailing, 14)
+                    .accessibilityLabel("Close document")
+                }
+            }
+            .padding(.top, 4)
+            .background(.ultraThinMaterial.opacity(0.85))
+        }
+        .offset(y: max(0, dragOffset))
+        .gesture(
+            DragGesture(minimumDistance: 16)
+                .onChanged { value in
+                    dragOffset = max(0, value.translation.height)
+                }
+                .onEnded { value in
+                    if shouldDismissFilePreview(translation: value.translation, predictedEndTranslation: value.predictedEndTranslation) {
+                        dismiss()
+                    } else {
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                            dragOffset = 0
+                        }
+                    }
+                }
+        )
+    }
+}
+
+func shouldDismissFilePreview(translation: CGSize, predictedEndTranslation: CGSize) -> Bool {
+    let downwardDistance = translation.height
+    let predictedDownwardDistance = predictedEndTranslation.height
+    let horizontalDistance = abs(translation.width)
+    return (downwardDistance > 90 || predictedDownwardDistance > 150) && downwardDistance > horizontalDistance
 }
 
 struct QuickLookPreview: UIViewControllerRepresentable {
@@ -1403,10 +1562,61 @@ struct QuickLookPreview: UIViewControllerRepresentable {
     }
 }
 
+struct LocalWebBrowserView: View {
+    let item: LocalWebItem
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            LocalWebView(url: item.sessionURL)
+                .navigationTitle(item.originalURL.absoluteString)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Done") {
+                            dismiss()
+                        }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareLink(item: item.originalURL) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .accessibilityLabel("Share Original URL")
+                    }
+                }
+        }
+    }
+}
+
+struct LocalWebView: UIViewRepresentable {
+    let url: URL
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.allowsInlineMediaPlayback = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.allowsBackForwardNavigationGestures = true
+        webView.load(URLRequest(url: url))
+        return webView
+    }
+
+    func updateUIView(_ uiView: WKWebView, context: Context) {}
+}
+
 private let remoteFileURLScheme = "codex-phone-file"
 
-private func linkifiedAttributedString(_ text: String) -> AttributedString {
-    var attributed = AttributedString(text)
+func renderedMessageAttributedString(_ text: String) -> AttributedString {
+    let options = AttributedString.MarkdownParsingOptions(
+        interpretedSyntax: .inlineOnlyPreservingWhitespace,
+        failurePolicy: .returnPartiallyParsedIfPossible
+    )
+    let attributed = (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
+    return linkifiedAttributedString(attributed)
+}
+
+private func linkifiedAttributedString(_ source: AttributedString) -> AttributedString {
+    var attributed = source
+    let text = String(attributed.characters)
     let nsText = text as NSString
     let fullRange = NSRange(location: 0, length: nsText.length)
     var linkedRanges: [NSRange] = []
@@ -1474,7 +1684,7 @@ private func normalizedRemoteFilePath(_ raw: String) -> String {
     return trimmed.replacingOccurrences(of: #":\d+(?::\d+)?$"#, with: "", options: .regularExpression)
 }
 
-private func remoteFilePreviewURL(path: String) -> URL? {
+func remoteFilePreviewURL(path: String) -> URL? {
     var components = URLComponents()
     components.scheme = remoteFileURLScheme
     components.host = "open"
@@ -1482,12 +1692,50 @@ private func remoteFilePreviewURL(path: String) -> URL? {
     return components.url
 }
 
-private func remoteFilePath(from url: URL) -> String? {
+func remoteFilePath(from url: URL) -> String? {
     guard url.scheme == remoteFileURLScheme,
           let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-        return nil
+        return macAbsoluteFilePath(from: url)
     }
     return components.queryItems?.first(where: { $0.name == "path" })?.value
+}
+
+func macAbsoluteFilePath(from url: URL) -> String? {
+    if url.isFileURL {
+        return normalizedRemoteFilePath(url.path)
+    }
+
+    guard url.scheme == nil else {
+        return nil
+    }
+
+    let path = url.path
+    guard path.hasPrefix("/") else {
+        return nil
+    }
+    return normalizedRemoteFilePath(path)
+}
+
+func isMacLocalWebURL(_ url: URL) -> Bool {
+    guard let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme) else {
+        return false
+    }
+    guard let host = url.host?.lowercased() else {
+        return false
+    }
+    return host == "localhost" || host == "127.0.0.1" || host == "::1"
+}
+
+func localWebSessionURL(path: String, baseURL: String) -> URL? {
+    guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+          var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
+        return nil
+    }
+    let parsedPath = URLComponents(string: path)
+    components.path = parsedPath?.path ?? path
+    components.queryItems = parsedPath?.queryItems
+    components.fragment = nil
+    return components.url
 }
 
 struct JobStatusView: View {
@@ -1770,6 +2018,7 @@ struct SettingsView: View {
     @Binding var gatewayToken: String
     @ObservedObject var model: CodexPhoneModel
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     @State private var lastConnectedAt: Date?
@@ -1779,6 +2028,17 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Gateway") {
+                    Picker("Connection", selection: $gatewayConnectionKind) {
+                        ForEach(GatewayConnectionKind.allCases) { kind in
+                            Text(kind.title).tag(kind.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(selectedConnectionKind.helpText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
                     TextField("URL", text: $gatewayURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
@@ -1832,6 +2092,10 @@ struct SettingsView: View {
         !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var selectedConnectionKind: GatewayConnectionKind {
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+    }
+
     @MainActor
     private func testConnection() async {
         isTestingConnection = true
@@ -1858,6 +2122,8 @@ struct SettingsView: View {
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
                 return "Gateway returned HTTP \(status)."
+            case .gateway(let payload):
+                return GatewayErrorPresenter.recovery(for: payload)
             case .server(let message):
                 return message
             case .invalidResponse:
@@ -3979,7 +4245,7 @@ final class CodexPhoneModel: ObservableObject {
     private func report(_ error: Error) {
         guard !isBenignCancellationError(error) else { return }
         guard !isMissingJobError(error) else { return }
-        errorMessage = error.localizedDescription
+        errorMessage = GatewayErrorPresenter.message(for: error)
     }
 
     private func refreshAccountStatusForQueueDecision(baseURL: String, token: String) async {
@@ -4043,8 +4309,14 @@ final class CodexPhoneModel: ObservableObject {
 
     private func isAccountUnavailableError(_ error: Error) -> Bool {
         guard let gatewayError = error as? GatewayError else { return false }
-        guard case .server(let message) = gatewayError else { return false }
-        return isAccountUnavailableMessage(message)
+        switch gatewayError {
+        case .gateway(let payload):
+            return payload.code == "auth_stale" || payload.code == "account_unavailable" || isAccountUnavailableMessage(payload.message)
+        case .server(let message):
+            return isAccountUnavailableMessage(message)
+        default:
+            return false
+        }
     }
 
     private func isAccountUnavailableMessage(_ message: String) -> Bool {
@@ -4072,6 +4344,8 @@ final class CodexPhoneModel: ObservableObject {
             switch gatewayError {
             case .http(let status):
                 return status == 404
+            case .gateway(let payload):
+                return payload.code == "job_not_found"
             case .server(let message):
                 return message == "Job not found"
             default:
@@ -4397,6 +4671,20 @@ struct CodexGatewayClient {
         return destination
     }
 
+    func startLocalWebSession(url: URL, baseURL: String, token: String) async throws -> URL {
+        let response: LocalWebSessionResponse = try await request(
+            "/api/local-web/sessions",
+            method: "POST",
+            body: LocalWebSessionRequest(url: url.absoluteString),
+            baseURL: baseURL,
+            token: token
+        )
+        guard let sessionURL = localWebSessionURL(path: response.path, baseURL: baseURL) else {
+            throw GatewayError.invalidResponse
+        }
+        return sessionURL
+    }
+
     private func get<T: Decodable>(_ path: String, baseURL: String, token: String) async throws -> T {
         try await request(path, method: "GET", body: Optional<[String: String]>.none, baseURL: baseURL, token: token)
     }
@@ -4431,6 +4719,9 @@ struct CodexGatewayClient {
                     throw GatewayError.invalidResponse
                 }
                 guard (200..<300).contains(http.statusCode) else {
+                    if let payload = try? JSONDecoder().decode(GatewayErrorPayload.self, from: data) {
+                        throw GatewayError.gateway(payload.error)
+                    }
                     if let envelope = try? JSONDecoder().decode(ErrorEnvelope.self, from: data) {
                         throw GatewayError.server(envelope.error)
                     }
@@ -4657,6 +4948,17 @@ struct PinThreadRequest: Encodable {
     let pinned: Bool
 }
 
+struct LocalWebSessionRequest: Encodable {
+    let url: String
+}
+
+struct LocalWebSessionResponse: Decodable {
+    let sessionId: String
+    let path: String
+    let targetOrigin: String
+    let expiresAt: Int
+}
+
 struct QueuedPrompt: Codable, Identifiable, Hashable {
     let id: UUID
     let threadID: String
@@ -4776,6 +5078,38 @@ struct GatewayAttachment: Encodable {
 
 struct ErrorEnvelope: Decodable {
     let error: String
+}
+
+struct GatewayErrorPayload: Decodable, Equatable {
+    struct ErrorBody: Decodable, Equatable {
+        let code: String
+        let message: String
+        let recovery: String
+    }
+
+    let error: ErrorBody
+}
+
+enum GatewayErrorPresenter {
+    static func title(for error: GatewayErrorPayload.ErrorBody) -> String {
+        error.message
+    }
+
+    static func recovery(for error: GatewayErrorPayload.ErrorBody) -> String {
+        error.recovery
+    }
+
+    static func message(for error: Error) -> String {
+        if let gatewayError = error as? GatewayError {
+            switch gatewayError {
+            case .gateway(let payload):
+                return recovery(for: payload)
+            default:
+                return gatewayError.localizedDescription
+            }
+        }
+        return error.localizedDescription
+    }
 }
 
 struct CodexThread: Decodable, Identifiable, Hashable {
@@ -5192,6 +5526,7 @@ enum GatewayError: LocalizedError {
     case invalidResponse
     case http(Int)
     case server(String)
+    case gateway(GatewayErrorPayload.ErrorBody)
 
     var errorDescription: String? {
         switch self {
@@ -5203,6 +5538,8 @@ enum GatewayError: LocalizedError {
             "Gateway returned HTTP \(status)"
         case .server(let message):
             message
+        case .gateway(let payload):
+            GatewayErrorPresenter.recovery(for: payload)
         }
     }
 }

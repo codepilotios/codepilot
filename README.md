@@ -55,6 +55,8 @@ See:
 - [Cloudflare Setup](docs/CLOUDFLARE_SETUP.md)
 - [Security](docs/SECURITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
+- [Troubleshooting](docs/TROUBLESHOOTING.md)
+- [Release Checklist](docs/RELEASE_CHECKLIST.md)
 
 ## Features
 
@@ -76,4 +78,3 @@ Screenshots will be added before the first public release.
 ## Public Release Status
 
 CodePilot is being prepared for broader publishing. Expect some internal names, bundle identifiers, LaunchAgent labels, and local state paths to still contain legacy Codex-specific names during the first migration phase.
-

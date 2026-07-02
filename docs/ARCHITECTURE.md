@@ -20,6 +20,7 @@ Responsibilities:
 - Report account usage.
 - Report plugin and connector status.
 - Register notification devices.
+- Provide stable health and error responses that the Mac and iOS apps can turn into recovery steps.
 
 ## iOS App
 
@@ -46,4 +47,3 @@ The public product name is provider-neutral. Future provider support should isol
 - Turn execution.
 - Thread storage.
 - Connector/plugin status.
-

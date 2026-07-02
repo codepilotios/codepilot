@@ -146,4 +146,36 @@ final class ActiveTurnTrackerTests: XCTestCase {
             ["phone:thread-b/job-b"]
         )
     }
+
+    func testAuthProfileSynchronizerPersistsNewerActiveAuthToActiveProfile() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let codexDir = root.appendingPathComponent("codex", isDirectory: true)
+        let accountsDir = root.appendingPathComponent("accounts", isDirectory: true)
+        let mainDir = accountsDir.appendingPathComponent("Main", isDirectory: true)
+        try FileManager.default.createDirectory(at: codexDir, withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: mainDir, withIntermediateDirectories: true)
+
+        let activeAuth = codexDir.appendingPathComponent("auth.json")
+        let marker = root.appendingPathComponent("active-account.txt")
+        let profileAuth = mainDir.appendingPathComponent("auth.json")
+
+        try #"{"last_refresh":"2026-06-24T08:00:00Z","tokens":{"account_id":"main-account","access_token":"active-refreshed"}}"#
+            .write(to: activeAuth, atomically: true, encoding: .utf8)
+        try #"{"last_refresh":"2026-06-23T08:00:00Z","tokens":{"account_id":"main-account","access_token":"old-profile"}}"#
+            .write(to: profileAuth, atomically: true, encoding: .utf8)
+        try "Main\n".write(to: marker, atomically: true, encoding: .utf8)
+
+        let didSync = try AuthProfileSynchronizer.syncActiveAuthToProfile(
+            activeAuth: activeAuth,
+            activeAccountMarker: marker,
+            accountsDir: accountsDir
+        )
+
+        XCTAssertTrue(didSync)
+        let persisted = try String(contentsOf: profileAuth, encoding: .utf8)
+        XCTAssertTrue(persisted.contains("active-refreshed"))
+    }
 }
