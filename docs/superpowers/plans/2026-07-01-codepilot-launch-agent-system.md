@@ -216,7 +216,7 @@ Do not ping the maintainer for:
 
 4. **Prepare community launch**
    - Community Growth Agent drafts Reddit account profile and launch posts.
-   - The maintainer approves account/posting strategy.
+   - the maintainer approves account/posting strategy.
    - Agent schedules staged, rule-compliant posts.
 
 5. **Start beta loop**
@@ -229,7 +229,7 @@ Do not ping the maintainer for:
    - Revenue Agent proposes tiers and pricing.
    - Presence Agent updates website and App Store copy.
    - Security Agent signs off on public release.
-   - The maintainer approves pricing, legal, and App Store submission.
+   - the maintainer approves pricing, legal, and App Store submission.
 
 ## Proposed Recurring Automations
 

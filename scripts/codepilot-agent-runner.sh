@@ -1,8 +1,7 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
 JOB="${1:-}"
 
 if [[ -z "$JOB" ]]; then

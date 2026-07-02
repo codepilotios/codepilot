@@ -50,6 +50,34 @@ grep -q "service: http://127.0.0.1:18790" "$HOME/.cloudflared/codepilot-config.y
 [ -f "$HOME/.codex-account-switcher/cloudflare-setup.json" ] || fail "metadata missing"
 ! grep -qi "token" "$HOME/.codex-account-switcher/cloudflare-setup.json" || fail "metadata must not contain token"
 
+rm -f "$HOME/.cloudflared/codepilot-config.yaml" "$HOME/.codex-account-switcher/cloudflare-setup.json"
+write_stub cloudflared '
+case "$*" in
+  "--version") echo "cloudflared version 2026.6.1";;
+  "tunnel list --output json") echo "[]";;
+  "tunnel create existing") echo "Tunnel already exists" >&2; exit 1;;
+  "tunnel route dns existing existing.example.com") echo "Added CNAME existing.example.com";;
+  *) echo "cloudflared $*";;
+esac
+'
+if "$SCRIPT" configure-permanent --hostname existing.example.com --tunnel-name existing >/tmp/codepilot-no-id.out 2>/tmp/codepilot-no-id.err; then
+  fail "configure-permanent should fail when no tunnel ID can be determined"
+fi
+[ ! -f "$HOME/.cloudflared/codepilot-config.yaml" ] || fail "config should not be written without a tunnel ID"
+[ ! -f "$HOME/.codex-account-switcher/cloudflare-setup.json" ] || fail "metadata should not be written without a tunnel ID"
+grep -qi "tunnel ID" /tmp/codepilot-no-id.err || fail "no-ID failure should explain the missing tunnel ID"
+
+write_stub cloudflared '
+case "$*" in
+  "--version") echo "cloudflared version 2026.6.1";;
+  "tunnel list --output json") echo "[]";;
+  "tunnel create codepilot") echo "{\"id\":\"tun_123\",\"name\":\"codepilot\"}";;
+  "tunnel route dns codepilot codepilot.example.com") echo "Added CNAME codepilot.example.com";;
+  "tunnel --url http://127.0.0.1:18790") echo "https://temporary.trycloudflare.com";;
+  *) echo "cloudflared $*";;
+esac
+'
+
 "$SCRIPT" install-service
 [ -f "$HOME/Library/LaunchAgents/io.codepilot.phone-cloudflared.plist" ] || fail "LaunchAgent plist missing"
 

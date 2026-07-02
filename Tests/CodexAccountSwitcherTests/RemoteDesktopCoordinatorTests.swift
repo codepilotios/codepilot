@@ -28,9 +28,9 @@ final class RemoteDesktopCoordinatorTests: XCTestCase {
 
         let pending = try coordinator.beginPairing(
             deviceID: "phone-1",
-            name: "Demo iPhone",
+            name: "Beta iPhone",
             publicKeyRawRepresentation: publicKey,
-            macName: "Demo Mac"
+            macName: "Mac host"
         )
 
         XCTAssertEqual(coordinator.snapshot.pendingPairing?.deviceID, "phone-1")
@@ -41,9 +41,9 @@ final class RemoteDesktopCoordinatorTests: XCTestCase {
 
         _ = try coordinator.beginPairing(
             deviceID: "phone-1",
-            name: "Demo iPhone",
+            name: "Beta iPhone",
             publicKeyRawRepresentation: publicKey,
-            macName: "Demo Mac"
+            macName: "Mac host"
         )
         try coordinator.approvePendingPairing()
 
@@ -69,9 +69,9 @@ final class RemoteDesktopCoordinatorTests: XCTestCase {
         let key = P256.Signing.PrivateKey()
         let challenge = coordinator.pairingStore.issueChallenge(
             deviceID: "phone-1",
-            name: "Demo iPhone",
+            name: "Beta iPhone",
             publicKeyRawRepresentation: key.publicKey.rawRepresentation,
-            macName: "Demo Mac"
+            macName: "Mac host"
         )
         let approval = try coordinator.pairingStore.verifyChallenge(
             challenge,
