@@ -22,6 +22,10 @@ Success means the app shows the active account from the Mac gateway.
 
 The app stores these values locally on the device.
 
+For the default Mac setup, choose **Cloudflare** and enter the Cloudflare Tunnel URL. The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. Use **Same Network** only after configuring the gateway to listen on a Mac LAN address.
+
+The gateway URL must include `http://` or `https://`.
+
 ## App Store Connect Setup
 
 The local Fastlane credentials live in the ignored file:
@@ -51,3 +55,7 @@ The iOS app can register for turn-finished notifications. APNs certificates or k
 ## File Uploads
 
 Files selected in the iOS app are uploaded to the Mac gateway and saved under the CodePilot state directory. Image attachments can be passed into Codex turns when supported by the current runner.
+
+## Remote Desktop
+
+Remote Desktop requires the Mac app to show Screen Recording as granted before viewing and Accessibility as granted before control. If pairing reports missing permissions, grant them in macOS System Settings, restart CodePilot on the Mac, then retry pairing from the iOS app.
