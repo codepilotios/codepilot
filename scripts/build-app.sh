@@ -6,13 +6,18 @@ APP="$ROOT/build/CodePilot.app"
 CONTENTS="$APP/Contents"
 MACOS="$CONTENTS/MacOS"
 RESOURCES="$CONTENTS/Resources"
+FRAMEWORKS="$CONTENTS/Frameworks"
 
 cd "$ROOT"
 swift build -c release
 
 rm -rf "$APP"
-mkdir -p "$MACOS" "$RESOURCES/scripts"
+mkdir -p "$MACOS" "$RESOURCES/scripts" "$FRAMEWORKS"
 cp "$ROOT/.build/release/CodexAccountSwitcher" "$MACOS/CodePilot"
+if [[ -d "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" ]]; then
+  cp -R "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" "$FRAMEWORKS/"
+  install_name_tool -add_rpath "@executable_path/../Frameworks" "$MACOS/CodePilot" 2>/dev/null || true
+fi
 cp "$ROOT/scripts/"*.sh "$RESOURCES/scripts/"
 cp "$ROOT/scripts/"*.py "$RESOURCES/scripts/" 2>/dev/null || true
 chmod +x "$RESOURCES/scripts/"*.sh
@@ -43,5 +48,18 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
 </dict>
 </plist>
 PLIST
+
+SIGNING_IDENTITY="${CODEPILOT_SIGNING_IDENTITY:-}"
+if [[ -z "$SIGNING_IDENTITY" ]]; then
+  SIGNING_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | awk '/Apple Development:/{print $2; exit}')"
+fi
+if [[ -n "$SIGNING_IDENTITY" ]]; then
+  if [[ -d "$FRAMEWORKS/LiveKitWebRTC.framework" ]]; then
+    codesign --force --timestamp=none --sign "$SIGNING_IDENTITY" "$FRAMEWORKS/LiveKitWebRTC.framework"
+  fi
+  codesign --force --timestamp=none --options runtime --identifier io.codepilot.mac --sign "$SIGNING_IDENTITY" "$APP"
+else
+  echo "warning: no Apple Development signing identity found; macOS permissions may reset after rebuilds" >&2
+fi
 
 echo "$APP"

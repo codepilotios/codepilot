@@ -7,9 +7,15 @@ let package = Package(
     platforms: [
         .macOS(.v13)
     ],
+    dependencies: [
+        .package(url: "https://github.com/livekit/webrtc-xcframework-static.git", exact: "144.7559.10")
+    ],
     targets: [
         .executableTarget(
-            name: "CodexAccountSwitcher"
+            name: "CodexAccountSwitcher",
+            dependencies: [
+                .product(name: "LiveKitWebRTC", package: "webrtc-xcframework-static")
+            ]
         ),
         .testTarget(
             name: "CodexAccountSwitcherTests",

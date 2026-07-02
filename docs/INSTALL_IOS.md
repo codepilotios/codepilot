@@ -11,10 +11,14 @@ CodePilot iOS connects to a Mac running the CodePilot gateway.
 
 ## Connection
 
-On first launch, enter:
+On first launch:
 
-- **Gateway URL**: local or Cloudflare URL for your CodePilot gateway.
-- **Token**: contents of `~/.codex-account-switcher/phone-gateway-token` on the Mac.
+1. Choose **Same Network** or **Cloudflare**.
+2. Enter the gateway URL.
+3. Enter the token from `~/.codex-account-switcher/phone-gateway-token` on the Mac.
+4. Tap **Test Connection**.
+
+Success means the app shows the active account from the Mac gateway.
 
 The app stores these values locally on the device.
 

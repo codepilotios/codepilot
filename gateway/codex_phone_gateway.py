@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 from datetime import datetime, timezone
+import fcntl
 import hashlib
 import json
 import mimetypes
@@ -23,6 +25,11 @@ import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+try:
+    from .remote_desktop_gateway import RemoteDesktopGateway
+except ImportError:
+    from remote_desktop_gateway import RemoteDesktopGateway
 
 
 HOME = Path.home()
@@ -62,6 +69,8 @@ REMOTE_LOGIN_AUTH_URL_RE = re.compile(r"https://auth\.openai\.com/oauth/authoriz
 REMOTE_LOGIN_URL_RE = re.compile(r"https?://\S+")
 REMOTE_LOGIN_URL_TIMEOUT_SECONDS = 15
 REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS = 30
+LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 60 * 60
+LOCAL_WEB_MAX_BYTES = 25 * 1024 * 1024
 
 JOBS = {}
 JOB_PROCESSES = {}
@@ -561,7 +570,28 @@ def json_response(handler, status: int, payload: dict):
     handler.wfile.write(body)
 
 
-def decode_body(handler) -> dict:
+def error_payload(code: str, message: str, recovery: str, details: dict | None = None) -> dict:
+    payload = {
+        "error": {
+            "code": str(code or "gateway_unavailable"),
+            "message": str(message or "CodePilot Gateway request failed."),
+            "recovery": str(recovery or "Try again, then restart CodePilot Gateway if the problem continues."),
+        }
+    }
+    if details:
+        payload["error"]["details"] = details
+    return payload
+
+
+def json_error(handler, status: int, code: str, message: str, recovery: str, details: dict | None = None):
+    json_response(handler, status, error_payload(code, message, recovery, details))
+
+
+class RequestBodyTooLarge(ValueError):
+    pass
+
+
+def decode_body(handler, max_length: int | None = None) -> dict:
     raw_length = handler.headers.get("content-length", "0")
     try:
         length = int(raw_length)
@@ -569,6 +599,8 @@ def decode_body(handler) -> dict:
         length = 0
     if length <= 0:
         return {}
+    if max_length is not None and length > max_length:
+        raise RequestBodyTooLarge("request_too_large")
     body = handler.rfile.read(length)
     return json.loads(body.decode("utf-8"))
 
@@ -643,6 +675,19 @@ def file_response(handler: BaseHTTPRequestHandler, path: Path):
         shutil.copyfileobj(handle, handler.wfile)
 
 
+def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
+    body = payload.get("body") or b""
+    if isinstance(body, str):
+        body = body.encode("utf-8")
+    status = int(payload.get("status") or 502)
+    handler.send_response(status)
+    handler.send_header("Content-Type", str(payload.get("contentType") or "application/octet-stream"))
+    handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Content-Length", str(len(body)))
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
 def truncate_text(text: str, limit: int = 900) -> str:
     compacted = re.sub(r"\s+", " ", text).strip()
     if len(compacted) <= limit:
@@ -665,6 +710,27 @@ def compact_json(value, limit: int = 900) -> str:
         return truncate_text(json.dumps(value, ensure_ascii=False, sort_keys=True), limit)
     except TypeError:
         return truncate_text(str(value), limit)
+
+
+def fetch_local_web_url(url: str) -> tuple[int, dict, bytes]:
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "CodePilot/0.1 local-web-proxy",
+            "Accept": "*/*",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = response.read(LOCAL_WEB_MAX_BYTES + 1)
+            if len(body) > LOCAL_WEB_MAX_BYTES:
+                raise RuntimeError("Local web response is too large")
+            return int(response.status), dict(response.headers.items()), body
+    except urllib.error.HTTPError as exc:
+        body = exc.read(LOCAL_WEB_MAX_BYTES + 1)
+        if len(body) > LOCAL_WEB_MAX_BYTES:
+            raise RuntimeError("Local web response is too large")
+        return int(exc.code), dict(exc.headers.items()), body
 
 
 def is_stale_auth_message(message: str) -> bool:
@@ -725,6 +791,21 @@ def epoch_seconds(value) -> int | None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return int(parsed.timestamp())
     return None
+
+
+def parse_iso_datetime(value: str) -> datetime | None:
+    stripped = str(value or "").strip()
+    if not stripped:
+        return None
+    if stripped.endswith("Z"):
+        stripped = stripped[:-1] + "+00:00"
+    try:
+        parsed = datetime.fromisoformat(stripped)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
 
 
 def event_status(raw_status: str | None, stream_type: str) -> str:
@@ -1704,6 +1785,8 @@ class GatewayState:
         login_runner=None,
         login_process_factory=subprocess.Popen,
         login_callback_relayer=None,
+        remote_desktop_gateway=None,
+        local_web_fetcher=None,
     ):
         self.codex_home = codex_home
         self.token = token
@@ -1719,6 +1802,10 @@ class GatewayState:
         self.login_runner = login_runner
         self.login_process_factory = login_process_factory
         self.login_callback_relayer = login_callback_relayer
+        self.remote_desktop_gateway = remote_desktop_gateway if remote_desktop_gateway is not None else RemoteDesktopGateway()
+        self.local_web_fetcher = local_web_fetcher if local_web_fetcher is not None else fetch_local_web_url
+        self._local_web_sessions = {}
+        self._local_web_lock = threading.Lock()
         self._remote_login_sessions = {}
         self._remote_login_lock = threading.Lock()
 
@@ -1788,6 +1875,44 @@ class GatewayState:
             "clientRunning": client_running,
             "inSync": in_sync,
             "restartDeferred": restart_deferred,
+        }
+
+    def public_health(self) -> dict:
+        remote_desktop_status = {"available": False}
+        remote_desktop = self.remote_desktop_gateway
+        if remote_desktop is not None:
+            public_status = getattr(remote_desktop, "public_status", None)
+            if callable(public_status):
+                try:
+                    remote_desktop_status = public_status()
+                except Exception as exc:
+                    remote_desktop_status = {
+                        "available": False,
+                        "error": truncate_text(str(exc), 160),
+                    }
+            else:
+                remote_desktop_status = {"available": True}
+
+        return {
+            "gateway": {
+                "running": True,
+                "version": read_marker(DEFAULT_SWITCHER_HOME / "gateway-version", "dev"),
+            },
+            "accounts": {
+                "active": self.active_account_name(),
+                "auth": self.app_server_auth_status(),
+            },
+            "turns": {
+                "running": self.has_running_jobs(),
+            },
+            "notifications": {
+                "configured": not isinstance(self.push_notifier, DisabledPushNotifier),
+            },
+            "remoteDesktop": remote_desktop_status,
+            "localWeb": {
+                "available": True,
+                "sessionSeconds": LOCAL_WEB_SESSION_TIMEOUT_SECONDS,
+            },
         }
 
     def close_app_server_if_auth_changed_and_idle(self):
@@ -1935,6 +2060,8 @@ class GatewayState:
                 self.close_app_server_client()
             else:
                 self.close_app_server_if_auth_changed_and_idle()
+                with self.auth_file_lock():
+                    self.sync_active_auth_to_active_profile()
 
     def active_account_name(self) -> str:
         return read_marker(self.active_account_marker, "unknown")
@@ -2698,7 +2825,9 @@ class GatewayState:
             if self.has_running_jobs():
                 raise RuntimeError("Cannot switch account while a Codex turn is running")
             self._close_app_server_client_locked()
-            self.install_auth_file(profile_auth, self.active_auth_path)
+            with self.auth_file_lock():
+                self.sync_active_auth_to_active_profile()
+                self.install_auth_file(profile_auth, self.active_auth_path)
 
         self.active_account_marker.parent.mkdir(parents=True, exist_ok=True)
         self.active_account_marker.write_text(account_name + "\n", encoding="utf-8")
@@ -2748,6 +2877,58 @@ class GatewayState:
                 pass
             raise
 
+    @contextlib.contextmanager
+    def auth_file_lock(self):
+        DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
+        lock_path = DEFAULT_SWITCHER_HOME / "auth-files.lock"
+        fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+    def auth_file_snapshot(self, auth_path: Path) -> dict:
+        data = json.loads(auth_path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("auth.json is not an object")
+        tokens = data.get("tokens")
+        if not isinstance(tokens, dict):
+            tokens = {}
+        return {
+            "accountId": str(tokens.get("account_id") or ""),
+            "lastRefresh": parse_iso_datetime(str(data.get("last_refresh") or "")),
+        }
+
+    def sync_active_auth_to_active_profile(self) -> bool:
+        account_name = self.active_account_name()
+        if not account_name or account_name == "unknown":
+            return False
+        profile_auth = self.accounts_dir / account_name / "auth.json"
+        if not self.active_auth_path.is_file() or not profile_auth.is_file():
+            return False
+        try:
+            if self.active_auth_path.read_bytes() == profile_auth.read_bytes():
+                return False
+            active = self.auth_file_snapshot(self.active_auth_path)
+            profile = self.auth_file_snapshot(profile_auth)
+        except (OSError, json.JSONDecodeError, ValueError):
+            return False
+
+        active_account = str(active.get("accountId") or "")
+        profile_account = str(profile.get("accountId") or "")
+        if active_account and profile_account and active_account != profile_account:
+            return False
+
+        active_refresh = active.get("lastRefresh")
+        profile_refresh = profile.get("lastRefresh")
+        if active_refresh is not None and profile_refresh is not None and active_refresh < profile_refresh:
+            return False
+
+        self.install_auth_file(self.active_auth_path, profile_auth)
+        return True
+
     def run_access_token_login(self, temp_codex_home: Path, access_token: str):
         if self.login_runner is not None:
             self.login_runner(temp_codex_home, access_token)
@@ -2777,21 +2958,25 @@ class GatewayState:
             raise RuntimeError("Cannot refresh active account auth while a Codex turn is running")
 
         profile_auth = self.accounts_dir / account_name / "auth.json"
-        self.install_auth_file(generated_auth, profile_auth)
-
         if is_active_account:
             with self._app_server_lock:
                 if self.has_running_jobs():
                     raise RuntimeError("Cannot refresh active account auth while a Codex turn is running")
                 self._close_app_server_client_locked()
-                self.install_auth_file(generated_auth, self.active_auth_path)
+                with self.auth_file_lock():
+                    self.install_auth_file(generated_auth, profile_auth)
+                    self.install_auth_file(generated_auth, self.active_auth_path)
+        else:
+            with self.auth_file_lock():
+                self.install_auth_file(generated_auth, profile_auth)
 
         self.record_remote_login_refresh(account_name)
 
     def install_new_account_auth(self, account_name: str, generated_auth: Path):
         account_name = self.sanitized_new_account_profile_name(account_name)
         profile_auth = self.accounts_dir / account_name / "auth.json"
-        self.install_auth_file(generated_auth, profile_auth)
+        with self.auth_file_lock():
+            self.install_auth_file(generated_auth, profile_auth)
         self.record_remote_login_add(account_name)
 
     def refresh_account_auth_with_access_token(self, raw_name: str, access_token: str) -> dict:
@@ -3103,6 +3288,114 @@ class GatewayState:
                 shutil.rmtree(temp_codex_home)
             except OSError:
                 pass
+
+    def start_local_web_session(self, raw_url: str) -> dict:
+        parsed = self.validated_local_web_url(raw_url)
+        session_id = secrets.token_urlsafe(24)
+        now = int(time.time())
+        expires_at = now + LOCAL_WEB_SESSION_TIMEOUT_SECONDS
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        target_origin = f"{parsed.scheme}://127.0.0.1:{port}"
+        session = {
+            "id": session_id,
+            "scheme": parsed.scheme,
+            "port": port,
+            "createdAt": now,
+            "expiresAt": expires_at,
+            "targetOrigin": target_origin,
+        }
+        with self._local_web_lock:
+            self._local_web_sessions[session_id] = session
+            self.cleanup_expired_local_web_sessions_locked(now)
+        path = self.local_web_gateway_path(session_id, parsed.path or "/", parsed.query)
+        return {
+            "sessionId": session_id,
+            "path": path,
+            "targetOrigin": target_origin,
+            "expiresAt": expires_at,
+        }
+
+    def validated_local_web_url(self, raw_url: str):
+        value = str(raw_url or "").strip()
+        parsed = urllib.parse.urlparse(value)
+        if parsed.scheme not in {"http", "https"}:
+            raise ValueError("Only http and https localhost URLs can be opened")
+        hostname = (parsed.hostname or "").casefold()
+        if hostname not in {"localhost", "127.0.0.1", "::1"}:
+            raise ValueError("Only localhost URLs can be opened through the Mac gateway")
+        port = parsed.port or (443 if parsed.scheme == "https" else 80)
+        if port <= 0 or port > 65535:
+            raise ValueError("Localhost URL port is invalid")
+        return parsed
+
+    def cleanup_expired_local_web_sessions_locked(self, now: int):
+        expired = [
+            session_id for session_id, session in self._local_web_sessions.items()
+            if int(session.get("expiresAt") or 0) <= now
+        ]
+        for session_id in expired:
+            self._local_web_sessions.pop(session_id, None)
+
+    def local_web_gateway_path(self, session_id: str, path: str, query: str = "") -> str:
+        clean_path = "/" + str(path or "/").lstrip("/")
+        quoted_path = urllib.parse.quote(clean_path, safe="/:@!$&'()*+,;=-._~")
+        gateway_path = f"/api/local-web/{session_id}{quoted_path}"
+        if query:
+            gateway_path += f"?{query}"
+        return gateway_path
+
+    def proxy_local_web_session(self, session_id: str, path_parts: list[str], query: str) -> dict:
+        now = int(time.time())
+        with self._local_web_lock:
+            self.cleanup_expired_local_web_sessions_locked(now)
+            session = self._local_web_sessions.get(str(session_id or ""))
+        if not session:
+            raise LookupError("Local web session not found or expired")
+
+        path = "/" + "/".join(urllib.parse.quote(urllib.parse.unquote(part), safe=":@!$&'()*+,;=-._~") for part in path_parts)
+        if path == "/":
+            path = "/"
+        url = urllib.parse.urlunparse((
+            str(session["scheme"]),
+            f"127.0.0.1:{int(session['port'])}",
+            path,
+            "",
+            str(query or ""),
+            "",
+        ))
+        status, headers, body = self.local_web_fetcher(url)
+        content_type = str(headers.get("Content-Type") or headers.get("content-type") or "application/octet-stream")
+        if "text/html" in content_type.lower():
+            body = self.rewrite_local_web_html(session, body)
+        return {
+            "status": int(status),
+            "contentType": content_type,
+            "body": body,
+        }
+
+    def rewrite_local_web_html(self, session: dict, body: bytes) -> bytes:
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return body
+        session_id = str(session["id"])
+        port = int(session["port"])
+        replacements = [
+            (f"http://localhost:{port}", f"/api/local-web/{session_id}"),
+            (f"http://127.0.0.1:{port}", f"/api/local-web/{session_id}"),
+            (f"https://localhost:{port}", f"/api/local-web/{session_id}"),
+            (f"https://127.0.0.1:{port}", f"/api/local-web/{session_id}"),
+        ]
+        for source, target in replacements:
+            text = text.replace(source, target)
+        session_base = f"/api/local-web/{session_id}"
+        text = re.sub(
+            r'''(?P<attr>\b(?:src|href|action)=["'])(?P<path>/(?!/|api/local-web/)[^"']*)''',
+            lambda match: f"{match.group('attr')}{session_base}{match.group('path')}",
+            text,
+            flags=re.IGNORECASE,
+        )
+        return text.encode("utf-8")
 
     def read_usage(self) -> dict:
         try:
@@ -3756,26 +4049,50 @@ class Handler(BaseHTTPRequestHandler):
         header = self.headers.get("authorization", "")
         if header == f"Bearer {expected}":
             return True
-        json_response(self, 401, {"error": "Unauthorized"})
+        json_error(
+            self,
+            401,
+            "unauthorized",
+            "Unauthorized",
+            "Update the CodePilot Gateway token in the iPhone app, then try again.",
+        )
         return False
 
     def do_GET(self):
-        if not self.authenticate():
-            return
-
         parsed = urllib.parse.urlparse(self.path)
         path = parsed.path.rstrip("/") or "/"
         parts = [part for part in path.split("/") if part]
 
+        if len(parts) >= 3 and parts[0] == "api" and parts[1] == "local-web":
+            try:
+                local_web_response(
+                    self,
+                    self.state().proxy_local_web_session(parts[2], parts[3:], parsed.query),
+                )
+            except LookupError as exc:
+                json_error(
+                    self,
+                    404,
+                    "local_web_unavailable",
+                    str(exc),
+                    "Open the localhost link again from CodePilot; local web sessions expire after a short time.",
+                )
+            except Exception as exc:
+                json_error(
+                    self,
+                    502,
+                    "local_web_unavailable",
+                    str(exc),
+                    "Make sure the local web server is running on the Mac, then reopen the link.",
+                )
+            return
+
+        if not self.authenticate():
+            return
+
         try:
-            if path == "/health":
-                json_response(self, 200, {
-                    "ok": True,
-                    "activeAccount": self.state().active_account_name(),
-                    "appServerAuth": self.state().app_server_auth_status(),
-                    "codexHome": str(self.state().codex_home),
-                    "dangerousMode": self.state().allow_dangerous,
-                })
+            if path == "/health" or path == "/api/health":
+                json_response(self, 200, self.state().public_health())
                 return
 
             if path == "/api/threads":
@@ -3787,6 +4104,21 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/accounts":
                 json_response(self, 200, self.state().account_status_snapshot())
+                return
+
+            if len(parts) >= 2 and parts[0] == "api" and parts[1] == "remote":
+                query = urllib.parse.parse_qs(parsed.query)
+                status, payload = self.state().remote_desktop_gateway.handle("GET", parts[2:], query, None)
+                if isinstance(payload, dict) and "_raw" in payload:
+                    raw = payload.get("_raw") or b""
+                    self.send_response(status)
+                    self.send_header("Content-Type", str(payload.get("_content_type") or "application/octet-stream"))
+                    self.send_header("Cache-Control", str(payload.get("_cache_control") or "no-store"))
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.end_headers()
+                    self.wfile.write(raw)
+                    return
+                json_response(self, status, payload)
                 return
 
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "files":
@@ -3822,7 +4154,13 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "threads":
                 thread = self.state().get_thread(parts[2])
                 if not thread:
-                    json_response(self, 404, {"error": "Thread not found"})
+                    json_error(
+                        self,
+                        404,
+                        "thread_not_found",
+                        "Thread not found",
+                        "Return to the thread list and refresh. The thread may have been moved, deleted, or not synced yet.",
+                    )
                     return
                 if "messages" not in thread:
                     rollout_messages = parse_messages(Path(thread["rolloutPath"]))
@@ -3844,7 +4182,13 @@ class Handler(BaseHTTPRequestHandler):
                 with JOBS_LOCK:
                     job = JOBS.get(parts[2])
                 if not job:
-                    json_response(self, 404, {"error": "Job not found"})
+                    json_error(
+                        self,
+                        404,
+                        "job_not_found",
+                        "Job not found",
+                        "Reload the thread. The live stream may have ended and saved messages can still be loaded.",
+                    )
                     return
                 json_response(self, 200, self.state().job_response(job, after_event_seq))
                 return
@@ -3857,11 +4201,11 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, self.state().remote_account_login_status(parts[4]))
                 return
 
-            json_response(self, 404, {"error": "Not found"})
+            json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
         except LookupError as exc:
-            json_response(self, 404, {"error": str(exc)})
+            json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
         except Exception as exc:
-            json_response(self, 500, {"error": str(exc)})
+            json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
     def do_POST(self):
         if not self.authenticate():
@@ -3946,6 +4290,22 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, self.state().register_notification_device(body))
                 return
 
+            if len(parts) == 3 and parts[0] == "api" and parts[1] == "local-web" and parts[2] == "sessions":
+                body = decode_body(self)
+                try:
+                    session = self.state().start_local_web_session(str(body.get("url", "")))
+                except ValueError as exc:
+                    json_error(
+                        self,
+                        400,
+                        "local_web_invalid_target",
+                        str(exc),
+                        "Open a localhost, 127.0.0.1, or ::1 URL from the iPhone app.",
+                    )
+                    return
+                json_response(self, 200, session)
+                return
+
             if len(parts) == 4 and parts[0] == "api" and parts[1] == "threads" and parts[3] == "turns":
                 body = decode_body(self)
                 attachments = body.get("attachments")
@@ -3987,15 +4347,30 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, {"ok": True})
                 return
 
-            json_response(self, 404, {"error": "Not found"})
+            if len(parts) >= 2 and parts[0] == "api" and parts[1] == "remote":
+                body = decode_body(self, max_length=1_048_576)
+                status, payload = self.state().remote_desktop_gateway.handle("POST", parts[2:], {}, body)
+                json_response(self, status, payload)
+                return
+
+            json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
         except LookupError as exc:
-            json_response(self, 404, {"error": str(exc)})
+            json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
+        except RequestBodyTooLarge as exc:
+            json_error(self, 413, "gateway_unavailable", str(exc), "Send a smaller request or fewer attachments.")
         except ValueError as exc:
-            json_response(self, 400, {"error": str(exc)})
+            json_error(self, 400, "gateway_unavailable", str(exc), "Check the request and try again.")
         except RuntimeError as exc:
-            json_response(self, 409, {"error": str(exc)})
+            message = str(exc)
+            code = "auth_stale" if is_stale_auth_message(message) else "active_turn_running"
+            recovery = (
+                "Refresh login for the active account, then try again."
+                if code == "auth_stale"
+                else "Wait for the active turn to finish, then try again."
+            )
+            json_error(self, 409, code, message, recovery)
         except Exception as exc:
-            json_response(self, 500, {"error": str(exc)})
+            json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
     def log_message(self, format, *args):
         print(f"{self.address_string()} - {format % args}", flush=True)
