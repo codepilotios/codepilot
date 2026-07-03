@@ -62,3 +62,59 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - Draft PR #10 remains the active low-risk fix branch for #1 and #4.
 - Privacy audit passed before this local note update and before any public-write-eligible action.
 - No new GitHub issue comments, label edits, branches, PRs, screenshots, release actions, or external system mutations were needed.
+
+## Issue Triage Pass - 2026-07-03T12:00Z
+
+- Rechecked the GitHub issue queue; open issues after this pass are #2, #3, and #8.
+- Verified #1 is fixed on `origin/main`: the Mac setup checklist includes Screen Recording, Accessibility, and Notifications readiness rows.
+- Ran a privacy audit over the local triage and escalation notes before the public issue update.
+- Closed #1 with a public-safe triage comment referencing merged PR #10.
+- Confirmed #4 is already closed and PR #10 is merged with a successful `Test and Audit` check.
+- Proposed component and severity labels remain unchanged for remaining open issues:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- No new low-risk code fix was identified in this pass, so no new app or gateway tests were run.
+- No screenshots, release actions, pricing/legal/App Store changes, credential changes, or non-GitHub external mutations were performed.
+
+## Remaining Blockers - 2026-07-03T12:00Z
+
+- #2 Same Network setup path still needs a product/security decision: explicitly support LAN binding with security copy, or disable the iOS Same Network path until supported.
+- #3 Remote Desktop pairing approval still needs a trust-model decision before public beta.
+- #8 Public screenshot set still needs maintainer approval before screenshots are captured, committed, or used publicly.
+
+## Issue Triage Pass - 2026-07-03T15:26:54Z
+
+- Rechecked the open GitHub issue queue; open issues remain #2, #3, and #8.
+- Reviewed issue bodies and comments for #2, #3, and #8; there have been no new comments since the July 1 triage updates.
+- Proposed component and severity labels remain correct:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- Ran `scripts/privacy-audit.sh` before this local note update; it passed.
+- No label edits, GitHub comments, new branches, draft PRs, screenshots, release actions, credential changes, or non-GitHub external mutations were needed.
+- No low-risk code fix was available without a maintainer decision on #2, #3, or #8.
+
+## Issue Triage Pass - 2026-07-03T17:36:33Z
+
+- Rechecked the open GitHub issue queue; open issues remain #2, #3, and #8.
+- Confirmed there are no open pull requests currently pending issue-triage follow-up.
+- Reviewed issue metadata, labels, bodies, and comments for #2, #3, and #8; no issue has changed since the July 1 triage comments.
+- Proposed component and severity labels remain correct:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- No GitHub comments, label edits, branches, draft PRs, screenshots, release actions, credential changes, or non-GitHub external mutations were needed.
+- No low-risk code fix was available without maintainer decisions or approval for #2, #3, or #8.
+
+## Issue Triage Pass - 2026-07-03T19:51:16Z
+
+- Rechecked the open GitHub issue queue; open issues remain #2, #3, and #8.
+- Reviewed issue metadata, labels, bodies, and comments for #2, #3, and #8; no new issue comments or label changes were present.
+- Confirmed draft PR #11 remains open, draft, `CLEAN`, and backed by a successful `Test and Audit` check.
+- Proposed component and severity labels remain correct:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- No GitHub comments, label edits, new branches, screenshots, release actions, credential changes, or non-GitHub external mutations were needed.
+- No low-risk code fix was available without maintainer decisions or approval for #2, #3, or #8.
