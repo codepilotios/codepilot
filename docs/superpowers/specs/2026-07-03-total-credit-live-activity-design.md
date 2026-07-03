@@ -28,6 +28,7 @@ When no credit remains, replace the percentage presentation with `Refilling cred
 
 - Compact and minimal regions show the CodePilot bolt and aggregate percentage.
 - Expanded presentation shows the progress bar and usable-account count.
+- The expanded bottom region uses an 8-point horizontal inset so its progress bar and account count remain clear of the Dynamic Island's curved edges.
 - Refill and authentication states use concise equivalents of the Lock Screen labels.
 
 ## Architecture
