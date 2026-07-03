@@ -62,3 +62,23 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - Draft PR #10 remains the active low-risk fix branch for #1 and #4.
 - Privacy audit passed before this local note update and before any public-write-eligible action.
 - No new GitHub issue comments, label edits, branches, PRs, screenshots, release actions, or external system mutations were needed.
+
+## Issue Triage Pass - 2026-07-03T12:00Z
+
+- Rechecked the GitHub issue queue; open issues after this pass are #2, #3, and #8.
+- Verified #1 is fixed on `origin/main`: the Mac setup checklist includes Screen Recording, Accessibility, and Notifications readiness rows.
+- Ran a privacy audit over the local triage and escalation notes before the public issue update.
+- Closed #1 with a public-safe triage comment referencing merged PR #10.
+- Confirmed #4 is already closed and PR #10 is merged with a successful `Test and Audit` check.
+- Proposed component and severity labels remain unchanged for remaining open issues:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- No new low-risk code fix was identified in this pass, so no new app or gateway tests were run.
+- No screenshots, release actions, pricing/legal/App Store changes, credential changes, or non-GitHub external mutations were performed.
+
+## Remaining Blockers - 2026-07-03T12:00Z
+
+- #2 Same Network setup path still needs a product/security decision: explicitly support LAN binding with security copy, or disable the iOS Same Network path until supported.
+- #3 Remote Desktop pairing approval still needs a trust-model decision before public beta.
+- #8 Public screenshot set still needs maintainer approval before screenshots are captured, committed, or used publicly.
