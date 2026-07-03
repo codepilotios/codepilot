@@ -6,7 +6,6 @@ import socket
 import subprocess
 import tempfile
 import threading
-import tomllib
 import urllib.request
 import unittest
 import urllib.request
@@ -117,6 +116,20 @@ class RecordingLocalWebFetcher:
             b'<a href="http://localhost:3000/settings">Settings</a>'
             b"</body></html>"
         )
+
+
+class TOMLConfigParserTests(unittest.TestCase):
+    def test_parse_codex_plugin_config_subset(self):
+        parsed = gateway.parse_toml_config_text(
+            '[plugins."github@openai-curated"]\n'
+            'enabled = false\n'
+            '\n'
+            '[mcp_servers.supabase.env]\n'
+            'SUPABASE_PROJECT_REF = "test"\n'
+        )
+
+        self.assertFalse(parsed["plugins"]["github@openai-curated"]["enabled"])
+        self.assertEqual(parsed["mcp_servers"]["supabase"]["env"]["SUPABASE_PROJECT_REF"], "test")
 
 
 class FakeRemoteLoginProcess:
@@ -1866,7 +1879,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 state = GatewayState(codex_home, "token", Path("/missing-codex"), False)
 
                 status = state.ensure_plugin_connectivity()
-                merged = tomllib.loads((codex_home / "config.toml").read_text(encoding="utf-8"))
+                merged = gateway.parse_toml_config_text((codex_home / "config.toml").read_text(encoding="utf-8"))
 
                 self.assertEqual(status["addedPlugins"], ["supabase@openai-curated"])
                 self.assertEqual(status["addedMcpServers"], ["supabase"])

@@ -21,7 +21,6 @@ import subprocess
 import tempfile
 import threading
 import time
-import tomllib
 import urllib.parse
 import urllib.request
 import uuid
@@ -133,6 +132,116 @@ def toml_scalar(value) -> str:
 
 def toml_table_header(parts: list[str]) -> str:
     return "[" + ".".join(toml_string(part) for part in parts) + "]"
+
+
+class SimpleTOMLDecodeError(ValueError):
+    pass
+
+
+def strip_toml_comment(line: str) -> str:
+    in_string = False
+    escaped = False
+    for index, char in enumerate(line):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\" and in_string:
+            escaped = True
+            continue
+        if char == '"':
+            in_string = not in_string
+            continue
+        if char == "#" and not in_string:
+            return line[:index]
+    return line
+
+
+def parse_toml_table_path(raw: str) -> list[str]:
+    parts = []
+    current = []
+    in_string = False
+    escaped = False
+    quoted = False
+    for char in raw.strip():
+        if escaped:
+            current.append("\\" + char)
+            escaped = False
+            continue
+        if char == "\\" and in_string:
+            escaped = True
+            continue
+        if char == '"':
+            in_string = not in_string
+            quoted = True
+            current.append(char)
+            continue
+        if char == "." and not in_string:
+            parts.append(parse_toml_path_part("".join(current), quoted))
+            current = []
+            quoted = False
+            continue
+        current.append(char)
+    if in_string:
+        raise SimpleTOMLDecodeError("unterminated quoted table path")
+    parts.append(parse_toml_path_part("".join(current), quoted))
+    return parts
+
+
+def parse_toml_path_part(raw: str, quoted: bool) -> str:
+    value = raw.strip()
+    if not value:
+        raise SimpleTOMLDecodeError("empty table path segment")
+    if quoted:
+        return str(json.loads(value))
+    return value
+
+
+def parse_toml_scalar(raw: str):
+    value = raw.strip()
+    if value.startswith('"') and value.endswith('"'):
+        return json.loads(value)
+    if value == "true":
+        return True
+    if value == "false":
+        return False
+    if value.startswith("[") and value.endswith("]"):
+        body = value[1:-1].strip()
+        if not body:
+            return []
+        return [parse_toml_scalar(item) for item in body.split(",")]
+    try:
+        return int(value)
+    except ValueError:
+        pass
+    try:
+        return float(value)
+    except ValueError as exc:
+        raise SimpleTOMLDecodeError(f"unsupported TOML value: {value}") from exc
+
+
+def parse_toml_config_text(text: str) -> dict:
+    root: dict = {}
+    current = root
+    for raw_line in text.splitlines():
+        line = strip_toml_comment(raw_line).strip()
+        if not line:
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = root
+            for part in parse_toml_table_path(line[1:-1]):
+                child = current.setdefault(part, {})
+                if not isinstance(child, dict):
+                    raise SimpleTOMLDecodeError(f"table conflicts with scalar: {part}")
+                current = child
+            continue
+        if "=" not in line:
+            raise SimpleTOMLDecodeError(f"unsupported TOML line: {line}")
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key:
+            raise SimpleTOMLDecodeError("empty TOML key")
+        current[key] = parse_toml_scalar(value)
+    return root
 
 
 def append_toml_table(lines: list[str], parts: list[str], values: dict):
@@ -2991,8 +3100,8 @@ class GatewayState:
 
     def read_toml_config(self, config_path: Path) -> dict:
         try:
-            data = tomllib.loads(config_path.read_text(encoding="utf-8"))
-        except (OSError, tomllib.TOMLDecodeError):
+            data = parse_toml_config_text(config_path.read_text(encoding="utf-8"))
+        except (OSError, SimpleTOMLDecodeError, json.JSONDecodeError):
             return {}
         return data if isinstance(data, dict) else {}
 
