@@ -2585,6 +2585,7 @@ private struct CodePilotSetupStatus {
 
         let codexCLI = executablePath(named: "codex")
         let cloudflared = executablePath(named: "cloudflared")
+        let remoteDesktopPermissions = SystemRemoteDesktopPermissions()
         let cloudflareRequirement: CodePilotSetupRequirement
         let cloudflareDetail: String
         if cloudflared == nil {
@@ -2627,6 +2628,25 @@ private struct CodePilotSetupStatus {
                 title: "Cloudflare",
                 requirement: cloudflareRequirement,
                 detail: cloudflareDetail
+            ),
+            CodePilotSetupRow(
+                title: "Screen Recording",
+                requirement: remoteDesktopPermissions.screenRecordingGranted ? .screenRecordingReady : .screenRecordingMissing,
+                detail: remoteDesktopPermissions.screenRecordingGranted
+                    ? "Ready for Remote Desktop viewing"
+                    : "Grant Screen Recording in System Settings"
+            ),
+            CodePilotSetupRow(
+                title: "Accessibility",
+                requirement: remoteDesktopPermissions.accessibilityGranted ? .accessibilityReady : .accessibilityMissing,
+                detail: remoteDesktopPermissions.accessibilityGranted
+                    ? "Ready for Remote Desktop control"
+                    : "Grant Accessibility in System Settings"
+            ),
+            CodePilotSetupRow(
+                title: "Notifications",
+                requirement: .notificationsOptional,
+                detail: "Optional for turn-finished alerts"
             )
         ])
     }
@@ -2761,13 +2781,15 @@ enum CodePilotSetupRequirement: Equatable {
     case cloudflareOptional
     case cloudflareMissing
     case cloudflareNeedsConfiguration
+    case screenRecordingReady
     case screenRecordingMissing
+    case accessibilityReady
     case accessibilityMissing
     case notificationsOptional
 
     var statusLabel: String {
         switch self {
-        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady:
+        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady, .screenRecordingReady, .accessibilityReady:
             return "Ready"
         case .cloudflareNeedsConfiguration:
             return "Needs setup"

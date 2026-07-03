@@ -23,3 +23,7 @@ Permissions are only visible from the separate **Remote Desktop...** window, and
 ## Suggested Fix
 
 Add setup rows for Screen Recording, Accessibility, and notification delivery readiness with direct recovery copy.
+
+## Local Audit Fix
+
+The `agent/setup-audit` branch adds these rows to the Mac setup checklist. Notification delivery is surfaced as optional; APNs credential setup still requires maintainer-owned credentials before production delivery can be verified.

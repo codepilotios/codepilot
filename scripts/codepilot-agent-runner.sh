@@ -3,8 +3,7 @@ set -euo pipefail
 umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DEFAULT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ROOT="${CODEPILOT_REPO_ROOT:-$DEFAULT_ROOT}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 JOB="${1:-}"
 STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 WORKTREE_ROOT="$STATE_DIR/worktrees"
