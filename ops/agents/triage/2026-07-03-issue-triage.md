@@ -106,3 +106,15 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
   - #8: `documentation`, `severity: low`.
 - No GitHub comments, label edits, branches, draft PRs, screenshots, release actions, credential changes, or non-GitHub external mutations were needed.
 - No low-risk code fix was available without maintainer decisions or approval for #2, #3, or #8.
+
+## Issue Triage Pass - 2026-07-03T19:51:16Z
+
+- Rechecked the open GitHub issue queue; open issues remain #2, #3, and #8.
+- Reviewed issue metadata, labels, bodies, and comments for #2, #3, and #8; no new issue comments or label changes were present.
+- Confirmed draft PR #11 remains open, draft, `CLEAN`, and backed by a successful `Test and Audit` check.
+- Proposed component and severity labels remain correct:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- No GitHub comments, label edits, new branches, screenshots, release actions, credential changes, or non-GitHub external mutations were needed.
+- No low-risk code fix was available without maintainer decisions or approval for #2, #3, or #8.
