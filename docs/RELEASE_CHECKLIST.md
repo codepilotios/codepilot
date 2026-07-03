@@ -8,6 +8,7 @@
 - [ ] OTA build if iOS app files changed
 - [ ] Public manifest and IPA return HTTP 200 from the OTA domain
 - [ ] TestFlight upload if shipping a beta build
+- [ ] `docs/APP_STORE_METADATA_DRAFT.md` reviewed before App Store Connect changes
 - [ ] Public docs checked for personal names, private email addresses, tokens, hostnames, Apple team IDs, and machine-specific paths
 - [ ] Public screenshots use sanitized demo data only
 - [ ] Privacy, support, FAQ, and README copy reviewed for beta positioning

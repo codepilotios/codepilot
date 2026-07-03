@@ -62,6 +62,7 @@ See:
 - [Privacy](docs/PRIVACY.md)
 - [Support](docs/SUPPORT.md)
 - [Changelog](docs/CHANGELOG.md)
+- [App Store Metadata Draft](docs/APP_STORE_METADATA_DRAFT.md)
 - [Screenshot Plan](docs/SCREENSHOTS.md)
 - [Security](docs/SECURITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
