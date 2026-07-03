@@ -14,4 +14,13 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareNeedsConfiguration.statusLabel, "Needs setup")
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareOptional.statusLabel, "Optional")
     }
+
+    func testRemoteDesktopAndNotificationStatusLabelsAreUserFacing() {
+        XCTAssertEqual(CodePilotSetupRequirement.screenRecordingReady.statusLabel, "Ready")
+        XCTAssertEqual(CodePilotSetupRequirement.screenRecordingMissing.statusLabel, "Missing")
+        XCTAssertEqual(CodePilotSetupRequirement.accessibilityReady.statusLabel, "Ready")
+        XCTAssertEqual(CodePilotSetupRequirement.accessibilityMissing.statusLabel, "Missing")
+        XCTAssertEqual(CodePilotSetupRequirement.notificationsReady.statusLabel, "Ready")
+        XCTAssertEqual(CodePilotSetupRequirement.notificationsOptional.statusLabel, "Optional")
+    }
 }
