@@ -82,3 +82,15 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - #2 Same Network setup path still needs a product/security decision: explicitly support LAN binding with security copy, or disable the iOS Same Network path until supported.
 - #3 Remote Desktop pairing approval still needs a trust-model decision before public beta.
 - #8 Public screenshot set still needs maintainer approval before screenshots are captured, committed, or used publicly.
+
+## Issue Triage Pass - 2026-07-03T15:26:54Z
+
+- Rechecked the open GitHub issue queue; open issues remain #2, #3, and #8.
+- Reviewed issue bodies and comments for #2, #3, and #8; there have been no new comments since the July 1 triage updates.
+- Proposed component and severity labels remain correct:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- Ran `scripts/privacy-audit.sh` before this local note update; it passed.
+- No label edits, GitHub comments, new branches, draft PRs, screenshots, release actions, credential changes, or non-GitHub external mutations were needed.
+- No low-risk code fix was available without a maintainer decision on #2, #3, or #8.
