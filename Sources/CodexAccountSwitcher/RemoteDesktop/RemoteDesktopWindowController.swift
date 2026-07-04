@@ -65,6 +65,7 @@ final class RemoteDesktopWindowController: NSWindowController {
         if let pending = snapshot.pendingPairing {
             addSection("Pending Pairing", rows: [
                 "Device: \(pending.name)",
+                "Status: \(pending.approvalToken == nil ? "Waiting for iPhone proof" : "Ready for Mac approval")",
                 "Code: \(pending.challenge.code)",
                 "Expires: \(Self.dateFormatter.string(from: pending.challenge.expiresAt))",
                 "Key: \(pending.keyFingerprint)"

@@ -321,7 +321,7 @@ struct EmptySettingsView: View {
 
             Section("Gateway") {
                 Picker("Connection", selection: $gatewayConnectionKind) {
-                    ForEach(GatewayConnectionKind.allCases) { kind in
+                    ForEach(GatewayConnectionKind.publicBetaCases) { kind in
                         Text(kind.title).tag(kind.rawValue)
                     }
                 }
@@ -362,6 +362,11 @@ struct EmptySettingsView: View {
             }
         }
         .navigationTitle("CodePilot")
+        .onAppear {
+            if !selectedConnectionKind.isPublicBetaAvailable {
+                gatewayConnectionKind = GatewayConnectionKind.cloudflare.rawValue
+            }
+        }
     }
 
     private var canTestConnection: Bool {
@@ -415,6 +420,19 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    static var publicBetaCases: [GatewayConnectionKind] {
+        allCases.filter(\.isPublicBetaAvailable)
+    }
+
+    var isPublicBetaAvailable: Bool {
+        switch self {
+        case .local:
+            false
+        case .cloudflare:
+            true
+        }
+    }
+
     var title: String {
         switch self {
         case .local:
@@ -427,7 +445,7 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     var helpText: String {
         switch self {
         case .local:
-            "Use the Mac gateway URL while your iPhone is on the same Wi-Fi network."
+            "Same Network is disabled for public beta until LAN binding has explicit firewall and trust guidance."
         case .cloudflare:
             "Use your Cloudflare Tunnel hostname for access when you are away from the Mac."
         }
