@@ -14,7 +14,7 @@ final class CloudflareSetupTests: XCTestCase {
             hostname: "codepilot.example.com",
             tunnelName: "codepilot",
             tunnelId: "tun_123",
-            configPath: "/Users/test/.cloudflared/codepilot-config.yaml",
+            configPath: "/tmp/codepilot-test/.cloudflared/codepilot-config.yaml",
             launchAgentLabel: "io.codepilot.phone-cloudflared",
             lastVerifiedAt: nil
         )

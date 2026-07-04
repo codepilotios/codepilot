@@ -69,28 +69,28 @@ final class RemoteDesktopTests: XCTestCase {
     }
 
     func testRemoteFilePathAcceptsCustomPreviewURL() throws {
-        let url = try XCTUnwrap(remoteFilePreviewURL(path: "/Users/homeserver/Developer/CodePilot/README.md"))
+        let url = try XCTUnwrap(remoteFilePreviewURL(path: "/tmp/codepilot-sample/README.md"))
 
-        XCTAssertEqual(remoteFilePath(from: url), "/Users/homeserver/Developer/CodePilot/README.md")
+        XCTAssertEqual(remoteFilePath(from: url), "/tmp/codepilot-sample/README.md")
     }
 
     func testRemoteFilePathAcceptsMarkdownAbsolutePathURL() throws {
-        let url = try XCTUnwrap(URL(string: "/Users/homeserver/Developer/CodexAccountSwitcher/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"))
+        let url = try XCTUnwrap(URL(string: "/tmp/codepilot-sample/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"))
 
         XCTAssertEqual(
             remoteFilePath(from: url),
-            "/Users/homeserver/Developer/CodexAccountSwitcher/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"
+            "/tmp/codepilot-sample/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"
         )
     }
 
     func testRemoteFilePathAcceptsFileURLAndStripsLineSuffix() throws {
-        let url = URL(fileURLWithPath: "/Users/homeserver/Developer/CodePilot/Sources/App.swift:42")
+        let url = URL(fileURLWithPath: "/tmp/codepilot-sample/Sources/App.swift:42")
 
-        XCTAssertEqual(remoteFilePath(from: url), "/Users/homeserver/Developer/CodePilot/Sources/App.swift")
+        XCTAssertEqual(remoteFilePath(from: url), "/tmp/codepilot-sample/Sources/App.swift")
     }
 
     func testRemoteFilePathRejectsWebURLs() throws {
-        let url = try XCTUnwrap(URL(string: "https://example.com/Users/homeserver/README.md"))
+        let url = try XCTUnwrap(URL(string: "https://example.com/tmp/codepilot-sample/README.md"))
 
         XCTAssertNil(remoteFilePath(from: url))
     }

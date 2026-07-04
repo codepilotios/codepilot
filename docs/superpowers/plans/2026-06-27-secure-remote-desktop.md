@@ -632,7 +632,7 @@ Verify pairing approval, Face ID session start, Wi-Fi direct path, cellular TURN
 Run:
 
 ```bash
-cd /Users/homeserver/Developer/de-kleine-eekhoorn/ios
+cd ios
 python3 scripts/dke_ota_build.py build --app codexphone --branch release
 ```
 
