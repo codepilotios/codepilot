@@ -35,7 +35,7 @@ struct RemoteDesktopAPI {
         )
     }
 
-    func completePairing(challengeID: String, deviceID: String, signature: Data) async throws -> TrustedRemoteDevice {
+    func completePairing(challengeID: String, deviceID: String, signature: Data) async throws -> RemotePairingApprovalStatus {
         try await request(
             "POST",
             path: "/api/remote/pairing/complete",
@@ -191,6 +191,7 @@ struct RemoteDesktopHostStatus: Codable, Equatable {
     let screenRecordingGranted: Bool?
     let accessibilityGranted: Bool?
     let macUnlocked: Bool?
+    let trustedDeviceCount: Int?
     let displayFrame: RemoteDisplayFrame?
     let cursor: RemoteCursorPosition?
     let iceServers: [RemoteIceServer]?

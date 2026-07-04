@@ -38,6 +38,7 @@ struct PendingPairing: Equatable {
     let challenge: RemotePairingChallenge
     let publicKeyRawRepresentation: Data
     let keyFingerprint: String
+    var approvalToken: VerifiedPairingApprovalToken?
 }
 
 struct ActiveRemoteSession: Equatable {
@@ -139,7 +140,8 @@ final class RemoteDesktopCoordinator {
             name: name,
             challenge: challenge,
             publicKeyRawRepresentation: publicKeyRawRepresentation,
-            keyFingerprint: Self.keyFingerprint(publicKeyRawRepresentation)
+            keyFingerprint: Self.keyFingerprint(publicKeyRawRepresentation),
+            approvalToken: nil
         )
         pendingPairing = pending
         try appendAuditLocked(.pairingChallengeIssued, deviceID: deviceID, sessionID: nil, leaseID: nil, reason: nil)
@@ -147,16 +149,42 @@ final class RemoteDesktopCoordinator {
         return pending
     }
 
+    func verifyPendingPairing(
+        challengeID: String,
+        deviceID: String,
+        signature: Data
+    ) throws -> RemotePairingApprovalStatus {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard var pendingPairing,
+              pendingPairing.challenge.id == challengeID,
+              pendingPairing.deviceID == deviceID else {
+            throw RemoteDesktopSecurityError.challengeUnknown
+        }
+        let token = try pairingStore.verifyChallenge(
+            pendingPairing.challenge,
+            deviceID: deviceID,
+            signature: signature
+        )
+        pendingPairing.approvalToken = token
+        self.pendingPairing = pendingPairing
+        try appendAuditLocked(.pairingChallengeVerified, deviceID: deviceID, sessionID: nil, leaseID: nil, reason: nil)
+        rebuildSnapshotLocked()
+        return RemotePairingApprovalStatus(
+            status: "pending_mac_approval",
+            challengeID: challengeID,
+            deviceID: deviceID,
+            macName: pendingPairing.challenge.macName
+        )
+    }
+
     func approvePendingPairing() throws {
         lock.lock()
         defer { lock.unlock() }
 
-        guard let pendingPairing else { return }
-        _ = try pairingStore.trustPreverifiedDevice(
-            id: pendingPairing.deviceID,
-            name: pendingPairing.name,
-            publicKeyRawRepresentation: pendingPairing.publicKeyRawRepresentation
-        )
+        guard let pendingPairing, let approvalToken = pendingPairing.approvalToken else { return }
+        _ = try pairingStore.approveDevice(using: approvalToken)
         self.pendingPairing = nil
         try appendAuditLocked(.pairingApproved, deviceID: pendingPairing.deviceID, sessionID: nil, leaseID: nil, reason: nil)
         rebuildSnapshotLocked()
