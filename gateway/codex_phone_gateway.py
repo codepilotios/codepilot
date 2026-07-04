@@ -1861,6 +1861,48 @@ def apply_pinned_state(thread: dict, pinned_rank_by_id: dict[str, int]) -> dict:
     return copied
 
 
+def curl_config_value(value: str) -> str:
+    return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\r", "").replace("\n", "")
+
+
+def consume_codex_rate_limit_reset_credit(access_token: str, idempotency_key: str) -> dict:
+    token = str(access_token or "").strip()
+    if not token:
+        raise RuntimeError("Account auth has no access token")
+
+    body = json.dumps({
+        "creditType": "usage_limit",
+        "idempotencyKey": idempotency_key,
+    }, separators=(",", ":"))
+    config = "\n".join([
+        'url = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits/consume"',
+        'request = "POST"',
+        'header = "Accept: application/json"',
+        'header = "Content-Type: application/json"',
+        f'header = "Authorization: Bearer {curl_config_value(token)}"',
+        f'data = "{curl_config_value(body)}"',
+        "",
+    ])
+    completed = subprocess.run(
+        ["/usr/bin/curl", "-fsS", "--max-time", "20", "--config", "-"],
+        input=config,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        message = completed.stderr.strip() or completed.stdout.strip() or f"curl exited {completed.returncode}"
+        raise RuntimeError(f"Rate limit reset request failed: {truncate_text(message, 500)}")
+    if not completed.stdout.strip():
+        return {}
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Rate limit reset response was not JSON: {exc}") from exc
+    return payload if isinstance(payload, dict) else {"response": payload}
+
+
 class GatewayState:
     def __init__(
         self,
@@ -2517,7 +2559,23 @@ class GatewayState:
             pass
         return snapshot
 
-    def consume_rate_limit_reset_credit(self) -> dict:
+    def consume_rate_limit_reset_credit(self, raw_name: str = "") -> dict:
+        requested_name = str(raw_name or "").strip()
+        if requested_name:
+            account_name = self.resolve_account_profile_name(requested_name)
+            auth_path = self.accounts_dir / account_name / "auth.json"
+            result = consume_codex_rate_limit_reset_credit(
+                self.access_token_from_auth_file(auth_path),
+                f"codepilot-rate-limit-reset-{account_name}-{uuid.uuid4()}",
+            )
+            self.record_rate_limit_reset_credit_consumed(account_name)
+            snapshot = self.account_status_snapshot()
+            snapshot["rateLimitReset"] = {
+                "accountName": account_name,
+                "result": result,
+            }
+            return snapshot
+
         client = self.app_server_client()
         client.start()
         result = client.request("account/rateLimitResetCredit/consume", {
@@ -2527,6 +2585,40 @@ class GatewayState:
         snapshot = self.account_status_snapshot()
         snapshot["rateLimitReset"] = result
         return snapshot
+
+    def access_token_from_auth_file(self, auth_path: Path) -> str:
+        try:
+            payload = json.loads(auth_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise LookupError("Account auth profile is missing") from exc
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("Account auth profile is not valid JSON") from exc
+
+        if not isinstance(payload, dict):
+            raise RuntimeError("Account auth profile is not valid")
+        tokens = payload.get("tokens")
+        if not isinstance(tokens, dict):
+            raise RuntimeError("Account auth profile has no tokens")
+        access_token = str(tokens.get("access_token") or "").strip()
+        if not access_token:
+            raise RuntimeError("Account auth profile has no access token")
+        return access_token
+
+    def record_rate_limit_reset_credit_consumed(self, account_name: str):
+        usage = self.read_usage()
+        usage_key = account_name
+        for existing_key in usage:
+            if str(existing_key).casefold() == account_name.casefold():
+                usage_key = existing_key
+                break
+        entry = usage.get(usage_key, {})
+        if not isinstance(entry, dict):
+            entry = {}
+        remaining = optional_int(entry.get("rateLimitResetCreditsRemaining"))
+        if remaining is not None:
+            entry["rateLimitResetCreditsRemaining"] = max(0, remaining - 1)
+        usage[usage_key] = entry
+        write_json_object_atomic(self.usage_path, usage)
 
     def ensure_plugin_connectivity(self) -> dict:
         status = {
@@ -4504,7 +4596,8 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "accounts" and parts[2] == "rate-limit-reset":
-                snapshot = self.state().consume_rate_limit_reset_credit()
+                body = decode_body(self)
+                snapshot = self.state().consume_rate_limit_reset_credit(str(body.get("name", "")))
                 json_response(self, 200, snapshot)
                 return
 
