@@ -1,7 +1,8 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 PLIST_DIR="$HOME/Library/LaunchAgents"
 RUNNER="$ROOT/scripts/codepilot-agent-runner.sh"
 SCHEDULER="$ROOT/scripts/codepilot-agent-scheduler.sh"

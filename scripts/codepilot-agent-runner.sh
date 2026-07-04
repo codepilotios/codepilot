@@ -1,7 +1,9 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DEFAULT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT="${CODEPILOT_REPO_ROOT:-$DEFAULT_ROOT}"
 JOB="${1:-}"
 STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 WORKTREE_ROOT="$STATE_DIR/worktrees"
