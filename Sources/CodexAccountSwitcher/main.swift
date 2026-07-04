@@ -104,6 +104,7 @@ struct AccountUsage: Codable {
     var weeklyLimitUsedPercent: Int?
     var weeklyLimitWindowMins: Int?
     var weeklyLimitResetsAt: Date?
+    var rateLimitResetCreditsRemaining: Int?
     var lastRateLimitRefreshAt: Date?
     var rateLimitError: String?
     var authStaleAt: Date?
@@ -120,6 +121,7 @@ struct LimitWindowSummary {
 struct RateLimitSummary {
     let daily: LimitWindowSummary?
     let weekly: LimitWindowSummary?
+    let resetCreditsRemaining: Int?
 }
 
 private struct AutomaticSwitchCandidate {
@@ -598,6 +600,7 @@ final class CodexAccountSwitcher {
             usage.weeklyLimitUsedPercent = summary.weekly?.usedPercent
             usage.weeklyLimitWindowMins = summary.weekly?.windowDurationMins
             usage.weeklyLimitResetsAt = summary.weekly?.resetsAt
+            usage.rateLimitResetCreditsRemaining = summary.resetCreditsRemaining
         case .failure(let error):
             let message = Self.singleLine(error.localizedDescription, limit: 300)
             usage.rateLimitError = message
@@ -1746,7 +1749,10 @@ private final class CodexUsageAPIClient {
             throw CodexUsageAPIClientError.missingRateLimit
         }
 
-        return Self.summary(from: rateLimit)
+        return Self.summary(
+            from: rateLimit,
+            resetCreditsRemaining: response.rateLimitResetCredits?.availableCount
+        )
     }
 
     private func readAccessToken() throws -> String {
@@ -1794,7 +1800,7 @@ private final class CodexUsageAPIClient {
         return try result.get()
     }
 
-    private static func summary(from rateLimit: WhamRateLimit) -> RateLimitSummary {
+    private static func summary(from rateLimit: WhamRateLimit, resetCreditsRemaining: Int?) -> RateLimitSummary {
         let primary = rateLimit.primaryWindow.map(windowSummary)
         let secondary = rateLimit.secondaryWindow.map(windowSummary)
 
@@ -1819,7 +1825,11 @@ private final class CodexUsageAPIClient {
             daily = nil
         }
 
-        return RateLimitSummary(daily: daily, weekly: weekly)
+        return RateLimitSummary(
+            daily: daily,
+            weekly: weekly,
+            resetCreditsRemaining: resetCreditsRemaining
+        )
     }
 
     private static func windowSummary(_ window: WhamRateLimitWindow) -> LimitWindowSummary {
@@ -1849,9 +1859,19 @@ private struct CodexAuthTokens: Decodable {
 
 private struct WhamUsageResponse: Decodable {
     let rateLimit: WhamRateLimit?
+    let rateLimitResetCredits: WhamRateLimitResetCredits?
 
     enum CodingKeys: String, CodingKey {
         case rateLimit = "rate_limit"
+        case rateLimitResetCredits = "rate_limit_reset_credits"
+    }
+}
+
+private struct WhamRateLimitResetCredits: Decodable {
+    let availableCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case availableCount = "available_count"
     }
 }
 
@@ -1970,7 +1990,8 @@ private final class CodexAppServerClient {
 
         return RateLimitSummary(
             daily: dailySource.map(windowSummary),
-            weekly: weeklySource.map(windowSummary)
+            weekly: weeklySource.map(windowSummary),
+            resetCreditsRemaining: response.rateLimitResetCredits?.availableCount
         )
     }
 
@@ -2247,6 +2268,11 @@ private struct JSONRPCErrorPayload: Decodable {
 private struct CodexRateLimitsResponse: Decodable {
     let rateLimits: CodexRateLimitSnapshot
     let rateLimitsByLimitId: [String: CodexRateLimitSnapshot]?
+    let rateLimitResetCredits: CodexRateLimitResetCredits?
+}
+
+private struct CodexRateLimitResetCredits: Decodable {
+    let availableCount: Int?
 }
 
 private struct CodexRateLimitSnapshot: Decodable {
