@@ -445,6 +445,47 @@ class AppServerClientTests(unittest.TestCase):
         self.assertEqual(start["method"], "thread/start")
         self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "high"})
 
+    def test_thread_start_uses_safe_policy_by_default(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "start-id"]).__next__,
+        )
+
+        client.start()
+        client.thread_start("/tmp/workspace")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        start = sent[2]
+
+        self.assertEqual(start["params"]["approvalPolicy"], "on-request")
+        self.assertEqual(start["params"]["sandbox"], "workspace-write")
+
+    def test_thread_start_allows_dangerous_mode_when_explicitly_enabled(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "start-id"]).__next__,
+            allow_dangerous=True,
+        )
+
+        client.start()
+        client.thread_start("/tmp/workspace")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        start = sent[2]
+
+        self.assertEqual(start["params"]["approvalPolicy"], "never")
+        self.assertEqual(start["params"]["sandbox"], "danger-full-access")
+
     def test_turn_start_sends_reasoning_effort(self):
         process = FakeAppServerProcess([
             json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
