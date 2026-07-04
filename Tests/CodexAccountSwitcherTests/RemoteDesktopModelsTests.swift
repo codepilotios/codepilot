@@ -46,6 +46,12 @@ final class RemoteDesktopModelsTests: XCTestCase {
             sequence: 11,
             reason: .busy
         )
+        let approvalStatus = RemotePairingApprovalStatus(
+            status: "pending_mac_approval",
+            challengeID: "challenge-1",
+            deviceID: device.id,
+            macName: "Office Mac"
+        )
 
         try assertRoundTrip(RemoteInputKind.keyDown)
         try assertRoundTrip(RemoteInputEvent(
@@ -74,6 +80,7 @@ final class RemoteDesktopModelsTests: XCTestCase {
             macName: "Office Mac",
             expiresAt: date
         ))
+        try assertRoundTrip(approvalStatus)
         try assertRoundTrip(device)
         try assertRoundTrip(RemoteDesktopLease(
             id: "lease-1",

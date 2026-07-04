@@ -7,7 +7,6 @@ struct RemotePairingView: View {
     @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var statusText = "Not paired"
     @State private var isLoading = false
-    @State private var manualCode = ""
     @State private var identity = SoftwareRemoteDeviceIdentity(deviceID: UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString)
 
     var body: some View {
@@ -15,9 +14,6 @@ struct RemotePairingView: View {
             Form {
                 Section("Mac") {
                     Text(statusText)
-                    TextField("Pairing code", text: $manualCode)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
                 }
 
                 Section("Device") {
@@ -32,7 +28,7 @@ struct RemotePairingView: View {
                     } label: {
                         Label("Start Session", systemImage: "play.rectangle")
                     }
-                    .disabled(statusText == "Not paired")
+                    .disabled(!canStartRemoteDesktop(statusText: statusText))
 
                     Button {
                         Task { await refreshStatus() }
@@ -78,10 +74,12 @@ struct RemotePairingView: View {
                     status.accessibilityGranted == false ? "Accessibility" : nil
                 ].compactMap { $0 }.joined(separator: " and ")
                 statusText = "Allow \(missing) for CodePilot on the Mac"
+            } else if (status.trustedDeviceCount ?? 0) > 0 {
+                statusText = "Paired with this Mac"
             } else if status.capabilities?.relayAvailable == true {
-                statusText = "Host reachable, relay available"
+                statusText = "Not paired"
             } else {
-                statusText = "Host reachable, local/STUN only"
+                statusText = "Not paired"
             }
         } catch {
             statusText = "Host unavailable"
@@ -99,12 +97,14 @@ struct RemotePairingView: View {
                 publicKey: identity.publicKeyRawRepresentation
             )
             let signature = try identity.sign(Data(challenge.code.utf8))
-            _ = try await api.completePairing(
+            let approval = try await api.completePairing(
                 challengeID: challenge.id,
                 deviceID: identity.deviceID,
                 signature: signature
             )
-            statusText = "Paired with \(challenge.macName)"
+            statusText = approval.status == "pending_mac_approval"
+                ? "Waiting for approval on \(approval.macName)"
+                : "Pairing pending"
         } catch RemoteDesktopAPIError.server(_, let code) {
             statusText = code
         } catch {
@@ -119,4 +119,8 @@ struct RemotePairingView: View {
         }
         return RemoteDesktopAPI(baseURL: url, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
     }
+}
+
+func canStartRemoteDesktop(statusText: String) -> Bool {
+    statusText.hasPrefix("Paired with ")
 }
