@@ -18,6 +18,7 @@ __pycache__/
 
 # Local runtime state and secrets
 .agents/
+.superpowers/
 AGENTS.md
 docs/superpowers/
 .env

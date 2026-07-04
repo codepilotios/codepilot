@@ -45,6 +45,44 @@ platform :ios do
     ENV.fetch("CODEPILOT_IOS_BUNDLE_ID", "io.codepilot.iOS")
   end
 
+  def codex_phone_feedback_email
+    ENV["APP_REVIEW_CONTACT_EMAIL"].to_s.strip.empty? ? ENV.fetch("FASTLANE_APPLE_ID") : ENV.fetch("APP_REVIEW_CONTACT_EMAIL")
+  end
+
+  def codex_phone_beta_description
+    ENV.fetch(
+      "BETA_APP_DESCRIPTION",
+      "CodePilot lets you securely connect an iPhone to your own Mac gateway for remote coding sessions, thread management, usage status, file upload, and remote desktop control."
+    )
+  end
+
+  def codex_phone_beta_review_info
+    info = {
+      contact_email: codex_phone_feedback_email,
+      contact_first_name: ENV.fetch("APP_REVIEW_CONTACT_FIRST_NAME", "CodePilot"),
+      contact_last_name: ENV.fetch("APP_REVIEW_CONTACT_LAST_NAME", "Team"),
+      demo_account_required: false,
+      notes: ENV.fetch(
+        "BETA_APP_REVIEW_NOTES",
+        "No demo account is required. CodePilot connects to a user-controlled Mac gateway. Reviewers can open the app, add a gateway URL, and pair with their own Mac running the CodePilot gateway. Features that need a paired Mac show setup guidance instead of requiring hosted credentials."
+      )
+    }
+    contact_phone = ENV["APP_REVIEW_CONTACT_PHONE"].to_s.strip
+    info[:contact_phone] = contact_phone unless contact_phone.empty?
+    info
+  end
+
+  def codex_phone_localized_app_info
+    {
+      "default" => {
+        feedback_email: codex_phone_feedback_email,
+        description: codex_phone_beta_description,
+        privacy_policy_url: ENV.fetch("APP_PRIVACY_POLICY_URL", "https://codepilotios.github.io/CodePilot/privacy.html"),
+        marketing_url: ENV.fetch("APP_MARKETING_URL", "https://github.com/codepilotios/CodePilot")
+      }
+    }
+  end
+
   def codex_phone_app_store_app
     require "spaceship"
 
@@ -77,7 +115,7 @@ platform :ios do
         <plist version="1.0">
         <dict>
           <key>method</key>
-          <string>app-store</string>
+          <string>app-store-connect</string>
           <key>signingStyle</key>
           <string>automatic</string>
           <key>teamID</key>
@@ -141,6 +179,10 @@ platform :ios do
       distribute_external: true,
       groups: codex_phone_testflight_groups,
       notify_external_testers: true,
+      beta_app_description: codex_phone_beta_description,
+      beta_app_review_info: codex_phone_beta_review_info,
+      localized_app_info: codex_phone_localized_app_info,
+      demo_account_required: false,
       changelog: options[:changelog] || "CodePilot remote client update."
     )
   end
@@ -156,6 +198,30 @@ platform :ios do
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
+      changelog: options[:changelog] || "CodePilot remote client update."
+    )
+  end
+
+  desc "Distribute an already uploaded CodePilot build to the configured external TestFlight group"
+  lane :distribute_latest do |options|
+    api_key = codex_phone_api_key
+    ensure_app_store_record(api_key: api_key)
+    ensure_configured_tester(api_key: api_key)
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: codex_phone_bundle_id,
+      app_platform: "ios",
+      distribute_only: true,
+      app_version: options[:app_version] || ENV.fetch("APP_STORE_INITIAL_VERSION", "0.1"),
+      build_number: options[:build_number],
+      distribute_external: true,
+      groups: codex_phone_testflight_groups,
+      notify_external_testers: true,
+      beta_app_description: codex_phone_beta_description,
+      beta_app_review_info: codex_phone_beta_review_info,
+      localized_app_info: codex_phone_localized_app_info,
+      demo_account_required: false,
       changelog: options[:changelog] || "CodePilot remote client update."
     )
   end
@@ -209,13 +275,31 @@ platform :ios do
 
     groups = app.get_beta_groups.select { |group| codex_phone_testflight_groups.include?(group.name) }
 
-    tester = {
-      email: codex_phone_testflight_tester_email,
+    tester_email = codex_phone_testflight_tester_email
+    tester_attributes = {
+      email: tester_email,
       firstName: ENV.fetch("TESTFLIGHT_TESTER_FIRST_NAME", "CodePilot"),
       lastName: ENV.fetch("TESTFLIGHT_TESTER_LAST_NAME", "Tester")
     }
 
-    groups.each { |group| group.post_bulk_beta_tester_assignments(beta_testers: [tester]) }
+    tester = Spaceship::ConnectAPI::BetaTester.find(email: tester_email)
+    if tester.nil?
+      Spaceship::ConnectAPI.post_beta_tester_assignment(
+        beta_group_ids: groups.map(&:id),
+        attributes: tester_attributes
+      )
+    else
+      groups.each do |group|
+        begin
+          group.add_beta_testers(beta_tester_ids: [tester.id])
+        rescue => error
+          already_assigned = error.message.include?("ENTITY_ERROR.RELATIONSHIP.INVALID") ||
+                             error.message.include?("Tester(s) cannot be assigned")
+          raise unless already_assigned
+        end
+      end
+    end
+
     UI.success("Ensured #{codex_phone_testflight_tester_email} is in TestFlight group(s): #{groups.map(&:name).join(", ")}")
   end
 end

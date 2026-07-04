@@ -1,3 +1,4 @@
+import ActivityKit
 import AuthenticationServices
 import Foundation
 import Network
@@ -112,14 +113,17 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
 struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
+    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
     @State private var showingAccountSwitcher = false
     @State private var showingRemoteDesktop = false
     @State private var openedThread: CodexThread?
+    @State private var liveActivityError = ""
 
     var body: some View {
         NavigationStack {
@@ -206,7 +210,12 @@ struct RootView: View {
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken, model: model)
+                SettingsView(
+                    gatewayURL: $gatewayURL,
+                    gatewayToken: $gatewayToken,
+                    model: model,
+                    liveActivityError: $liveActivityError
+                )
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showingStatus) {
@@ -241,6 +250,51 @@ struct RootView: View {
             .task(id: gatewayToken) {
                 await model.pollAccountStatus(baseURL: gatewayURL, token: gatewayToken)
             }
+            .task(id: liveActivityReconciliationID) {
+                guard scenePhase == .active else { return }
+                await reconcileLiveActivity()
+            }
+            .onOpenURL { url in
+                guard CodePilotRoute(url: url) == .threadList else { return }
+                openedThread = nil
+                showingSettings = false
+                showingStatus = false
+                showingNewThread = false
+                showingAccountSwitcher = false
+                showingRemoteDesktop = false
+            }
+        }
+    }
+
+    private var liveActivityReconciliationID: String {
+        "\(totalCreditLiveActivityEnabled)-\(model.accountStatusGeneratedAt ?? 0)-\(scenePhase == .active)"
+    }
+
+    @MainActor
+    private func reconcileLiveActivity() async {
+        let systemEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
+        let shouldEnable = LiveActivityPreference.resolvedEnabled(
+            requested: totalCreditLiveActivityEnabled,
+            activitiesEnabled: systemEnabled
+        )
+        if totalCreditLiveActivityEnabled && !shouldEnable {
+            totalCreditLiveActivityEnabled = false
+            liveActivityError = "Live Activities are disabled in iOS Settings. Enable them for CodePilot, then try again."
+        }
+
+        let state = TotalCreditStatus(accounts: model.accountStatuses, now: .now).activityState
+        do {
+            try await TotalCreditActivityController().reconcile(
+                enabled: shouldEnable,
+                state: state,
+                baseURL: gatewayURL,
+                gatewayToken: gatewayToken
+            )
+            if shouldEnable {
+                liveActivityError = ""
+            }
+        } catch {
+            liveActivityError = "The credit Live Activity could not be updated: \(error.localizedDescription)"
         }
     }
 }
@@ -2017,8 +2071,10 @@ struct SettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
     @ObservedObject var model: CodexPhoneModel
+    @Binding var liveActivityError: String
     @Environment(\.dismiss) private var dismiss
     @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
+    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     @State private var lastConnectedAt: Date?
@@ -2059,6 +2115,25 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(connectionMessage.hasPrefix("Connected") ? .green : .orange)
                     }
+                }
+
+                Section {
+                    Toggle("Total Credit Live Activity", isOn: $totalCreditLiveActivityEnabled)
+                        .disabled(!ActivityAuthorizationInfo().areActivitiesEnabled)
+
+                    if !ActivityAuthorizationInfo().areActivitiesEnabled {
+                        Text("Live Activities are disabled for CodePilot in iOS Settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if !liveActivityError.isEmpty {
+                        Text(liveActivityError)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                } header: {
+                    Text("Lock Screen")
+                } footer: {
+                    Text("Shows total credit across your available accounts and updates through the CodePilot gateway while the app is in the background.")
                 }
 
                 Section {
@@ -2747,61 +2822,39 @@ struct AggregateCreditStatus {
     }
 
     init(accounts: [AccountUsageStatus], now: Date) {
-        let nowEpoch = Int(now.timeIntervalSince1970)
-        let buckets = accounts.compactMap { AccountCreditBucket(account: $0) }
-        let availableBuckets = buckets.filter { !$0.authStale }
-        let reportedBuckets = availableBuckets.filter { $0.remainingPercent != nil }
-        let remainingValues = reportedBuckets.map { max(0, min(100, $0.remainingPercent ?? 0)) }
-        let remainingSum = remainingValues.reduce(0, +)
+        let state = TotalCreditStatus(accounts: accounts, now: now).activityState
+        progress = state.progress
 
-        if !reportedBuckets.isEmpty, remainingSum > 0 {
-            let value = Double(remainingSum) / Double(reportedBuckets.count * 100)
-            let usableCount = remainingValues.filter { $0 > 0 }.count
-            title = "\(Int((value * 100).rounded()))% total credit"
-            trailingText = "\(usableCount)/\(reportedBuckets.count) accounts usable"
-            progress = max(0, min(1, value))
+        switch state.kind {
+        case .available:
+            title = "\(state.percent ?? 0)% total credit"
+            trailingText = "\(state.usableAccountCount)/\(state.reportedAccountCount) accounts usable"
             systemImage = "bolt.circle"
-            if value <= 0.10 {
+            if state.progress <= 0.10 {
                 tint = .red
-            } else if value <= 0.30 {
+            } else if state.progress <= 0.30 {
                 tint = .orange
             } else {
                 tint = .green
             }
-            return
-        }
-
-        if let nextRefresh = availableBuckets
-            .compactMap({ bucket -> AccountCreditBucket? in
-                guard let resetAt = bucket.resetAt, resetAt > nowEpoch else { return nil }
-                return bucket
-            })
-            .min(by: { ($0.resetAt ?? Int.max) < ($1.resetAt ?? Int.max) }) {
-            let remainingSeconds = max(0, (nextRefresh.resetAt ?? nowEpoch) - nowEpoch)
-            let windowSeconds = max(60, (nextRefresh.windowMins ?? 0) * 60)
-            let fillValue = 1 - (Double(remainingSeconds) / Double(windowSeconds))
+        case .refilling:
+            let nowEpoch = Int(now.timeIntervalSince1970)
+            let remainingSeconds = max(0, (state.nextRefreshAt ?? nowEpoch) - nowEpoch)
             title = "Refilling credit"
-            trailingText = "\(nextRefresh.accountName) \(nextRefresh.label) in \(Self.durationText(remainingSeconds))"
-            progress = max(0, min(1, fillValue))
+            trailingText = "\(state.refreshLabel ?? "Credit") in \(Self.durationText(remainingSeconds))"
             tint = .blue
             systemImage = "clock.arrow.circlepath"
-            return
-        }
-
-        if accounts.contains(where: \.authStale) && availableBuckets.isEmpty {
+        case .authenticationRequired:
             title = "Auth refresh needed"
             trailingText = "\(accounts.count) account\(accounts.count == 1 ? "" : "s") unavailable"
-            progress = 0
             tint = .orange
             systemImage = "key.fill"
-            return
+        case .unavailable:
+            title = "Credit unavailable"
+            trailingText = accounts.isEmpty ? "Loading usage" : "No reset time reported"
+            tint = .secondary
+            systemImage = "bolt.slash"
         }
-
-        title = "Credit unavailable"
-        trailingText = accounts.isEmpty ? "Loading usage" : "No reset time reported"
-        progress = 0
-        tint = .secondary
-        systemImage = "bolt.slash"
     }
 
     private static func durationText(_ seconds: Int) -> String {

@@ -12,6 +12,13 @@
 		8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E50FF2F41000100C0D3C1 /* CodexPhoneApp.swift */; };
 		8F4E52012F43000100C0D3C1 /* RemoteDesktopModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */; };
 		8F4E52032F43000100C0D3C1 /* RemoteDesktopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */; };
+		8F4E54012F47000100C0D3C1 /* TotalCreditActivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E54002F47000100C0D3C1 /* TotalCreditActivityTests.swift */; };
+		8F4E54032F47000100C0D3C1 /* TotalCreditActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E54022F47000100C0D3C1 /* TotalCreditActivityAttributes.swift */; };
+		8F4E54052F47000100C0D3C1 /* TotalCreditStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E54042F47000100C0D3C1 /* TotalCreditStatus.swift */; };
+		8F4E54072F47000100C0D3C1 /* TotalCreditActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E54062F47000100C0D3C1 /* TotalCreditActivityController.swift */; };
+		8F4E54102F48000100C0D3C1 /* CodePilotCreditWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E540F2F48000100C0D3C1 /* CodePilotCreditWidget.swift */; };
+		8F4E54112F48000100C0D3C1 /* TotalCreditActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E54022F47000100C0D3C1 /* TotalCreditActivityAttributes.swift */; };
+		8F4E54122F48000100C0D3C1 /* CodePilotCreditWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 8F4E540E2F48000100C0D3C1 /* CodePilotCreditWidget.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		8F4E52052F43000100C0D3C1 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 8F4E52042F43000100C0D3C1 /* WebRTC */; };
 		8F4E53012F44000100C0D3C1 /* RemoteDeviceIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */; };
 		8F4E53032F44000100C0D3C1 /* RemoteDesktopAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */; };
@@ -33,7 +40,28 @@
 			remoteGlobalIDString = 8F4E50FA2F41000100C0D3C1;
 			remoteInfo = CodexPhone;
 		};
+		8F4E54192F48000100C0D3C1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 8F4E50F82F41000100C0D3C1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8F4E54182F48000100C0D3C1;
+			remoteInfo = CodePilotCreditWidget;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		8F4E54132F48000100C0D3C1 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				8F4E54122F48000100C0D3C1 /* CodePilotCreditWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		8F4E51202F42100100C0D3C1 /* ChatAutoScrollState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatAutoScrollState.swift; sourceTree = "<group>"; };
@@ -43,6 +71,14 @@
 		8F4E51102F42100100C0D3C1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8F4E52002F43000100C0D3C1 /* RemoteDesktopModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopModels.swift; sourceTree = "<group>"; };
 		8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopTests.swift; sourceTree = "<group>"; };
+		8F4E54002F47000100C0D3C1 /* TotalCreditActivityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalCreditActivityTests.swift; sourceTree = "<group>"; };
+		8F4E54022F47000100C0D3C1 /* TotalCreditActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ../Shared/TotalCreditActivityAttributes.swift; sourceTree = "<group>"; };
+		8F4E54042F47000100C0D3C1 /* TotalCreditStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalCreditStatus.swift; sourceTree = "<group>"; };
+		8F4E54062F47000100C0D3C1 /* TotalCreditActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TotalCreditActivityController.swift; sourceTree = "<group>"; };
+		8F4E54202F48000100C0D3C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		8F4E540E2F48000100C0D3C1 /* CodePilotCreditWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CodePilotCreditWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		8F4E540F2F48000100C0D3C1 /* CodePilotCreditWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodePilotCreditWidget.swift; sourceTree = "<group>"; };
+		8F4E54142F48000100C0D3C1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CodexPhoneTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8F4E53002F44000100C0D3C1 /* RemoteDeviceIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDeviceIdentity.swift; sourceTree = "<group>"; };
 		8F4E53022F44000100C0D3C1 /* RemoteDesktopAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteDesktopAPI.swift; sourceTree = "<group>"; };
@@ -72,6 +108,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8F4E54152F48000100C0D3C1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -79,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				8F4E50FE2F41000100C0D3C1 /* CodexPhone */,
+				8F4E54162F48000100C0D3C1 /* CodePilotCreditWidget */,
 				8F4E52092F43000100C0D3C1 /* CodexPhoneTests */,
 				8F4E50FD2F41000100C0D3C1 /* Products */,
 			);
@@ -88,6 +132,7 @@
 			isa = PBXGroup;
 			children = (
 				8F4E51012F41000100C0D3C1 /* CodexPhone.app */,
+				8F4E540E2F48000100C0D3C1 /* CodePilotCreditWidget.appex */,
 				8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */,
 			);
 			name = Products;
@@ -97,9 +142,13 @@
 			isa = PBXGroup;
 			children = (
 				8F4E50FF2F41000100C0D3C1 /* CodexPhoneApp.swift */,
+				8F4E54022F47000100C0D3C1 /* TotalCreditActivityAttributes.swift */,
+				8F4E54042F47000100C0D3C1 /* TotalCreditStatus.swift */,
+				8F4E54062F47000100C0D3C1 /* TotalCreditActivityController.swift */,
 				8F4E51202F42100100C0D3C1 /* ChatAutoScrollState.swift */,
 				8F4E520A2F43000100C0D3C1 /* RemoteDesktop */,
 				8F4E51222F42100100C0D3C1 /* CodexPhone.entitlements */,
+				8F4E54202F48000100C0D3C1 /* Info.plist */,
 				8F4E51102F42100100C0D3C1 /* Assets.xcassets */,
 			);
 			path = CodexPhone;
@@ -109,6 +158,7 @@
 			isa = PBXGroup;
 			children = (
 				8F4E52022F43000100C0D3C1 /* RemoteDesktopTests.swift */,
+				8F4E54002F47000100C0D3C1 /* TotalCreditActivityTests.swift */,
 			);
 			path = CodexPhoneTests;
 			sourceTree = "<group>";
@@ -131,6 +181,15 @@
 			path = RemoteDesktop;
 			sourceTree = "<group>";
 		};
+		8F4E54162F48000100C0D3C1 /* CodePilotCreditWidget */ = {
+			isa = PBXGroup;
+			children = (
+				8F4E540F2F48000100C0D3C1 /* CodePilotCreditWidget.swift */,
+				8F4E54142F48000100C0D3C1 /* Info.plist */,
+			);
+			path = CodePilotCreditWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -141,10 +200,12 @@
 				8F4E50FB2F41000100C0D3C1 /* Sources */,
 				8F4E50FC2F41000100C0D3C1 /* Frameworks */,
 				8F4E51022F41000100C0D3C1 /* Resources */,
+				8F4E54132F48000100C0D3C1 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				8F4E541A2F48000100C0D3C1 /* PBXTargetDependency */,
 			);
 			name = CodexPhone;
 			packageProductDependencies = (
@@ -172,6 +233,23 @@
 			productReference = 8F4E52062F43000100C0D3C1 /* CodexPhoneTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		8F4E54182F48000100C0D3C1 /* CodePilotCreditWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 8F4E541F2F48000100C0D3C1 /* Build configuration list for PBXNativeTarget "CodePilotCreditWidget" */;
+			buildPhases = (
+				8F4E54172F48000100C0D3C1 /* Sources */,
+				8F4E54152F48000100C0D3C1 /* Frameworks */,
+				8F4E541B2F48000100C0D3C1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CodePilotCreditWidget;
+			productName = CodePilotCreditWidget;
+			productReference = 8F4E540E2F48000100C0D3C1 /* CodePilotCreditWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -183,6 +261,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					8F4E50FA2F41000100C0D3C1 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					8F4E54182F48000100C0D3C1 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -205,6 +286,7 @@
 			targets = (
 				8F4E50FA2F41000100C0D3C1 /* CodexPhone */,
 				8F4E52072F43000100C0D3C1 /* CodexPhoneTests */,
+				8F4E54182F48000100C0D3C1 /* CodePilotCreditWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -225,6 +307,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		8F4E541B2F48000100C0D3C1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -232,6 +321,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 				files = (
+					8F4E54032F47000100C0D3C1 /* TotalCreditActivityAttributes.swift in Sources */,
+					8F4E54052F47000100C0D3C1 /* TotalCreditStatus.swift in Sources */,
+					8F4E54072F47000100C0D3C1 /* TotalCreditActivityController.swift in Sources */,
 					8F4E51212F42100100C0D3C1 /* ChatAutoScrollState.swift in Sources */,
 					8F4E51002F41000100C0D3C1 /* CodexPhoneApp.swift in Sources */,
 					8F4E53032F44000100C0D3C1 /* RemoteDesktopAPI.swift in Sources */,
@@ -253,6 +345,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				8F4E52032F43000100C0D3C1 /* RemoteDesktopTests.swift in Sources */,
+				8F4E54012F47000100C0D3C1 /* TotalCreditActivityTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8F4E54172F48000100C0D3C1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8F4E54102F48000100C0D3C1 /* CodePilotCreditWidget.swift in Sources */,
+				8F4E54112F48000100C0D3C1 /* TotalCreditActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,6 +365,11 @@
 			isa = PBXTargetDependency;
 			target = 8F4E50FA2F41000100C0D3C1 /* CodexPhone */;
 			targetProxy = 8F4E520D2F43000100C0D3C1 /* PBXContainerItemProxy */;
+		};
+		8F4E541A2F48000100C0D3C1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8F4E54182F48000100C0D3C1 /* CodePilotCreditWidget */;
+			targetProxy = 8F4E54192F48000100C0D3C1 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -390,13 +497,19 @@
 				APS_ENVIRONMENT = development;
 				CODE_SIGN_ENTITLEMENTS = CodexPhone/CodexPhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202606211214;
+				CODEPILOT_APP_BUNDLE_ID = io.codepilot.iOS;
+				CURRENT_PROJECT_VERSION = 202606290430;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CodexPhone/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CodePilot;
 				INFOPLIST_KEY_CodexPhoneAPNSEnvironment = "$(APS_ENVIRONMENT)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSCameraUsageDescription = "CodePilot uses the camera only when you choose to attach a photo to a message.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "CodePilot uses the microphone only when you choose to dictate or send voice input.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -406,7 +519,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = io.codepilot.iOS;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CODEPILOT_APP_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -422,13 +535,19 @@
 				APS_ENVIRONMENT = production;
 				CODE_SIGN_ENTITLEMENTS = CodexPhone/CodexPhone.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 202606211214;
+				CODEPILOT_APP_BUNDLE_ID = io.codepilot.iOS;
+				CURRENT_PROJECT_VERSION = 202606290430;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CodexPhone/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = CodePilot;
 				INFOPLIST_KEY_CodexPhoneAPNSEnvironment = "$(APS_ENVIRONMENT)";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
+				INFOPLIST_KEY_NSCameraUsageDescription = "CodePilot uses the camera only when you choose to attach a photo to a message.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "CodePilot uses the microphone only when you choose to dictate or send voice input.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -438,7 +557,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = io.codepilot.iOS;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CODEPILOT_APP_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -476,6 +595,54 @@
 			};
 			name = Release;
 		};
+		8F4E541D2F48000100C0D3C1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CODEPILOT_APP_BUNDLE_ID = io.codepilot.iOS;
+				CURRENT_PROJECT_VERSION = 202606290430;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = CodePilotCreditWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CODEPILOT_APP_BUNDLE_ID).credit-widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		8F4E541E2F48000100C0D3C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CODEPILOT_APP_BUNDLE_ID = io.codepilot.iOS;
+				CURRENT_PROJECT_VERSION = 202606290430;
+				DEVELOPMENT_TEAM = "";
+				INFOPLIST_FILE = CodePilotCreditWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CODEPILOT_APP_BUNDLE_ID).credit-widget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -502,6 +669,15 @@
 			buildConfigurations = (
 				8F4E52102F43000100C0D3C1 /* Debug */,
 				8F4E52112F43000100C0D3C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		8F4E541F2F48000100C0D3C1 /* Build configuration list for PBXNativeTarget "CodePilotCreditWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8F4E541D2F48000100C0D3C1 /* Debug */,
+				8F4E541E2F48000100C0D3C1 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

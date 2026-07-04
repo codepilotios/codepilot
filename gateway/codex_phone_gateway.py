@@ -39,6 +39,7 @@ DEFAULT_TOKEN_FILE = DEFAULT_SWITCHER_HOME / "phone-gateway-token"
 DEFAULT_UPLOADS_DIR = DEFAULT_SWITCHER_HOME / "phone-uploads"
 DEFAULT_THREAD_MESSAGE_CACHE_DIR = DEFAULT_SWITCHER_HOME / "phone-thread-message-cache"
 DEFAULT_NOTIFICATION_DEVICES_FILE = DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
+DEFAULT_LIVE_ACTIVITIES_FILE = DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
 DEFAULT_CODEX = Path("/Applications/Codex.app/Contents/Resources/codex")
 CODEX_CHILD_PATH_PREFIXES = (
     "/opt/homebrew/bin",
@@ -412,6 +413,9 @@ class DisabledPushNotifier:
     def send_turn_completion(self, devices, notification):
         return
 
+    def send_live_activity(self, registrations, content_state):
+        return []
+
 
 class APNsCertificatePushNotifier:
     def __init__(self, cert_path: Path, key_path: Path, default_topic: str = DEFAULT_APNS_TOPIC):
@@ -422,6 +426,40 @@ class APNsCertificatePushNotifier:
     def send_turn_completion(self, devices, notification):
         for device in devices:
             self.send_to_device(device, notification)
+
+    def send_live_activity(self, registrations, content_state):
+        invalid = []
+        for registration in registrations:
+            status = self.send_live_activity_to_device(registration, content_state)
+            if status in {400, 410}:
+                invalid.append(str(registration.get("activityId") or ""))
+        return [activity_id for activity_id in invalid if activity_id]
+
+    def send_live_activity_to_device(self, registration: dict, content_state: dict) -> int:
+        token = str(registration.get("pushToken") or "").strip()
+        if not token:
+            return 0
+        environment = str(registration.get("environment") or "production").strip().lower()
+        host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
+        bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
+        payload = live_activity_payload(content_state)
+        process = subprocess.run(
+            [
+                "curl", "--http2", "-sS", "-X", "POST",
+                "--cert", str(self.cert_path), "--key", str(self.key_path),
+                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "-H", "apns-push-type: liveactivity",
+                "-H", "apns-priority: 10",
+                "--write-out", "\n%{http_code}",
+                "--data-binary", "@-",
+                f"https://{host}/3/device/{token}",
+            ],
+            input=payload,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        return apns_http_status(process.stdout)
 
     def send_to_device(self, device: dict, notification: dict):
         token = str(device.get("token") or "").strip()
@@ -514,6 +552,39 @@ class APNsPushNotifier:
         for device in devices:
             self.send_to_device(device, notification)
 
+    def send_live_activity(self, registrations, content_state):
+        invalid = []
+        for registration in registrations:
+            status = self.send_live_activity_to_device(registration, content_state)
+            if status in {400, 410}:
+                invalid.append(str(registration.get("activityId") or ""))
+        return [activity_id for activity_id in invalid if activity_id]
+
+    def send_live_activity_to_device(self, registration: dict, content_state: dict) -> int:
+        token = str(registration.get("pushToken") or "").strip()
+        if not token:
+            return 0
+        environment = str(registration.get("environment") or "production").strip().lower()
+        host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
+        bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
+        process = subprocess.run(
+            [
+                "curl", "--http2", "-sS", "-X", "POST",
+                "-H", f"authorization: bearer {self.jwt()}",
+                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "-H", "apns-push-type: liveactivity",
+                "-H", "apns-priority: 10",
+                "--write-out", "\n%{http_code}",
+                "--data-binary", "@-",
+                f"https://{host}/3/device/{token}",
+            ],
+            input=live_activity_payload(content_state),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        return apns_http_status(process.stdout)
+
     def send_to_device(self, device: dict, notification: dict):
         token = str(device.get("token") or "").strip()
         if not token:
@@ -550,6 +621,23 @@ class APNsPushNotifier:
             stderr=subprocess.DEVNULL,
             check=False,
         )
+
+
+def live_activity_payload(content_state: dict) -> bytes:
+    return json.dumps({
+        "aps": {
+            "timestamp": int(time.time()),
+            "event": "update",
+            "content-state": content_state,
+        }
+    }, separators=(",", ":")).encode("utf-8")
+
+
+def apns_http_status(output: bytes) -> int:
+    try:
+        return int((output or b"").rsplit(b"\n", 1)[-1])
+    except (TypeError, ValueError):
+        return 0
 
 
 def read_marker(path: Path, fallback: str = "") -> str:
@@ -1849,6 +1937,10 @@ class GatewayState:
     def notification_devices_path(self) -> Path:
         return DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
 
+    @property
+    def live_activities_path(self) -> Path:
+        return DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
+
     def codex_executable(self) -> Path:
         if self.codex_path.exists():
             return self.codex_path
@@ -2407,7 +2499,7 @@ class GatewayState:
             usage_entry = self.usage_entry_for_account(name, usage)
             accounts.append(self.account_status(name, usage_entry, active_account))
 
-        return {
+        snapshot = {
             "generatedAt": int(time.time()),
             "activeAccount": active_account,
             "appServerAuth": self.app_server_auth_status(),
@@ -2416,6 +2508,11 @@ class GatewayState:
             "pluginSync": plugin_sync,
             "accounts": accounts,
         }
+        try:
+            self.publish_live_activity_state(snapshot)
+        except Exception:
+            pass
+        return snapshot
 
     def ensure_plugin_connectivity(self) -> dict:
         status = {
@@ -2721,6 +2818,163 @@ class GatewayState:
         devices.insert(0, device)
         self.write_notification_devices(devices[:20])
         return {"ok": True, "deviceCount": len(devices[:20])}
+
+    def register_live_activity(self, payload: dict) -> dict:
+        activity_id = str(payload.get("activityId") or "").strip()
+        if not activity_id:
+            raise ValueError("Live Activity identifier is required")
+        token = re.sub(r"[^0-9a-fA-F]", "", str(payload.get("pushToken") or "")).lower()
+        if not token:
+            raise ValueError("Live Activity push token is required")
+        environment = str(payload.get("environment") or "production").strip().lower()
+        if environment not in {"development", "production"}:
+            raise ValueError("Live Activity environment must be development or production")
+        bundle_id = str(payload.get("bundleId") or DEFAULT_APNS_TOPIC).strip() or DEFAULT_APNS_TOPIC
+        existing = next(
+            (item for item in self.read_live_activities() if item.get("activityId") == activity_id),
+            None,
+        )
+        registration = {
+            "activityId": activity_id,
+            "pushToken": token,
+            "environment": environment,
+            "bundleId": bundle_id,
+            "updatedAt": int(time.time()),
+        }
+        if existing and existing.get("pushToken") == token:
+            registration["lastFingerprint"] = str(existing.get("lastFingerprint") or "")
+        registrations = [
+            item for item in self.read_live_activities()
+            if item.get("activityId") != activity_id
+        ]
+        registrations.insert(0, registration)
+        self.write_live_activities(registrations[:20])
+        return {"ok": True, "activityCount": len(registrations[:20])}
+
+    def unregister_live_activity(self, activity_id: str) -> dict:
+        activity_id = str(activity_id or "").strip()
+        registrations = [
+            item for item in self.read_live_activities()
+            if item.get("activityId") != activity_id
+        ]
+        self.write_live_activities(registrations)
+        return {"ok": True, "activityCount": len(registrations)}
+
+    def read_live_activities(self) -> list[dict]:
+        try:
+            data = json.loads(self.live_activities_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+        if not isinstance(data, list):
+            return []
+        return [item for item in data if isinstance(item, dict)]
+
+    def write_live_activities(self, registrations: list[dict]):
+        self.live_activities_path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=".phone-live-activities.",
+            suffix=".tmp",
+            dir=str(self.live_activities_path.parent),
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(registrations, handle, ensure_ascii=False, indent=2, sort_keys=True)
+                handle.write("\n")
+            tmp_path.replace(self.live_activities_path)
+        except Exception:
+            with contextlib.suppress(OSError):
+                tmp_path.unlink()
+            raise
+
+    def live_activity_content_state(self, snapshot: dict) -> dict:
+        generated_at = int(snapshot.get("generatedAt") or time.time())
+        accounts = [item for item in snapshot.get("accounts", []) if isinstance(item, dict)]
+        buckets = []
+        for account in accounts:
+            if account.get("fiveHourRemainingPercent") is not None or account.get("fiveHourResetsAt") is not None:
+                buckets.append({
+                    "remaining": account.get("fiveHourRemainingPercent"),
+                    "resetAt": account.get("fiveHourResetsAt"),
+                    "windowMins": account.get("fiveHourWindowMins"),
+                    "label": "5h",
+                    "authStale": bool(account.get("authStale")),
+                })
+            elif account.get("weeklyRemainingPercent") is not None or account.get("weeklyResetsAt") is not None:
+                buckets.append({
+                    "remaining": account.get("weeklyRemainingPercent"),
+                    "resetAt": account.get("weeklyResetsAt"),
+                    "windowMins": account.get("weeklyWindowMins"),
+                    "label": "weekly",
+                    "authStale": bool(account.get("authStale")),
+                })
+        available = [item for item in buckets if not item["authStale"]]
+        reported = [item for item in available if item["remaining"] is not None]
+        remaining = [max(0, min(100, int(item["remaining"]))) for item in reported]
+        if remaining and sum(remaining) > 0:
+            progress = sum(remaining) / (len(remaining) * 100)
+            return {
+                "kind": "available",
+                "percent": round(progress * 100),
+                "progress": progress,
+                "usableAccountCount": sum(1 for value in remaining if value > 0),
+                "reportedAccountCount": len(reported),
+                "nextRefreshAt": None,
+                "refreshLabel": None,
+                "generatedAt": generated_at,
+            }
+        future = [item for item in available if int(item.get("resetAt") or 0) > generated_at]
+        if future:
+            next_refresh = min(future, key=lambda item: int(item["resetAt"]))
+            remaining_seconds = max(0, int(next_refresh["resetAt"]) - generated_at)
+            window_seconds = max(60, int(next_refresh.get("windowMins") or 0) * 60)
+            return {
+                "kind": "refilling",
+                "percent": None,
+                "progress": max(0, min(1, 1 - remaining_seconds / window_seconds)),
+                "usableAccountCount": 0,
+                "reportedAccountCount": len(reported),
+                "nextRefreshAt": int(next_refresh["resetAt"]),
+                "refreshLabel": next_refresh["label"],
+                "generatedAt": generated_at,
+            }
+        kind = "authenticationRequired" if accounts and all(bool(item.get("authStale")) for item in accounts) else "unavailable"
+        return {
+            "kind": kind,
+            "percent": None,
+            "progress": 0,
+            "usableAccountCount": 0,
+            "reportedAccountCount": len(reported),
+            "nextRefreshAt": None,
+            "refreshLabel": None,
+            "generatedAt": generated_at,
+        }
+
+    def publish_live_activity_state(self, snapshot: dict):
+        registrations = self.read_live_activities()
+        if not registrations:
+            return
+        content_state = self.live_activity_content_state(snapshot)
+        fingerprint_payload = dict(content_state)
+        fingerprint_payload.pop("generatedAt", None)
+        fingerprint = hashlib.sha256(
+            json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        pending = [item for item in registrations if item.get("lastFingerprint") != fingerprint]
+        if not pending:
+            return
+        invalid_activity_ids = set(self.push_notifier.send_live_activity(pending, content_state) or [])
+        pending_ids = {item.get("activityId") for item in pending}
+        next_registrations = []
+        for item in registrations:
+            activity_id = item.get("activityId")
+            if activity_id in invalid_activity_ids:
+                continue
+            copied = dict(item)
+            if activity_id in pending_ids:
+                copied["lastFingerprint"] = fingerprint
+            next_registrations.append(copied)
+        self.write_live_activities(next_registrations)
 
     def read_notification_devices(self) -> list[dict]:
         try:
@@ -4037,7 +4291,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "authorization, content-type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         self.end_headers()
 
     def end_headers(self):
@@ -4290,6 +4544,11 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, self.state().register_notification_device(body))
                 return
 
+            if len(parts) == 2 and parts[0] == "api" and parts[1] == "live-activities":
+                body = decode_body(self)
+                json_response(self, 200, self.state().register_live_activity(body))
+                return
+
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "local-web" and parts[2] == "sessions":
                 body = decode_body(self)
                 try:
@@ -4369,6 +4628,19 @@ class Handler(BaseHTTPRequestHandler):
                 else "Wait for the active turn to finish, then try again."
             )
             json_error(self, 409, code, message, recovery)
+        except Exception as exc:
+            json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
+
+    def do_DELETE(self):
+        if not self.authenticate():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [part for part in parsed.path.split("/") if part]
+        try:
+            if len(parts) == 3 and parts[0] == "api" and parts[1] == "live-activities":
+                json_response(self, 200, self.state().unregister_live_activity(urllib.parse.unquote(parts[2])))
+                return
+            json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
         except Exception as exc:
             json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
