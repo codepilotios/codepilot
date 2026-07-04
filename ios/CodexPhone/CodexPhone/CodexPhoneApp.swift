@@ -2235,6 +2235,7 @@ struct AccountStatusView: View {
     @State private var refreshTargetAccount: AccountUsageStatus?
     @State private var reconnectTargetServer: MCPServerStatus?
     @State private var isAddingAccount = false
+    @State private var rateLimitResetTargetAccount: AccountUsageStatus?
     @State private var showRateLimitResetConfirmation = false
 
     var body: some View {
@@ -2245,25 +2246,6 @@ struct AccountStatusView: View {
                     if let generatedAt = model.accountStatusGeneratedAt {
                         LabeledContent("Updated", value: shortDate(generatedAt))
                     }
-                }
-
-                Section {
-                    Button {
-                        showRateLimitResetConfirmation = true
-                    } label: {
-                        HStack {
-                            Label("Use Reset Credit", systemImage: "arrow.counterclockwise.circle")
-                            Spacer()
-                            if model.isResettingRateLimit {
-                                ProgressView()
-                            }
-                        }
-                    }
-                    .disabled(model.activeAccount.isEmpty || model.isResettingRateLimit)
-                } header: {
-                    Text("Rate Limit Reset")
-                } footer: {
-                    Text("Uses one Codex reset credit for the active account, if one is available, then refreshes usage.")
                 }
 
                 Section {
@@ -2280,13 +2262,17 @@ struct AccountStatusView: View {
                             AccountStatusRow(
                                 account: account,
                                 switchingAccountName: model.switchingAccountName,
-                                refreshingAuthAccountName: model.refreshingAuthAccountName
+                                refreshingAuthAccountName: model.refreshingAuthAccountName,
+                                resettingRateLimitAccountName: model.resettingRateLimitAccountName
                             ) {
                                 Task {
                                     await model.switchAccount(named: account.name, baseURL: gatewayURL, token: gatewayToken)
                                 }
                             } onRefreshAuth: {
                                 refreshTargetAccount = account
+                            } onResetRateLimit: {
+                                rateLimitResetTargetAccount = account
+                                showRateLimitResetConfirmation = true
                             }
                         }
                     }
@@ -2334,18 +2320,21 @@ struct AccountStatusView: View {
                 await model.pollAccountStatus(baseURL: gatewayURL, token: gatewayToken)
             }
             .confirmationDialog(
-                "Use a reset credit for \(displayValue(model.activeAccount))?",
+                "Use a reset credit for \(displayValue(rateLimitResetTargetAccount?.name ?? ""))?",
                 isPresented: $showRateLimitResetConfirmation,
                 titleVisibility: .visible
             ) {
                 Button("Use Reset Credit") {
+                    let account = rateLimitResetTargetAccount
                     Task {
-                        await model.resetActiveAccountRateLimit(baseURL: gatewayURL, token: gatewayToken)
+                        if let account {
+                            await model.resetRateLimit(for: account.name, baseURL: gatewayURL, token: gatewayToken)
+                        }
                     }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("This asks Codex to consume one available rate limit reset credit on the currently active account.")
+                Text("This asks Codex to consume one available rate limit reset credit on that account, without switching accounts.")
             }
             .sheet(item: $refreshTargetAccount) { account in
                 AccountAuthRefreshSheet(
@@ -2628,21 +2617,27 @@ struct AccountStatusRow: View {
     let account: AccountUsageStatus
     let switchingAccountName: String?
     let refreshingAuthAccountName: String?
+    let resettingRateLimitAccountName: String?
     let onSwitch: (() -> Void)?
     let onRefreshAuth: (() -> Void)?
+    let onResetRateLimit: (() -> Void)?
 
     init(
         account: AccountUsageStatus,
         switchingAccountName: String? = nil,
         refreshingAuthAccountName: String? = nil,
+        resettingRateLimitAccountName: String? = nil,
         onSwitch: (() -> Void)? = nil,
-        onRefreshAuth: (() -> Void)? = nil
+        onRefreshAuth: (() -> Void)? = nil,
+        onResetRateLimit: (() -> Void)? = nil
     ) {
         self.account = account
         self.switchingAccountName = switchingAccountName
         self.refreshingAuthAccountName = refreshingAuthAccountName
+        self.resettingRateLimitAccountName = resettingRateLimitAccountName
         self.onSwitch = onSwitch
         self.onRefreshAuth = onRefreshAuth
+        self.onResetRateLimit = onResetRateLimit
     }
 
     var body: some View {
@@ -2671,6 +2666,22 @@ struct AccountStatusRow: View {
                     .controlSize(.small)
                     .disabled(refreshingAuthAccountName != nil)
                     .accessibilityLabel("Refresh login for \(account.name)")
+                }
+                if let onResetRateLimit, (account.rateLimitResetCreditsRemaining ?? 0) > 0 {
+                    Button {
+                        onResetRateLimit()
+                    } label: {
+                        if resettingRateLimitAccountName == account.name {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.counterclockwise.circle")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(resettingRateLimitAccountName != nil)
+                    .accessibilityLabel("Use reset credit for \(account.name)")
                 }
                 if let onSwitch, !account.isActive {
                     Button {
@@ -3729,7 +3740,7 @@ final class CodexPhoneModel: ObservableObject {
     @Published var switchingAccountName: String?
     @Published var refreshingAuthAccountName: String?
     @Published var addingAccountName: String?
-    @Published var isResettingRateLimit = false
+    @Published var resettingRateLimitAccountName: String?
     @Published var errorMessage: String?
 
     private var pollingJobIDs: Set<String> = []
@@ -3871,17 +3882,18 @@ final class CodexPhoneModel: ObservableObject {
         }
     }
 
-    func resetActiveAccountRateLimit(baseURL: String, token: String) async -> Bool {
+    func resetRateLimit(for name: String, baseURL: String, token: String) async -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
-        guard !isResettingRateLimit else { return false }
-        isResettingRateLimit = true
-        defer { isResettingRateLimit = false }
+        guard !trimmedName.isEmpty else { return false }
+        guard resettingRateLimitAccountName == nil else { return false }
+        resettingRateLimitAccountName = trimmedName
+        defer { resettingRateLimitAccountName = nil }
         do {
-            let response = try await client.consumeRateLimitResetCredit(baseURL: baseURL, token: token)
+            let response = try await client.consumeRateLimitResetCredit(accountName: trimmedName, baseURL: baseURL, token: token)
             applyAccountStatus(response)
             await flushQueuedPromptsIfPossible(baseURL: baseURL, token: token)
-            let accountName = activeAccount.isEmpty ? "the active account" : activeAccount
-            errorMessage = "Rate limit reset requested for \(accountName)."
+            errorMessage = "Rate limit reset requested for \(trimmedName)."
             return true
         } catch {
             report(error)
@@ -4585,11 +4597,11 @@ struct CodexGatewayClient {
         )
     }
 
-    func consumeRateLimitResetCredit(baseURL: String, token: String) async throws -> AccountStatusResponse {
+    func consumeRateLimitResetCredit(accountName: String, baseURL: String, token: String) async throws -> AccountStatusResponse {
         try await request(
             "/api/accounts/rate-limit-reset",
             method: "POST",
-            body: Optional<[String: String]>.none,
+            body: RateLimitResetRequest(name: accountName),
             baseURL: baseURL,
             token: token
         )
@@ -4946,6 +4958,10 @@ struct NewThreadRequest: Encodable {
 }
 
 struct SwitchAccountRequest: Encodable {
+    let name: String
+}
+
+struct RateLimitResetRequest: Encodable {
     let name: String
 }
 
