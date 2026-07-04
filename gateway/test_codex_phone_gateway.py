@@ -1149,6 +1149,7 @@ class GatewayStateTests(unittest.TestCase):
                     "weeklyLimitRemainingPercent": 45,
                     "weeklyLimitUsedPercent": 55,
                     "weeklyLimitResetsAt": "2026-05-17T19:42:05Z",
+                    "rateLimitResetCreditsRemaining": 3,
                     "lastRateLimitRefreshAt": "2026-05-16T19:18:02Z",
                     "limitHits": 4,
                     "automaticSwitches": 2,
@@ -1171,6 +1172,7 @@ class GatewayStateTests(unittest.TestCase):
                 self.assertTrue(statuses["Main"]["authStale"])
                 self.assertEqual(statuses["Main"]["fiveHourRemainingPercent"], 12)
                 self.assertEqual(statuses["Main"]["weeklyRemainingPercent"], 45)
+                self.assertEqual(statuses["Main"]["rateLimitResetCreditsRemaining"], 3)
                 self.assertEqual(statuses["Main"]["fiveHourResetsAt"], 1778973006)
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home

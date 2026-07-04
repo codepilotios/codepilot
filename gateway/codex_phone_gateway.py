@@ -3834,6 +3834,7 @@ class GatewayState:
             "weeklyUsedPercent": optional_int(usage.get("weeklyLimitUsedPercent")),
             "weeklyWindowMins": optional_int(usage.get("weeklyLimitWindowMins")),
             "weeklyResetsAt": epoch_seconds(usage.get("weeklyLimitResetsAt")),
+            "rateLimitResetCreditsRemaining": optional_int(usage.get("rateLimitResetCreditsRemaining")),
             "lastRefreshAt": epoch_seconds(usage.get("lastRateLimitRefreshAt")),
             "lastUsedAt": epoch_seconds(usage.get("lastUsedAt")),
             "lastLimitAt": epoch_seconds(usage.get("lastLimitAt")),
