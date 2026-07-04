@@ -7,11 +7,11 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - #2 Support or disable the iOS Same Network setup path
   - Current labels: `setup`, `ios`, `gateway`, `severity: medium`.
   - Maintainer decision found: hide/disable Same Network for public beta; Cloudflare remains the supported default remote connection path.
-  - Action: implemented on branch `agent/issue-2-3-public-beta-setup`.
+  - Action: implemented on branch `agent/issue-2-3-public-beta-setup` and opened draft PR #15.
 - #3 Require clear Remote Desktop pairing approval in setup
   - Current labels: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
   - Maintainer decision found: require explicit approval on the Mac; iOS must remain pending until approval or rejection.
-  - Action: implemented on branch `agent/issue-2-3-public-beta-setup`.
+  - Action: implemented on branch `agent/issue-2-3-public-beta-setup` and opened draft PR #15.
 - #8 Prepare sanitized public screenshot set
   - Current labels: `documentation`, `severity: low`.
   - Maintainer approval found for sanitized demo-only screenshots.
@@ -23,6 +23,7 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - Changed Remote Desktop pairing so `pairing.complete` verifies the phone proof and returns `pending_mac_approval`; Mac approval is now required before the device is trusted.
 - Removed the unused iOS pairing-code field and kept Start Session disabled until refresh sees a paired Mac state.
 - Added focused Mac and iOS tests for public-beta connection modes and pending Mac approval.
+- Opened draft PR #15: `[codex] Fix public beta setup blockers`.
 
 ## Verification
 
