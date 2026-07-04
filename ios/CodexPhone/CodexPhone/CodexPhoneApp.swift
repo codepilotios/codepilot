@@ -2718,6 +2718,9 @@ struct AccountStatusRow: View {
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
+                    if let resetCredits = account.rateLimitResetCreditsRemaining {
+                        usageCounter("Reset credits", resetCredits)
+                    }
                     usageCounter("Limit hits", account.limitHits)
                     usageCounter("Auto switches", account.automaticSwitches)
                     usageCounter("Manual switches", account.manualSwitches)
@@ -2726,6 +2729,9 @@ struct AccountStatusRow: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 3) {
+                    if let resetCredits = account.rateLimitResetCreditsRemaining {
+                        usageCounter("Reset credits", resetCredits)
+                    }
                     usageCounter("Limit hits", account.limitHits)
                     usageCounter("Auto switches", account.automaticSwitches)
                     usageCounter("Manual switches", account.manualSwitches)
@@ -5630,6 +5636,7 @@ struct AccountUsageStatus: Decodable, Identifiable, Hashable {
     let weeklyUsedPercent: Int?
     let weeklyWindowMins: Int?
     let weeklyResetsAt: Int?
+    let rateLimitResetCreditsRemaining: Int?
     let lastRefreshAt: Int?
     let lastUsedAt: Int?
     let lastLimitAt: Int?
