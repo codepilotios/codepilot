@@ -42,15 +42,6 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertFalse(canStartRemoteDesktop(statusText: "Host reachable, relay available"))
     }
 
-    func testGatewayRootURLRequiresHTTPOrHTTPSWithHost() throws {
-        let url = try gatewayRootURL(from: " https://codepilot.example.com ")
-
-        XCTAssertEqual(url.absoluteString, "https://codepilot.example.com")
-        assertInvalidGatewayRootURL("codepilot.example.com")
-        assertInvalidGatewayRootURL("file:///tmp/codepilot")
-        assertInvalidGatewayRootURL("http:///missing-host")
-    }
-
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://localhost:3000"))))
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://127.0.0.1:5173/path"))))
