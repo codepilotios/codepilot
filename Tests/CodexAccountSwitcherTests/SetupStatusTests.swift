@@ -19,4 +19,16 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareNeedsConfiguration.statusLabel, "Needs setup")
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareOptional.statusLabel, "Optional")
     }
+
+    func testGatewayHealthProbeUsesPublicHealthWithoutBearerToken() {
+        let request = CodePilotGatewayHealthProbe.request()
+        XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
+
+        let runningPayload = #"{"gateway":{"running":true}}"#.data(using: .utf8)
+        XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: runningPayload), .gatewayRunning)
+
+        let stoppedPayload = #"{"gateway":{"running":false}}"#.data(using: .utf8)
+        XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: stoppedPayload), .gatewayStopped)
+        XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: Data("not json".utf8)), .gatewayStopped)
+    }
 }

@@ -2568,6 +2568,22 @@ enum SwitchError: LocalizedError {
     }
 }
 
+enum CodePilotGatewayHealthProbe {
+    static func request() -> URLRequest {
+        URLRequest(url: URL(string: "http://127.0.0.1:18790/api/health")!)
+    }
+
+    static func requirement(from data: Data?) -> CodePilotSetupRequirement {
+        guard let data,
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let gateway = object["gateway"] as? [String: Any],
+              gateway["running"] as? Bool == true else {
+            return .gatewayStopped
+        }
+        return .gatewayRunning
+    }
+}
+
 private struct CodePilotSetupStatus {
     let rows: [CodePilotSetupRow]
 
@@ -2670,19 +2686,7 @@ private struct CodePilotSetupStatus {
     }
 
     private static func gatewayHealthRequirement() -> CodePilotSetupRequirement {
-        let tokenPath = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
-        guard let token = try? String(contentsOf: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-              !token.isEmpty,
-              let url = URL(string: "http://127.0.0.1:18790/api/health") else {
-            return .gatewayStopped
-        }
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        guard let data = synchronousData(for: request), !data.isEmpty else {
-            return .gatewayStopped
-        }
-        return .gatewayRunning
+        CodePilotGatewayHealthProbe.requirement(from: synchronousData(for: CodePilotGatewayHealthProbe.request()))
     }
 
     private static func synchronousData(for request: URLRequest) -> Data? {
