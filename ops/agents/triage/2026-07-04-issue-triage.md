@@ -17,6 +17,15 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
   - Maintainer approval found for sanitized demo-only screenshots.
   - Action: created a dedicated screenshot manifest on branch `agent/issue-8-screenshot-plan` and opened draft PR #16; no screenshot assets were captured or published.
 
+## Follow-up Check - 2026-07-04
+
+- Checked open GitHub issues for `codepilotios/codepilot`: #2, #3, and #8 remain the only open issues.
+- Checked issues created on 2026-07-04: none found.
+- Confirmed draft PR #15 remains open for #2/#3 on `agent/issue-2-3-public-beta-setup`.
+- Confirmed draft PR #16 remains open for #8 on `agent/issue-8-screenshot-plan`; CI `Test and Audit` is passing.
+- Ran `scripts/privacy-audit.sh`: passed.
+- No new public GitHub writes were needed in this follow-up pass.
+
 ## Local Changes
 
 - Disabled Same Network from the iOS public beta connection picker and updated setup docs to point users to Cloudflare.
