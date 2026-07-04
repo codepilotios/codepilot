@@ -22,6 +22,7 @@ CodePilot is source-available for noncommercial use. It is not OSI open source. 
 - [Privacy](PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
+- [App Store metadata draft](APP_STORE_METADATA_DRAFT.md)
 - [Screenshot plan](SCREENSHOTS.md)
 
 ## Beta Limits
