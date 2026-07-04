@@ -15,7 +15,7 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - #8 Prepare sanitized public screenshot set
   - Current labels: `documentation`, `severity: low`.
   - Maintainer approval found for sanitized demo-only screenshots.
-  - Action: not captured in this pass; no screenshot assets were created or published.
+  - Action: created a dedicated screenshot manifest on branch `agent/issue-8-screenshot-plan` and opened draft PR #16; no screenshot assets were captured or published.
 
 ## Local Changes
 
@@ -23,6 +23,7 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 - Changed Remote Desktop pairing so `pairing.complete` verifies the phone proof and returns `pending_mac_approval`; Mac approval is now required before the device is trusted.
 - Removed the unused iOS pairing-code field and kept Start Session disabled until refresh sees a paired Mac state.
 - Added focused Mac and iOS tests for public-beta connection modes and pending Mac approval.
+- Added `docs/SCREENSHOTS.md` on `agent/issue-8-screenshot-plan` so the README screenshot link resolves and the beta screenshot capture has fixed demo data, filenames, and manual privacy-review checks.
 
 ## Verification
 
@@ -34,4 +35,4 @@ Remote write policy: public GitHub writes are allowed after privacy audit when t
 ## Blockers
 
 - OTA build and public OTA asset verification require an allowed release/OTA run outside this issue-triage policy.
-- #8 screenshot capture remains launch work, but no maintainer decision is blocking it after the 2026-07-03 approval comment.
+- #8 screenshot capture remains launch work; the manifest is ready, but actual image capture still needs a sanitized app/device state and manual pixel review.
