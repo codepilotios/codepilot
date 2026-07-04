@@ -18,7 +18,7 @@ Not yet. The name is provider-neutral, but the first beta is Codex-focused. Futu
 
 ## Do I need Cloudflare?
 
-Only for access away from your local network. Same-network iPhone access can use a local gateway URL. Remote access should use HTTPS and a private gateway token.
+Yes for the public beta iPhone setup path. The Mac gateway listens on local loopback by default, so the iPhone app uses a Cloudflare Tunnel URL until CodePilot provides an explicit LAN-binding mode with firewall and trust guidance.
 
 ## Does CodePilot send my Codex credentials to a hosted service?
 

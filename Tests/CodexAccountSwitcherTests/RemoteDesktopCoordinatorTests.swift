@@ -24,7 +24,8 @@ final class RemoteDesktopCoordinatorTests: XCTestCase {
 
     func testPairingCanBeApprovedOrRejectedLocally() throws {
         let coordinator = try makeCoordinator()
-        let publicKey = P256.Signing.PrivateKey().publicKey.rawRepresentation
+        let privateKey = P256.Signing.PrivateKey()
+        let publicKey = privateKey.publicKey.rawRepresentation
 
         let pending = try coordinator.beginPairing(
             deviceID: "phone-1",
@@ -39,12 +40,46 @@ final class RemoteDesktopCoordinatorTests: XCTestCase {
         coordinator.rejectPendingPairing()
         XCTAssertNil(coordinator.snapshot.pendingPairing)
 
-        _ = try coordinator.beginPairing(
+        let approvalPending = try coordinator.beginPairing(
             deviceID: "phone-1",
             name: "Beta iPhone",
             publicKeyRawRepresentation: publicKey,
             macName: "Mac host"
         )
+        _ = try coordinator.verifyPendingPairing(
+            challengeID: approvalPending.challenge.id,
+            deviceID: "phone-1",
+            signature: try privateKey.signature(for: Data(approvalPending.challenge.code.utf8)).derRepresentation
+        )
+        try coordinator.approvePendingPairing()
+
+        XCTAssertNil(coordinator.snapshot.pendingPairing)
+        XCTAssertEqual(coordinator.snapshot.trustedDevices.map(\.id), ["phone-1"])
+    }
+
+    func testVerifiedPairingWaitsForMacApprovalBeforeTrustingDevice() throws {
+        let coordinator = try makeCoordinator()
+        let privateKey = P256.Signing.PrivateKey()
+        let pending = try coordinator.beginPairing(
+            deviceID: "phone-1",
+            name: "Beta iPhone",
+            publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
+            macName: "Mac host"
+        )
+
+        let approval = try coordinator.verifyPendingPairing(
+            challengeID: pending.challenge.id,
+            deviceID: "phone-1",
+            signature: try privateKey.signature(for: Data(pending.challenge.code.utf8)).derRepresentation
+        )
+
+        XCTAssertEqual(approval.status, "pending_mac_approval")
+        XCTAssertEqual(approval.challengeID, pending.challenge.id)
+        XCTAssertEqual(approval.deviceID, "phone-1")
+        XCTAssertEqual(approval.macName, "Mac host")
+        XCTAssertEqual(coordinator.snapshot.pendingPairing?.deviceID, "phone-1")
+        XCTAssertEqual(coordinator.snapshot.trustedDevices, [])
+
         try coordinator.approvePendingPairing()
 
         XCTAssertNil(coordinator.snapshot.pendingPairing)
