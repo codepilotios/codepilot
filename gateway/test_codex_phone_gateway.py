@@ -33,6 +33,20 @@ class FailingAppServerClient:
         raise RuntimeError("app-server disabled for test")
 
 
+class RecordingRateLimitResetAppServerClient:
+    def __init__(self):
+        self.started = False
+        self.requests = []
+
+    def start(self):
+        self.started = True
+        return {"ok": True}
+
+    def request(self, method, params=None):
+        self.requests.append((method, params or {}))
+        return {"consumed": True}
+
+
 class RecordingPushNotifier:
     def __init__(self):
         self.sent = []
@@ -1205,6 +1219,45 @@ class GatewayStateTests(unittest.TestCase):
                 with gateway.JOBS_LOCK:
                     gateway.JOBS.clear()
                     gateway.JOBS.update(old_jobs)
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_consume_rate_limit_reset_credit_calls_app_server_and_returns_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            codex_home = tmp_path / "codex"
+            switcher_home = tmp_path / "switcher"
+            accounts_dir = switcher_home / "accounts"
+            codex_home.mkdir()
+            (accounts_dir / "Main").mkdir(parents=True)
+            (accounts_dir / "Main" / "auth.json").write_text('{"account":"main"}', encoding="utf-8")
+            (codex_home / "auth.json").write_text('{"account":"main"}', encoding="utf-8")
+            (switcher_home / "active-account.txt").write_text("Main\n", encoding="utf-8")
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            try:
+                state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
+                client = RecordingRateLimitResetAppServerClient()
+                state._app_server_client = client
+                state._app_server_auth_fingerprint = state.active_auth_fingerprint()
+
+                with mock.patch("codex_phone_gateway.uuid.uuid4", return_value="reset-id"):
+                    snapshot = state.consume_rate_limit_reset_credit()
+
+                self.assertTrue(client.started)
+                self.assertEqual(
+                    client.requests,
+                    [(
+                        "account/rateLimitResetCredit/consume",
+                        {
+                            "creditType": "usage_limit",
+                            "idempotencyKey": "codepilot-rate-limit-reset-reset-id",
+                        },
+                    )],
+                )
+                self.assertEqual(snapshot["activeAccount"], "Main")
+                self.assertEqual(snapshot["rateLimitReset"]["consumed"], True)
+            finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
     def test_parse_mcp_list_output_marks_reconnectable_auth_states(self):

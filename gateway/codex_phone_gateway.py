@@ -2517,6 +2517,17 @@ class GatewayState:
             pass
         return snapshot
 
+    def consume_rate_limit_reset_credit(self) -> dict:
+        client = self.app_server_client()
+        client.start()
+        result = client.request("account/rateLimitResetCredit/consume", {
+            "creditType": "usage_limit",
+            "idempotencyKey": f"codepilot-rate-limit-reset-{uuid.uuid4()}",
+        })
+        snapshot = self.account_status_snapshot()
+        snapshot["rateLimitReset"] = result
+        return snapshot
+
     def ensure_plugin_connectivity(self) -> dict:
         status = {
             "source": str(self.mobile_codex_config_path),
@@ -4488,6 +4499,11 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "accounts" and parts[2] == "switch":
                 body = decode_body(self)
                 snapshot = self.state().switch_account(str(body.get("name", "")))
+                json_response(self, 200, snapshot)
+                return
+
+            if len(parts) == 3 and parts[0] == "api" and parts[1] == "accounts" and parts[2] == "rate-limit-reset":
+                snapshot = self.state().consume_rate_limit_reset_credit()
                 json_response(self, 200, snapshot)
                 return
 
