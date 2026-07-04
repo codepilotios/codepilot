@@ -6,7 +6,15 @@ if [[ "${1:-}" == "--force" ]]; then
   FORCE_RESTART="1"
 fi
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ "$(basename "$ROOT")" == "Resources" && "$(basename "$(dirname "$ROOT")")" == "Contents" ]]; then
+  APP_BUNDLE="$(dirname "$(dirname "$ROOT")")"
+  REPO_ROOT="$(cd "$APP_BUNDLE/../../.." && pwd)"
+  if [[ -f "$REPO_ROOT/gateway/codex_phone_gateway.py" ]]; then
+    ROOT="$REPO_ROOT"
+  fi
+fi
 LABEL="${CODEPILOT_GATEWAY_LAUNCHD_LABEL:-io.codepilot.phone-gateway}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"

@@ -12,7 +12,7 @@ cd "$ROOT"
 swift build -c release
 
 rm -rf "$APP"
-mkdir -p "$MACOS" "$RESOURCES/scripts" "$FRAMEWORKS"
+mkdir -p "$MACOS" "$RESOURCES/scripts" "$RESOURCES/gateway" "$FRAMEWORKS"
 cp "$ROOT/.build/release/CodexAccountSwitcher" "$MACOS/CodePilot"
 if [[ -d "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" ]]; then
   cp -R "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" "$FRAMEWORKS/"
@@ -20,6 +20,7 @@ if [[ -d "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" ]]; t
 fi
 cp "$ROOT/scripts/"*.sh "$RESOURCES/scripts/"
 cp "$ROOT/scripts/"*.py "$RESOURCES/scripts/" 2>/dev/null || true
+cp "$ROOT/gateway/"*.py "$RESOURCES/gateway/"
 chmod +x "$RESOURCES/scripts/"*.sh
 
 cat > "$CONTENTS/Info.plist" <<'PLIST'
