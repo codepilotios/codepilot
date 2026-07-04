@@ -134,6 +134,7 @@ class CodexAppServerClient:
         id_factory=None,
         notification_handler=None,
         env: dict | None = None,
+        allow_dangerous: bool = False,
     ):
         self.codex_path = codex_path
         self.cwd = cwd
@@ -141,6 +142,7 @@ class CodexAppServerClient:
         self.id_factory = id_factory or (lambda: str(uuid.uuid4()))
         self.notification_handler = notification_handler
         self.env = env
+        self.allow_dangerous = allow_dangerous
         self.process = None
         self.lock = threading.Lock()
         self.write_lock = threading.Lock()
@@ -202,8 +204,8 @@ class CodexAppServerClient:
     def thread_start(self, cwd: str | None = None, reasoning_effort: str | None = None) -> dict:
         params = {
             "cwd": cwd,
-            "approvalPolicy": "never",
-            "sandbox": "danger-full-access",
+            "approvalPolicy": "never" if self.allow_dangerous else "on-request",
+            "sandbox": "danger-full-access" if self.allow_dangerous else "workspace-write",
             "threadSource": "user",
         }
         if reasoning_effort:
@@ -1967,6 +1969,7 @@ class GatewayState:
                     id_factory=self.app_server_id_factory,
                     notification_handler=self.handle_app_server_notification,
                     env=env,
+                    allow_dangerous=self.allow_dangerous,
                 )
                 self._app_server_auth_fingerprint = auth_fingerprint
             return self._app_server_client
@@ -4391,7 +4394,7 @@ def main():
     parser.add_argument("--codex-home", default=str(DEFAULT_CODEX_HOME))
     parser.add_argument("--codex-path", default=str(DEFAULT_CODEX))
     parser.add_argument("--token-file", default=str(DEFAULT_TOKEN_FILE))
-    parser.add_argument("--allow-dangerous", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--allow-dangerous", action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
 
     token = read_or_create_token(Path(args.token_file))

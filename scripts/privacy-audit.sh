@@ -9,32 +9,21 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 2
 fi
 
-pattern="$(python3 - <<'PY'
-entries = [
-    "546f6e79",
-    "746f6e79",
-    "537072656e6b656c696e67",
-    "737072656e6b656c696e67",
-    "686f6d65736572766572",
-    "686f6d655c2e686f6d65",
-    "4d6163206d696e69",
-    "6d6163206d696e69",
-    "444b45",
-    "64652d6b6c65696e65",
-    "65656b686f6f726e",
-    "636f6d5c2e746f6e79",
-    "636f5c2e737072656e6b656c696e67",
-    "394b3734443657324252",
-    "514836354232",
-    "515a334d364137324747",
-    "70726f7065726c69",
-    "676d61696c",
-    "69636c6f7564",
-    "40737072656e6b656c696e67",
-]
-print("|".join(bytes.fromhex(entry).decode("utf-8") for entry in entries))
-PY
-)"
+private_patterns_file="${CODEPILOT_PRIVACY_PATTERNS_FILE:-$HOME/.codepilot-privacy-patterns}"
+users_dir_pattern="/$(printf %s Users)/[^[:space:]\"']+"
+generic_private_patterns=(
+  "$users_dir_pattern"
+  '[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}'
+)
+
+pattern="$(IFS='|'; echo "${generic_private_patterns[*]}")"
+
+if [[ -f "$private_patterns_file" ]]; then
+  while IFS= read -r private_pattern; do
+    [[ -n "$private_pattern" && "${private_pattern:0:1}" != "#" ]] || continue
+    pattern="$pattern|$private_pattern"
+  done < "$private_patterns_file"
+fi
 
 tracked_files=("${(@f)$(git ls-files)}")
 audit_files=()
@@ -49,13 +38,13 @@ if git grep -n -I -E "$pattern" -- "${audit_files[@]}"; then
 fi
 
 secret_patterns=(
-  'ghp_[A-Za-z0-9_]+'
-  'github_pat_[A-Za-z0-9_]+'
-  'sk-[A-Za-z0-9]{20,}'
-  '-----BEGIN (RSA|OPENSSH|PRIVATE) KEY'
+  "g""hp_[A-Za-z0-9_]+"
+  "github_""pat_[A-Za-z0-9_]+"
+  "s""k-[A-Za-z0-9]{20,}"
+  "-----BEGIN (RSA|OPENSSH|PRIVATE) ""KEY"
   'Bearer [A-Za-z0-9._-]{20,}'
-  'client_secret'
-  'private_key'
+  "client_""secret"
+  "private_""key"
 )
 
 secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"
