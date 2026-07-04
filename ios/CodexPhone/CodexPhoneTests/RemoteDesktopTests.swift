@@ -15,10 +15,31 @@ final class RemoteDesktopTests: XCTestCase {
     }
 
     func testGatewayConnectionKindUsesUserFacingTitles() {
+        XCTAssertEqual(GatewayConnectionKind.publicBetaCases, [.cloudflare])
         XCTAssertEqual(GatewayConnectionKind.local.title, "Same Network")
         XCTAssertEqual(GatewayConnectionKind.cloudflare.title, "Cloudflare")
-        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("LAN address"))
+        XCTAssertTrue(GatewayConnectionKind.local.isPublicBetaAvailable == false)
+        XCTAssertTrue(GatewayConnectionKind.cloudflare.isPublicBetaAvailable)
+        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("disabled for public beta"))
         XCTAssertTrue(GatewayConnectionKind.cloudflare.helpText.contains("Cloudflare Tunnel"))
+    }
+
+    func testRemotePairingApprovalStatusRoundTrips() throws {
+        let status = RemotePairingApprovalStatus(
+            status: "pending_mac_approval",
+            challengeID: "challenge-1",
+            deviceID: "device-1",
+            macName: "Office Mac"
+        )
+
+        try assertRoundTrip(status)
+    }
+
+    func testRemoteDesktopStartRequiresPairedStatus() {
+        XCTAssertTrue(canStartRemoteDesktop(statusText: "Paired with Office Mac"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Not paired"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Waiting for approval on Office Mac"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Host reachable, relay available"))
     }
 
     func testGatewayRootURLRequiresHTTPOrHTTPSWithHost() throws {

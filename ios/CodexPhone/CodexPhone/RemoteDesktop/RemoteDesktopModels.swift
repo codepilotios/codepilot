@@ -39,6 +39,13 @@ struct RemotePairingChallenge: Codable, Equatable, Identifiable {
     let expiresAt: Date
 }
 
+struct RemotePairingApprovalStatus: Codable, Equatable {
+    let status: String
+    let challengeID: String
+    let deviceID: String
+    let macName: String
+}
+
 struct TrustedRemoteDevice: Codable, Equatable, Identifiable {
     let id: String
     var name: String

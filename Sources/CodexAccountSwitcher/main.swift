@@ -3354,17 +3354,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 let challengeID = try Self.remoteDesktopString(payload["challengeId"])
                 let deviceID = try Self.remoteDesktopString(payload["deviceId"])
                 let signature = try Self.remoteDesktopBase64(payload["signature"])
-                guard let challenge = coordinator.pairingStore.challenge(id: challengeID) else {
-                    return Self.remoteDesktopRPCError(request.id, status: 410, code: "pairing_expired")
-                }
-                let token = try coordinator.pairingStore.verifyChallenge(
-                    challenge,
+                let approval = try coordinator.verifyPendingPairing(
+                    challengeID: challengeID,
                     deviceID: deviceID,
                     signature: signature
                 )
-                let device = try coordinator.pairingStore.approveDevice(using: token)
-                coordinator.refreshStatus()
-                return try Self.remoteDesktopRPCCodable(request.id, device)
+                return try Self.remoteDesktopRPCCodable(request.id, approval)
 
             case "devices.list":
                 coordinator.refreshStatus()
