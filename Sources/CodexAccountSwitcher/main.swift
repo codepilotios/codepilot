@@ -1289,6 +1289,9 @@ final class CodexAccountSwitcher {
 
         try next.name.write(to: settings.activeAccountMarker, atomically: true, encoding: .utf8)
         recordSwitch(to: next.name, isAutomatic: isAutomatic)
+        if !isAutomatic {
+            clearPendingSwitch()
+        }
         let relaunch = relaunchCodexAppIfRunning()
         switch relaunch {
         case .relaunched:
