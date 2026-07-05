@@ -2563,11 +2563,7 @@ class GatewayState:
         requested_name = str(raw_name or "").strip()
         if requested_name:
             account_name = self.resolve_account_profile_name(requested_name)
-            auth_path = self.accounts_dir / account_name / "auth.json"
-            result = consume_codex_rate_limit_reset_credit(
-                self.access_token_from_auth_file(auth_path),
-                f"codepilot-rate-limit-reset-{account_name}-{uuid.uuid4()}",
-            )
+            result = self.consume_rate_limit_reset_credit_for_account(account_name)
             self.record_rate_limit_reset_credit_consumed(account_name)
             snapshot = self.account_status_snapshot()
             snapshot["rateLimitReset"] = {
@@ -2585,6 +2581,93 @@ class GatewayState:
         snapshot = self.account_status_snapshot()
         snapshot["rateLimitReset"] = result
         return snapshot
+
+    def consume_rate_limit_reset_credit_for_account(self, account_name: str) -> dict:
+        target_auth = self.accounts_dir / account_name / "auth.json"
+        if not target_auth.is_file():
+            raise LookupError(f"No auth profile named {account_name}")
+
+        previous_marker = None
+        previous_auth = None
+        if self.active_account_marker.is_file():
+            previous_marker = self.active_account_marker.read_text(encoding="utf-8")
+        if self.active_auth_path.is_file():
+            previous_auth = self.active_auth_path.read_bytes()
+
+        previous_account = self.active_account_name()
+        needs_restore = account_name != previous_account or target_auth.read_bytes() != (previous_auth or b"")
+        idempotency_key = f"codepilot-rate-limit-reset-{account_name}-{uuid.uuid4()}"
+
+        with RUN_LOCK:
+            if needs_restore and self.has_running_jobs():
+                raise RuntimeError("Cannot reset a different account while a Codex turn is running")
+
+            try:
+                if needs_restore:
+                    self.install_account_for_app_server_context(account_name, target_auth)
+                return self.consume_active_app_server_rate_limit_reset_credit(idempotency_key)
+            finally:
+                if needs_restore:
+                    self.restore_app_server_account_context(previous_auth, previous_marker)
+
+    def consume_active_app_server_rate_limit_reset_credit(self, idempotency_key: str) -> dict:
+        client = self.app_server_client()
+        client.start()
+        return client.request("account/rateLimitResetCredit/consume", {
+            "creditType": "usage_limit",
+            "idempotencyKey": idempotency_key,
+        })
+
+    def install_account_for_app_server_context(self, account_name: str, profile_auth: Path):
+        with self._app_server_lock:
+            self._close_app_server_client_locked()
+            with self.auth_file_lock():
+                self.sync_active_auth_to_active_profile()
+                self.install_auth_file(profile_auth, self.active_auth_path)
+            self.active_account_marker.parent.mkdir(parents=True, exist_ok=True)
+            self.active_account_marker.write_text(account_name + "\n", encoding="utf-8")
+
+    def restore_app_server_account_context(self, previous_auth: bytes | None, previous_marker: str | None):
+        with self._app_server_lock:
+            self._close_app_server_client_locked()
+            with self.auth_file_lock():
+                if previous_auth is None:
+                    try:
+                        self.active_auth_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                else:
+                    self.write_active_auth_bytes(previous_auth)
+
+            if previous_marker is None:
+                try:
+                    self.active_account_marker.unlink()
+                except FileNotFoundError:
+                    pass
+            else:
+                self.active_account_marker.parent.mkdir(parents=True, exist_ok=True)
+                self.active_account_marker.write_text(previous_marker, encoding="utf-8")
+
+    def write_active_auth_bytes(self, payload: bytes):
+        self.active_auth_path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=".auth.json.codex-phone-restore.",
+            suffix=".tmp",
+            dir=str(self.active_auth_path.parent),
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(payload)
+            os.chmod(tmp_path, 0o600)
+            tmp_path.replace(self.active_auth_path)
+            os.chmod(self.active_auth_path, 0o600)
+        except Exception:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+            raise
 
     def access_token_from_auth_file(self, auth_path: Path) -> str:
         try:

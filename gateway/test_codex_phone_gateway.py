@@ -37,6 +37,7 @@ class RecordingRateLimitResetAppServerClient:
     def __init__(self):
         self.started = False
         self.requests = []
+        self.closed = False
 
     def start(self):
         self.started = True
@@ -45,6 +46,9 @@ class RecordingRateLimitResetAppServerClient:
     def request(self, method, params=None):
         self.requests.append((method, params or {}))
         return {"consumed": True}
+
+    def close(self):
+        self.closed = True
 
 
 class RecordingPushNotifier:
@@ -1262,7 +1266,7 @@ class GatewayStateTests(unittest.TestCase):
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
-    def test_consume_rate_limit_reset_credit_for_named_account_uses_profile_auth_without_switching(self):
+    def test_consume_rate_limit_reset_credit_for_named_account_temporarily_switches_and_restores(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             codex_home = tmp_path / "codex"
@@ -1271,18 +1275,11 @@ class GatewayStateTests(unittest.TestCase):
             codex_home.mkdir()
             (accounts_dir / "Main").mkdir(parents=True)
             (accounts_dir / "Free").mkdir(parents=True)
-            (accounts_dir / "Main" / "auth.json").write_text(
-                json.dumps({"tokens": {"access_token": "main-token"}}),
-                encoding="utf-8",
-            )
-            (accounts_dir / "Free" / "auth.json").write_text(
-                json.dumps({"tokens": {"access_token": "free-token"}}),
-                encoding="utf-8",
-            )
-            (codex_home / "auth.json").write_text(
-                json.dumps({"tokens": {"access_token": "main-token"}}),
-                encoding="utf-8",
-            )
+            main_auth = json.dumps({"tokens": {"account_id": "main", "access_token": "main-token"}})
+            free_auth = json.dumps({"tokens": {"account_id": "free", "access_token": "free-token"}})
+            (accounts_dir / "Main" / "auth.json").write_text(main_auth, encoding="utf-8")
+            (accounts_dir / "Free" / "auth.json").write_text(free_auth, encoding="utf-8")
+            (codex_home / "auth.json").write_text(main_auth, encoding="utf-8")
             (switcher_home / "active-account.txt").write_text("Main\n", encoding="utf-8")
             (switcher_home / "usage.json").write_text(json.dumps({
                 "Free": {"rateLimitResetCreditsRemaining": 2}
@@ -1292,20 +1289,29 @@ class GatewayStateTests(unittest.TestCase):
             gateway.DEFAULT_SWITCHER_HOME = switcher_home
             try:
                 state = GatewayState(codex_home, "token", Path("/missing-codex"), False)
+                client = RecordingRateLimitResetAppServerClient()
 
                 with mock.patch("codex_phone_gateway.uuid.uuid4", return_value="reset-id"), \
-                        mock.patch("codex_phone_gateway.consume_codex_rate_limit_reset_credit", return_value={"consumed": True}) as consume:
+                        mock.patch.object(state, "app_server_client", return_value=client):
                     snapshot = state.consume_rate_limit_reset_credit("Free")
 
-                consume.assert_called_once_with(
-                    "free-token",
-                    "codepilot-rate-limit-reset-Free-reset-id",
+                self.assertTrue(client.started)
+                self.assertEqual(
+                    client.requests,
+                    [(
+                        "account/rateLimitResetCredit/consume",
+                        {
+                            "creditType": "usage_limit",
+                            "idempotencyKey": "codepilot-rate-limit-reset-Free-reset-id",
+                        },
+                    )],
                 )
                 self.assertEqual(snapshot["activeAccount"], "Main")
                 statuses = {account["name"]: account for account in snapshot["accounts"]}
                 self.assertEqual(statuses["Free"]["rateLimitResetCreditsRemaining"], 1)
                 self.assertEqual(snapshot["rateLimitReset"]["accountName"], "Free")
                 self.assertEqual((switcher_home / "active-account.txt").read_text(encoding="utf-8"), "Main\n")
+                self.assertEqual((codex_home / "auth.json").read_text(encoding="utf-8"), main_auth)
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
