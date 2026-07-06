@@ -33,6 +33,29 @@ final class TotalCreditActivityTests: XCTestCase {
         XCTAssertEqual(state.refreshLabel, "5h")
     }
 
+    func testWeeklyExhaustionLimitsFiveHourCredit() {
+        let weeklyResetAt = Int(now.timeIntervalSince1970) + 604_800
+        let state = TotalCreditStatus(
+            accounts: [
+                account(
+                    name: "One",
+                    remaining: 99,
+                    resetAt: Int(now.timeIntervalSince1970) + 3_600,
+                    weeklyRemaining: 0,
+                    weeklyResetAt: weeklyResetAt
+                )
+            ],
+            now: now
+        ).activityState
+
+        XCTAssertEqual(state.kind, .refilling)
+        XCTAssertNil(state.percent)
+        XCTAssertEqual(state.progress, 0, accuracy: 0.001)
+        XCTAssertEqual(state.usableAccountCount, 0)
+        XCTAssertEqual(state.nextRefreshAt, weeklyResetAt)
+        XCTAssertEqual(state.refreshLabel, "weekly")
+    }
+
     func testAllStaleAccountsRequireAuthentication() {
         let state = TotalCreditStatus(
             accounts: [account(name: "Private Account", remaining: 80, authStale: true)],
@@ -99,6 +122,8 @@ final class TotalCreditActivityTests: XCTestCase {
         name: String,
         remaining: Int?,
         resetAt: Int? = nil,
+        weeklyRemaining: Int? = nil,
+        weeklyResetAt: Int? = nil,
         authStale: Bool = false
     ) -> AccountUsageStatus {
         AccountUsageStatus(
@@ -108,10 +133,11 @@ final class TotalCreditActivityTests: XCTestCase {
             fiveHourUsedPercent: remaining.map { 100 - $0 },
             fiveHourWindowMins: 300,
             fiveHourResetsAt: resetAt,
-            weeklyRemainingPercent: nil,
-            weeklyUsedPercent: nil,
-            weeklyWindowMins: nil,
-            weeklyResetsAt: nil,
+            weeklyRemainingPercent: weeklyRemaining,
+            weeklyUsedPercent: weeklyRemaining.map { 100 - $0 },
+            weeklyWindowMins: weeklyRemaining == nil && weeklyResetAt == nil ? nil : 10_080,
+            weeklyResetsAt: weeklyResetAt,
+            rateLimitResetCreditsRemaining: nil,
             lastRefreshAt: nil,
             lastUsedAt: nil,
             lastLimitAt: nil,

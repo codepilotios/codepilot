@@ -3081,22 +3081,9 @@ class GatewayState:
         accounts = [item for item in snapshot.get("accounts", []) if isinstance(item, dict)]
         buckets = []
         for account in accounts:
-            if account.get("fiveHourRemainingPercent") is not None or account.get("fiveHourResetsAt") is not None:
-                buckets.append({
-                    "remaining": account.get("fiveHourRemainingPercent"),
-                    "resetAt": account.get("fiveHourResetsAt"),
-                    "windowMins": account.get("fiveHourWindowMins"),
-                    "label": "5h",
-                    "authStale": bool(account.get("authStale")),
-                })
-            elif account.get("weeklyRemainingPercent") is not None or account.get("weeklyResetsAt") is not None:
-                buckets.append({
-                    "remaining": account.get("weeklyRemainingPercent"),
-                    "resetAt": account.get("weeklyResetsAt"),
-                    "windowMins": account.get("weeklyWindowMins"),
-                    "label": "weekly",
-                    "authStale": bool(account.get("authStale")),
-                })
+            bucket = self.account_credit_bucket(account)
+            if bucket is not None:
+                buckets.append(bucket)
         available = [item for item in buckets if not item["authStale"]]
         reported = [item for item in available if item["remaining"] is not None]
         remaining = [max(0, min(100, int(item["remaining"]))) for item in reported]
@@ -3137,6 +3124,61 @@ class GatewayState:
             "nextRefreshAt": None,
             "refreshLabel": None,
             "generatedAt": generated_at,
+        }
+
+    def account_credit_bucket(self, account: dict) -> dict | None:
+        windows = []
+        if account.get("fiveHourRemainingPercent") is not None or account.get("fiveHourResetsAt") is not None:
+            windows.append({
+                "remaining": account.get("fiveHourRemainingPercent"),
+                "resetAt": account.get("fiveHourResetsAt"),
+                "windowMins": account.get("fiveHourWindowMins"),
+                "label": "5h",
+            })
+        if account.get("weeklyRemainingPercent") is not None or account.get("weeklyResetsAt") is not None:
+            windows.append({
+                "remaining": account.get("weeklyRemainingPercent"),
+                "resetAt": account.get("weeklyResetsAt"),
+                "windowMins": account.get("weeklyWindowMins"),
+                "label": "weekly",
+            })
+        if not windows:
+            return None
+
+        known_remaining = [
+            max(0, min(100, int(window["remaining"])))
+            for window in windows
+            if window.get("remaining") is not None
+        ]
+        effective_remaining = min(known_remaining) if known_remaining else None
+        label = str(windows[0].get("label") or "credit")
+        reset_at = None
+        window_mins = windows[0].get("windowMins")
+
+        if effective_remaining is not None and effective_remaining > 0:
+            for window in windows:
+                if window.get("remaining") is not None and max(0, min(100, int(window["remaining"]))) == effective_remaining:
+                    label = str(window.get("label") or label)
+                    window_mins = window.get("windowMins")
+                    break
+        else:
+            depleted = [
+                window for window in windows
+                if window.get("remaining") is not None
+                and int(window.get("remaining") or 0) <= 0
+                and window.get("resetAt") is not None
+            ]
+            limiting = max(depleted, key=lambda item: int(item.get("resetAt") or 0), default=windows[0])
+            label = str(limiting.get("label") or label)
+            reset_at = limiting.get("resetAt")
+            window_mins = limiting.get("windowMins")
+
+        return {
+            "remaining": effective_remaining,
+            "resetAt": reset_at,
+            "windowMins": window_mins,
+            "label": label,
+            "authStale": bool(account.get("authStale")),
         }
 
     def publish_live_activity_state(self, snapshot: dict):
