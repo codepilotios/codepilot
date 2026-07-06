@@ -71,6 +71,17 @@ if [[ -d "$WORKTREE/.git" || -f "$WORKTREE/.git" ]]; then
   cd "$WORKTREE"
 fi
 
+git fetch --quiet origin main 2>/dev/null || true
+if git diff --quiet && git diff --cached --quiet; then
+  if git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
+    git merge --ff-only --quiet origin/main
+  else
+    echo "Agent worktree has commits not on origin/main; leaving branch as-is."
+  fi
+else
+  echo "Agent worktree has local changes; skipping origin/main refresh."
+fi
+
 REAL_GIT="$(command -v git)"
 REAL_GH="$(command -v gh 2>/dev/null || true)"
 export CODEPILOT_AGENT_REAL_GIT="$REAL_GIT"
