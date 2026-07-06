@@ -1579,6 +1579,32 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
+    def test_live_activity_uses_limiting_account_window(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        now = 1_800_000_000
+        weekly_reset = now + 604_800
+
+        content = state.live_activity_content_state({
+            "generatedAt": now,
+            "accounts": [{
+                "name": "Main",
+                "fiveHourRemainingPercent": 99,
+                "fiveHourResetsAt": now + 3_600,
+                "fiveHourWindowMins": 300,
+                "weeklyRemainingPercent": 0,
+                "weeklyResetsAt": weekly_reset,
+                "weeklyWindowMins": 10_080,
+                "authStale": False,
+            }],
+        })
+
+        self.assertEqual(content["kind"], "refilling")
+        self.assertIsNone(content["percent"])
+        self.assertEqual(content["progress"], 0)
+        self.assertEqual(content["usableAccountCount"], 0)
+        self.assertEqual(content["nextRefreshAt"], weekly_reset)
+        self.assertEqual(content["refreshLabel"], "weekly")
+
     def test_apns_notifier_uses_certificate_credentials_from_environment(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

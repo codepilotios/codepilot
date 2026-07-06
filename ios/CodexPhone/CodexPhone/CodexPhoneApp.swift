@@ -2951,20 +2951,57 @@ struct AccountCreditBucket {
     init?(account: AccountUsageStatus) {
         accountName = account.name
         authStale = account.authStale
-        if account.fiveHourRemainingPercent != nil || account.fiveHourResetsAt != nil {
-            label = "5h"
-            remainingPercent = account.fiveHourRemainingPercent
-            resetAt = account.fiveHourResetsAt
-            windowMins = account.fiveHourWindowMins
-        } else if account.weeklyRemainingPercent != nil || account.weeklyResetsAt != nil {
-            label = "weekly"
-            remainingPercent = account.weeklyRemainingPercent
-            resetAt = account.weeklyResetsAt
-            windowMins = account.weeklyWindowMins
-        } else {
+
+        let windows = [
+            CreditWindow(
+                label: "5h",
+                remainingPercent: account.fiveHourRemainingPercent,
+                resetAt: account.fiveHourResetsAt,
+                windowMins: account.fiveHourWindowMins
+            ),
+            CreditWindow(
+                label: "weekly",
+                remainingPercent: account.weeklyRemainingPercent,
+                resetAt: account.weeklyResetsAt,
+                windowMins: account.weeklyWindowMins
+            )
+        ].filter { $0.remainingPercent != nil || $0.resetAt != nil }
+
+        guard !windows.isEmpty else {
             return nil
         }
+
+        let knownRemaining = windows.compactMap(\.remainingPercent).map { max(0, min(100, $0)) }
+        remainingPercent = knownRemaining.min()
+
+        if let effectiveRemaining = remainingPercent, effectiveRemaining > 0 {
+            let displayWindow = windows.first { $0.remainingPercent == effectiveRemaining }
+                ?? windows.first
+            label = displayWindow?.label ?? "credit"
+            resetAt = nil
+            windowMins = displayWindow?.windowMins
+            return
+        }
+
+        let depletedWindows = windows.filter { window in
+            guard let remaining = window.remainingPercent else { return false }
+            return remaining <= 0 && window.resetAt != nil
+        }
+        let limitingWindow = depletedWindows.max { left, right in
+            (left.resetAt ?? 0) < (right.resetAt ?? 0)
+        } ?? windows.first
+
+        label = limitingWindow?.label ?? "credit"
+        resetAt = limitingWindow?.resetAt
+        windowMins = limitingWindow?.windowMins
     }
+}
+
+private struct CreditWindow {
+    let label: String
+    let remainingPercent: Int?
+    let resetAt: Int?
+    let windowMins: Int?
 }
 
 struct SignupURL: Identifiable {
