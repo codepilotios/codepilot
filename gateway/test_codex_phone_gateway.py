@@ -161,13 +161,17 @@ class AppServerClientTests(unittest.TestCase):
                 self.assertFalse(is_loopback_host(host))
 
     def setUp(self):
+        self._original_codex_home = gateway.DEFAULT_CODEX_HOME
         self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+        self._original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
         self._switcher_home_tempdir = tempfile.TemporaryDirectory()
         gateway.DEFAULT_SWITCHER_HOME = Path(self._switcher_home_tempdir.name)
         gateway.DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
 
     def tearDown(self):
+        gateway.DEFAULT_CODEX_HOME = self._original_codex_home
         gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
+        gateway.DEFAULT_UPLOADS_DIR = self._original_uploads_dir
         self._switcher_home_tempdir.cleanup()
 
     def test_codex_child_env_prepends_homebrew_path_and_sets_codex_home(self):
@@ -1307,13 +1311,22 @@ class GatewayStateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             gateway.resolve_requested_file_path("created-by-codex.txt")
 
-    def test_resolve_requested_file_path_rejects_files_outside_allowed_roots(self):
-        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as other:
-            file_path = Path(other) / "private.txt"
-            file_path.write_text("private", encoding="utf-8")
+    def test_resolve_requested_file_path_rejects_codex_and_switcher_state(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gateway.DEFAULT_CODEX_HOME = root / "codex"
+            gateway.DEFAULT_SWITCHER_HOME = root / "switcher"
+            gateway.DEFAULT_CODEX_HOME.mkdir()
+            gateway.DEFAULT_SWITCHER_HOME.mkdir()
+            codex_auth = gateway.DEFAULT_CODEX_HOME / "auth.json"
+            gateway_token = gateway.DEFAULT_SWITCHER_HOME / "phone-gateway-token"
+            codex_auth.write_text("{}", encoding="utf-8")
+            gateway_token.write_text("secret", encoding="utf-8")
 
-            with self.assertRaisesRegex(PermissionError, "download roots"):
-                gateway.resolve_requested_file_path(str(file_path), allowed_roots=[Path(tmp)])
+            with self.assertRaises(PermissionError):
+                gateway.resolve_requested_file_path(str(codex_auth))
+            with self.assertRaises(PermissionError):
+                gateway.resolve_requested_file_path(str(gateway_token))
 
     def test_file_metadata_reports_download_details(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1326,6 +1339,23 @@ class GatewayStateTests(unittest.TestCase):
             self.assertEqual(metadata["filename"], "created-by-codex.txt")
             self.assertEqual(metadata["mimeType"], "text/plain")
             self.assertEqual(metadata["size"], 5)
+
+    def test_save_attachments_uses_private_file_permissions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            switcher_home = Path(tmp) / "switcher"
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            gateway.DEFAULT_UPLOADS_DIR = switcher_home / "phone-uploads"
+            state = GatewayState(Path(tmp) / "codex", "token", Path("/missing-codex"), False)
+
+            saved = state.save_attachments(
+                "thread-1",
+                "job-1",
+                [{"filename": "note.txt", "mimeType": "text/plain", "dataBase64": "aGVsbG8="}],
+            )
+
+            upload_path = saved[0]["path"]
+            self.assertEqual(upload_path.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(upload_path.parent.stat().st_mode & 0o777, 0o700)
 
     def test_local_web_session_rejects_non_loopback_url(self):
         state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)

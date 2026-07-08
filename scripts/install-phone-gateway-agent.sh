@@ -96,7 +96,7 @@ plist = {
 if environment:
     plist["EnvironmentVariables"] = environment
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
-os.chmod(plist_path, 0o600)
+plist_path.chmod(0o600)
 PY
 
 gateway_jobs_state() {

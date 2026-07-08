@@ -405,21 +405,11 @@ class CodexAppServerClient:
 
 
 def read_or_create_token(path: Path) -> str:
-    if path.exists():
-        metadata = path.lstat()
-        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-            raise RuntimeError("Gateway token path must be a regular file")
-        os.chmod(path, 0o600)
-        token = path.read_text(encoding="utf-8").strip()
-        if not token:
-            raise RuntimeError("Gateway token file is empty")
-        if len(token) < MIN_GATEWAY_TOKEN_LENGTH or re.fullmatch(r"[A-Za-z0-9_-]+", token) is None:
-            raise RuntimeError(
-                f"Gateway token must contain at least {MIN_GATEWAY_TOKEN_LENGTH} URL-safe characters; rotate it before restarting"
-            )
-        return token
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    path.parent.mkdir(parents=True, exist_ok=True)
     os.chmod(path.parent, 0o700)
+    if path.exists():
+        os.chmod(path, 0o600)
+        return path.read_text(encoding="utf-8").strip()
     token = secrets.token_urlsafe(32)
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
@@ -776,6 +766,22 @@ def safe_filename(name: str, fallback: str) -> str:
     return base[:160] or fallback
 
 
+def path_is_within(path: Path, base: Path) -> bool:
+    try:
+        path.relative_to(base)
+        return True
+    except ValueError:
+        return False
+
+
+def is_protected_gateway_path(path: Path) -> bool:
+    protected_roots = [
+        DEFAULT_CODEX_HOME,
+        DEFAULT_SWITCHER_HOME,
+    ]
+    return any(path_is_within(path, root.expanduser().resolve()) for root in protected_roots)
+
+
 def is_image_attachment(path: Path, mime_type: str) -> bool:
     if mime_type.startswith("image/"):
         return True
@@ -875,6 +881,8 @@ def resolve_requested_file_path(raw_path: str, allowed_roots: list[Path] | None 
 
     if not resolved.is_file():
         raise LookupError(f"Not a file: {resolved}")
+    if is_protected_gateway_path(resolved):
+        raise PermissionError("Protected CodePilot files cannot be downloaded through the gateway")
 
     roots = configured_download_roots() if allowed_roots is None else allowed_roots
     normalized_roots = [root.expanduser().resolve(strict=False) for root in roots]
@@ -4500,11 +4508,36 @@ class GatewayState:
                 except OSError:
                     pass
             try:
-                upload_dir.rmdir()
-                thread_upload_dir.rmdir()
-            except OSError:
-                pass
-            raise
+                data = base64.b64decode(encoded, validate=True)
+            except Exception as exc:
+                raise ValueError("Attachment is not valid base64") from exc
+
+            size = len(data)
+            if size > MAX_ATTACHMENT_BYTES:
+                raise ValueError("Attachment is too large")
+            total_size += size
+            if total_size > MAX_TOTAL_ATTACHMENT_BYTES:
+                raise ValueError("Total attachment size is too large")
+
+            upload_dir.mkdir(parents=True, exist_ok=True)
+            os.chmod(upload_dir, 0o700)
+            filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
+            path = upload_dir / filename
+            if path.exists():
+                stem = path.stem or "attachment"
+                suffix = path.suffix
+                path = upload_dir / f"{stem}-{index}{suffix}"
+            path.write_bytes(data)
+            os.chmod(path, 0o600)
+
+            mime_type = str(attachment.get("mimeType") or "application/octet-stream")
+            saved.append({
+                "filename": path.name,
+                "mimeType": mime_type,
+                "size": size,
+                "path": path,
+                "isImage": is_image_attachment(path, mime_type),
+            })
 
         return saved
 
@@ -4937,6 +4970,8 @@ class Handler(BaseHTTPRequestHandler):
             )
         except LookupError as exc:
             json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
+        except PermissionError as exc:
+            json_error(self, 403, "protected_file", str(exc), "Choose a project file instead of CodePilot credential or state files.")
         except Exception as exc:
             json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
