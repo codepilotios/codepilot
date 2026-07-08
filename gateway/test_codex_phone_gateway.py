@@ -1295,7 +1295,8 @@ class GatewayStateTests(unittest.TestCase):
                 gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
 
             self.assertTrue(health["gateway"]["running"])
-            self.assertEqual(health["accounts"]["active"], "main")
+            self.assertNotIn("active", health["accounts"])
+            self.assertNotIn("main", json.dumps(health))
             self.assertIn("auth", health["accounts"])
             self.assertIn("notifications", health)
             self.assertIn("remoteDesktop", health)

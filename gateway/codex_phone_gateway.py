@@ -2214,7 +2214,6 @@ class GatewayState:
                 "version": read_marker(DEFAULT_SWITCHER_HOME / "gateway-version", "dev"),
             },
             "accounts": {
-                "active": self.active_account_name(),
                 "auth": self.app_server_auth_status(),
             },
             "turns": {
