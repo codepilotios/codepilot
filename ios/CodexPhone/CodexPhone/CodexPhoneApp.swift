@@ -113,7 +113,9 @@ struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
     @StateObject private var credentials = GatewayCredentials()
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
+    @AppStorage("gatewayURL") private var gatewayURL = ""
+    @AppStorage("gatewayToken") private var gatewayToken = ""
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
@@ -125,8 +127,12 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    EmptySettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding)
+                if !isGatewaySetupComplete(
+                    url: gatewayURL,
+                    token: gatewayToken,
+                    connectionKind: selectedConnectionKind
+                ) {
+                    EmptySettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken)
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
@@ -315,6 +321,10 @@ struct RootView: View {
         } catch {
             liveActivityError = "The credit Live Activity could not be updated: \(error.localizedDescription)"
         }
+    }
+
+    private var selectedConnectionKind: GatewayConnectionKind {
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
     }
 }
 
@@ -1872,6 +1882,10 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
     default:
         return nil
     }
+}
+
+func isGatewaySetupComplete(url rawURL: String, token rawToken: String, connectionKind: GatewayConnectionKind) -> Bool {
+    gatewaySetupValidationMessage(url: rawURL, token: rawToken, connectionKind: connectionKind) == nil
 }
 
 func localWebSessionURL(path: String, baseURL: String) -> URL? {
