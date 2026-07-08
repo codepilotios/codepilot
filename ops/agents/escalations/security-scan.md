@@ -13,4 +13,14 @@ Before public launch, maintainer coordination is still required for:
 - Enabling repository dependency alerts and reviewing the initial results.
 - Shipping pending credential-storage changes through an authorized build channel and rotating affected beta credentials.
 
-Keep fail-closed controls enabled until the corresponding private review is complete. Do not copy private findings into public issues or pull requests.
+3. Remote desktop viewing/control is not consistently bound to a trusted-device lease.
+   - Surface: `gateway/remote_desktop_gateway.py` forwards `/api/remote/frame` and `/api/remote/input` after gateway bearer auth; native handling is in `Sources/CodexAccountSwitcher/main.swift`.
+   - Current behavior: frame capture does not require a session lease, and native input validation only rejects replayed sequence numbers for the provided session id. The iOS remote desktop view also starts with a placeholder lease id before a signed lease flow.
+   - Risk: a leaked or phished gateway bearer token can expose screen contents and may allow input injection without the intended local Mac approval, trusted-device signature, and short-lived controller lease.
+   - Decision needed: block public remote desktop exposure until the iOS app obtains a signed lease, the gateway requires that lease for frame/input/signaling, and the native host validates the lease against `SessionLeaseStore`.
+
+Local hardening already applied in this branch:
+
+- Removed public embedded private identifier patterns from the privacy audit and made local denylist patterns opt-in via `CODEPILOT_PRIVACY_PATTERNS_FILE`.
+- Removed machine-specific default repository paths from local agent scripts.
+- Changed gateway-created Codex app-server threads and turns to use safe approval/sandbox settings unless dangerous mode is explicitly enabled.
