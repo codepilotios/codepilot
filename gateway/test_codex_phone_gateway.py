@@ -1345,9 +1345,19 @@ class GatewayStateTests(unittest.TestCase):
             file_path = Path(tmp) / "created-by-codex.txt"
             file_path.write_text("hello", encoding="utf-8")
 
-            resolved = gateway.resolve_requested_file_path(f"{file_path}:12", allowed_roots=[Path(tmp)])
+            resolved = gateway.resolve_requested_file_path(f"{file_path}:12", Path(tmp))
 
             self.assertEqual(resolved, file_path.resolve())
+
+    def test_resolve_requested_file_path_rejects_files_outside_workspace(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = Path(tmp) / "workspace"
+            workspace.mkdir()
+            private_file = Path(tmp) / "private.txt"
+            private_file.write_text("secret", encoding="utf-8")
+
+            with self.assertRaises(PermissionError):
+                gateway.resolve_requested_file_path(str(private_file), workspace)
 
     def test_resolve_requested_file_path_rejects_relative_paths(self):
         with self.assertRaises(ValueError):

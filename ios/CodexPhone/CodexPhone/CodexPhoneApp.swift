@@ -986,7 +986,7 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach(timelineMessages) { message in
-                            MessageBubble(message: message, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
+                            MessageBubble(message: message, threadID: thread.id, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                                 .id(message.id)
                         }
                         if let job = visibleJob {
@@ -1380,6 +1380,7 @@ struct AttachmentStrip: View {
 
 struct MessageBubble: View {
     let message: CodexMessage
+    let threadID: String?
     let gatewayURL: String
     let gatewayToken: String
     @State private var showingSelectionSheet = false
@@ -1392,6 +1393,7 @@ struct MessageBubble: View {
             OpenableText(
                 text: message.text,
                 font: .body,
+                threadID: threadID,
                 gatewayURL: gatewayURL,
                 gatewayToken: gatewayToken
             )
@@ -1474,6 +1476,7 @@ struct OpenableText: View {
     let text: String
     var font: Font = .body
     var foregroundColor: Color = .primary
+    var threadID: String? = nil
     let gatewayURL: String
     let gatewayToken: String
     @State private var previewItem: FilePreviewItem?
@@ -1487,8 +1490,11 @@ struct OpenableText: View {
             .textSelection(.enabled)
             .environment(\.openURL, OpenURLAction { url in
                 if let path = remoteFilePath(from: url) {
+                    guard let threadID else {
+                        return .discarded
+                    }
                     Task {
-                        await openRemoteFile(path)
+                        await openRemoteFile(path, threadID: threadID)
                     }
                     return .handled
                 }
@@ -1519,10 +1525,11 @@ struct OpenableText: View {
     }
 
     @MainActor
-    private func openRemoteFile(_ path: String) async {
+    private func openRemoteFile(_ path: String, threadID: String) async {
         do {
             let localURL = try await CodexGatewayClient().downloadRemoteFile(
                 path: path,
+                threadID: threadID,
                 baseURL: gatewayURL,
                 token: gatewayToken
             )
@@ -1845,6 +1852,7 @@ struct JobStatusView: View {
                         JobEventRow(
                             event: event,
                             isExpanded: expandedEventIDs.contains(event.id),
+                            threadID: job.threadId,
                             gatewayURL: gatewayURL,
                             gatewayToken: gatewayToken
                         ) {
@@ -1863,6 +1871,7 @@ struct JobStatusView: View {
                     text: job.errorSummary,
                     font: .caption,
                     foregroundColor: .red,
+                    threadID: job.threadId,
                     gatewayURL: gatewayURL,
                     gatewayToken: gatewayToken
                 )
@@ -1942,6 +1951,7 @@ struct JobStatusHeader: View {
 struct JobEventRow: View {
     let event: CodexJobEvent
     let isExpanded: Bool
+    let threadID: String?
     let gatewayURL: String
     let gatewayToken: String
     let toggleExpansion: () -> Void
@@ -1974,6 +1984,7 @@ struct JobEventRow: View {
                         text: event.body,
                         font: event.kind == "message" ? .body : .caption,
                         foregroundColor: event.kind == "message" ? .primary : .secondary,
+                        threadID: threadID,
                         gatewayURL: gatewayURL,
                         gatewayToken: gatewayToken
                     )
@@ -4878,15 +4889,16 @@ struct CodexGatewayClient {
         )
     }
 
-    func downloadRemoteFile(path: String, baseURL: String, token: String) async throws -> URL {
-        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
-            throw GatewayError.invalidURL
-        }
+    func downloadRemoteFile(path: String, threadID: String, baseURL: String, token: String) async throws -> URL {
+        let root = try gatewayRootURL(from: baseURL)
         guard var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
             throw GatewayError.invalidURL
         }
         components.path = "/api/files/download"
-        components.queryItems = [URLQueryItem(name: "path", value: path)]
+        components.queryItems = [
+            URLQueryItem(name: "path", value: path),
+            URLQueryItem(name: "threadId", value: threadID),
+        ]
         guard let url = components.url else {
             throw GatewayError.invalidURL
         }

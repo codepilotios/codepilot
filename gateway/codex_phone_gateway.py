@@ -788,74 +788,7 @@ def is_image_attachment(path: Path, mime_type: str) -> bool:
     return path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 
-def cleanup_expired_uploads(
-    root: Path | None = None,
-    *,
-    now: float | None = None,
-    retention_seconds: int = UPLOAD_RETENTION_SECONDS,
-) -> int:
-    """Remove expired upload batches without following links outside the upload root."""
-    if retention_seconds <= 0:
-        raise ValueError("Upload retention must be positive")
-    root = DEFAULT_UPLOADS_DIR if root is None else root
-
-    try:
-        root_stat = root.lstat()
-    except FileNotFoundError:
-        return 0
-    if stat.S_ISLNK(root_stat.st_mode) or not stat.S_ISDIR(root_stat.st_mode):
-        return 0
-
-    cutoff = (time.time() if now is None else now) - retention_seconds
-    removed = 0
-    for thread_dir in root.iterdir():
-        try:
-            thread_stat = thread_dir.lstat()
-        except FileNotFoundError:
-            continue
-        if stat.S_ISLNK(thread_stat.st_mode) or not stat.S_ISDIR(thread_stat.st_mode):
-            continue
-
-        for upload_dir in thread_dir.iterdir():
-            try:
-                upload_stat = upload_dir.lstat()
-            except FileNotFoundError:
-                continue
-            if (
-                stat.S_ISLNK(upload_stat.st_mode)
-                or not stat.S_ISDIR(upload_stat.st_mode)
-                or upload_stat.st_mtime > cutoff
-            ):
-                continue
-            shutil.rmtree(upload_dir)
-            removed += 1
-
-        try:
-            thread_dir.rmdir()
-        except OSError:
-            pass
-    return removed
-
-
-def ensure_private_upload_directory(path: Path, *, parents: bool = False) -> None:
-    try:
-        path_stat = path.lstat()
-    except FileNotFoundError:
-        path.mkdir(mode=0o700, parents=parents)
-        path_stat = path.lstat()
-    if stat.S_ISLNK(path_stat.st_mode) or not stat.S_ISDIR(path_stat.st_mode):
-        raise RuntimeError("Upload path must be a real directory")
-    os.chmod(path, 0o700)
-
-
-def configured_download_roots() -> list[Path]:
-    roots = [DEFAULT_UPLOADS_DIR]
-    configured = os.environ.get("CODEPILOT_FILE_DOWNLOAD_ROOTS", "")
-    roots.extend(Path(value).expanduser() for value in configured.split(os.pathsep) if value.strip())
-    return [root.resolve(strict=False) for root in roots]
-
-
-def resolve_requested_file_path(raw_path: str, allowed_roots: list[Path] | None = None) -> Path:
+def resolve_requested_file_path(raw_path: str, allowed_base: Path | None = None) -> Path:
     value = str(raw_path or "").strip()
     if not value:
         raise ValueError("Missing file path")
@@ -883,6 +816,15 @@ def resolve_requested_file_path(raw_path: str, allowed_roots: list[Path] | None 
         raise LookupError(f"Not a file: {resolved}")
     if is_protected_gateway_path(resolved):
         raise PermissionError("Protected CodePilot files cannot be downloaded through the gateway")
+    if allowed_base is not None:
+        try:
+            resolved_base = allowed_base.expanduser().resolve(strict=True)
+        except FileNotFoundError as exc:
+            raise LookupError(f"Workspace not found: {allowed_base}") from exc
+        if not resolved_base.is_dir():
+            raise LookupError(f"Workspace is not a directory: {resolved_base}")
+        if not path_is_within(resolved, resolved_base):
+            raise PermissionError("Only files inside the thread workspace can be downloaded through the gateway")
 
     roots = configured_download_roots() if allowed_roots is None else allowed_roots
     normalized_roots = [root.expanduser().resolve(strict=False) for root in roots]
@@ -4881,7 +4823,16 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "files":
                 query = urllib.parse.parse_qs(parsed.query)
                 requested_path = (query.get("path") or [""])[0]
-                file_path = resolve_requested_file_path(requested_path)
+                thread_id = (query.get("threadId") or [""])[0].strip()
+                if not thread_id:
+                    raise PermissionError("Thread id is required to download files")
+                thread = self.state().get_thread(thread_id)
+                if not thread:
+                    raise LookupError("Thread not found")
+                workspace = str(thread.get("cwd") or "").strip()
+                if not workspace:
+                    raise PermissionError("Thread workspace is required to download files")
+                file_path = resolve_requested_file_path(requested_path, Path(workspace))
                 if parts[2] == "metadata":
                     json_response(self, 200, {"file": file_metadata(file_path)})
                     return

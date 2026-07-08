@@ -1,26 +1,16 @@
 # CodePilot Security Maintenance Notice
 
-Status reviewed: 2026-07-19. Public launch remains blocked on the maintainer-only items below; keep the documented fail-closed controls enabled.
+Maintainer intervention is needed before public launch for one remaining product-boundary decision.
 
-Detailed security findings are intentionally not stored in the public repository. Send vulnerability details, private identifiers, logs, and credential-related evidence through the maintainers' private security channel.
+## Localhost Proxy Capability URLs
 
-Before public launch, maintainer coordination is still required for:
+- Surface: `POST /api/local-web/sessions` requires the gateway bearer token, but the returned `/api/local-web/<session>/...` URL is fetched without bearer authentication.
+- Current behavior: a random, 24-byte URL-safe session id gates access for up to one hour and proxies only the selected loopback port.
+- Risk: anyone who obtains a live session URL can proxy GET requests to that loopback port through the public gateway until expiry.
+- Decision needed: decide whether this bearerless capability URL is acceptable for WebView compatibility, should use a shorter lifetime, or should move to an authenticated browser/proxy design.
 
-- Reviewing and resolving the open GitHub secret-scanning alert through the private security channel, including revocation or rotation where applicable.
-- A confidential review before any currently disabled privileged remote-access feature is re-enabled.
-- A credential and edge-access architecture review for the remotely reachable gateway.
-- Sanitizing historical private identifiers and commit metadata, followed by coordinated clone migration.
-- Enabling repository dependency alerts and reviewing the initial results.
-- Shipping pending credential-storage changes through an authorized build channel and rotating affected beta credentials.
+Local hardening already applied on this branch:
 
-3. Remote desktop viewing/control is not consistently bound to a trusted-device lease.
-   - Surface: `gateway/remote_desktop_gateway.py` forwards `/api/remote/frame` and `/api/remote/input` after gateway bearer auth; native handling is in `Sources/CodexAccountSwitcher/main.swift`.
-   - Current behavior: frame capture does not require a session lease, and native input validation only rejects replayed sequence numbers for the provided session id. The iOS remote desktop view also starts with a placeholder lease id before a signed lease flow.
-   - Risk: a leaked or phished gateway bearer token can expose screen contents and may allow input injection without the intended local Mac approval, trusted-device signature, and short-lived controller lease.
-   - Decision needed: block public remote desktop exposure until the iOS app obtains a signed lease, the gateway requires that lease for frame/input/signaling, and the native host validates the lease against `SessionLeaseStore`.
-
-Local hardening already applied in this branch:
-
-- Removed public embedded private identifier patterns from the privacy audit and made local denylist patterns opt-in via `CODEPILOT_PRIVACY_PATTERNS_FILE`.
-- Removed machine-specific default repository paths from local agent scripts.
-- Changed gateway-created Codex app-server threads and turns to use safe approval/sandbox settings unless dangerous mode is explicitly enabled.
+- Gateway file previews now require a thread id and only serve files inside that thread workspace.
+- Remote desktop frame capture and input injection are bound to an active trusted-device lease.
+- Privacy audit passes with no tracked private identifiers or secret-looking material.
