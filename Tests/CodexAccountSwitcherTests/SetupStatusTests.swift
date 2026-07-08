@@ -20,6 +20,17 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareOptional.statusLabel, "Optional")
     }
 
+    func testCloudflareMissingToolCopyDoesNotReadAsRequiredFailure() {
+        let row = CodePilotSetupRow(
+            title: "Cloudflare",
+            requirement: .cloudflareOptional,
+            detail: "Optional for remote iPhone access; install cloudflared to use Cloudflare."
+        )
+
+        XCTAssertEqual(row.requirement.statusLabel, "Optional")
+        XCTAssertTrue(row.detail.contains("remote iPhone access"))
+    }
+
     func testGatewayHealthProbeUsesPublicHealthWithoutBearerToken() {
         let request = CodePilotGatewayHealthProbe.request()
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))

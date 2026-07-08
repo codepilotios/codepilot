@@ -2605,8 +2605,8 @@ struct CodePilotSetupStatus {
         let cloudflareRequirement: CodePilotSetupRequirement
         let cloudflareDetail: String
         if cloudflared == nil {
-            cloudflareRequirement = .cloudflareMissing
-            cloudflareDetail = "Install cloudflared to enable remote iPhone access."
+            cloudflareRequirement = .cloudflareOptional
+            cloudflareDetail = "Optional for remote iPhone access; install cloudflared to use Cloudflare."
         } else if cloudflareMetadataExists() || cloudflareConfigExists() {
             cloudflareRequirement = .cloudflareReady
             cloudflareDetail = cloudflareReadyDetail(defaultPath: cloudflared)
