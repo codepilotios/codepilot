@@ -47,6 +47,15 @@ struct RemoteDesktopAPI {
         )
     }
 
+    func issueNonce(deviceID: String) async throws -> String {
+        let response: RemoteDesktopNonceResponse = try await request(
+            "POST",
+            path: "/api/remote/sessions/nonce",
+            body: ["deviceId": deviceID]
+        )
+        return response.nonce
+    }
+
     func startSession(deviceID: String, nonce: String, signature: Data) async throws -> RemoteDesktopLease {
         try await request(
             "POST",
@@ -81,13 +90,16 @@ struct RemoteDesktopAPI {
         return response.signals ?? []
     }
 
-    func frame() async throws -> Data {
+    func frame(sessionID: String) async throws -> Data {
         guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
             throw RemoteDesktopAPIError.invalidURL
         }
         let basePath = components.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         components.path = "/" + ([basePath, "api", "remote", "frame"].filter { !$0.isEmpty }.joined(separator: "/"))
-        components.queryItems = [URLQueryItem(name: "t", value: String(Date().timeIntervalSince1970))]
+        components.queryItems = [
+            URLQueryItem(name: "sessionId", value: sessionID),
+            URLQueryItem(name: "t", value: String(Date().timeIntervalSince1970))
+        ]
         guard let url = components.url else {
             throw RemoteDesktopAPIError.invalidURL
         }
@@ -184,6 +196,10 @@ struct RemotePeerSignal: Codable, Equatable {
 private struct RemoteSignalAcknowledgement: Decodable {
     let sequence: UInt64
     let signals: [RemotePeerSignal]?
+}
+
+private struct RemoteDesktopNonceResponse: Decodable {
+    let nonce: String
 }
 
 struct RemoteDesktopHostStatus: Codable, Equatable {

@@ -371,11 +371,20 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         }
         gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
 
-        status, payload = gateway.handle("GET", ["frame"], {}, None)
+        status, payload = gateway.handle("GET", ["frame"], {"sessionId": ["lease-1"]}, None)
 
         self.assertEqual(status, 200)
         self.assertEqual(payload["_raw"], b"\xff\xd8jpeg\xff\xd9")
         self.assertEqual(payload["_content_type"], "image/jpeg")
+        self.assertEqual(host.calls[-1], ("frame.capture", {"sessionId": "lease-1"}))
+
+    def test_frame_requires_session_id(self):
+        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient())
+
+        status, payload = gateway.handle("GET", ["frame"], {}, None)
+
+        self.assertEqual(status, 400)
+        self.assertEqual(payload, {"error": "invalid_identifier"})
 
     def test_input_forwards_validated_event_to_native_host(self):
         host = FakeNativeHostClient()

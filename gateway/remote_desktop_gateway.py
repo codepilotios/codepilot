@@ -233,7 +233,8 @@ class RemoteDesktopGateway:
             return 200, status
 
         if method == "GET" and parts == ["frame"]:
-            response = self.host_client.call("frame.capture", {})
+            session_id = _validate_identifier((query.get("sessionId") or [""])[0])
+            response = self.host_client.call("frame.capture", {"sessionId": session_id})
             status = int(response.get("status") or 500)
             error_code = response.get("errorCode")
             if status >= 400 or error_code:

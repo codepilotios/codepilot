@@ -22,9 +22,9 @@ final class RemotePeerConnection: NSObject, ObservableObject, RTCPeerConnectionD
     private var sessionID = ""
 
     @MainActor
-    func connect(api: RemoteDesktopAPI) async throws {
+    func connect(api: RemoteDesktopAPI, sessionID: String) async throws {
         disconnect()
-        sessionID = UUID().uuidString
+        self.sessionID = sessionID
         latencyText = "connecting"
 
         let status = try await api.status()

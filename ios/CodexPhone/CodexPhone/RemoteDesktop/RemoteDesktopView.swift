@@ -7,16 +7,18 @@ struct RemoteDesktopView: View {
         case pan
     }
 
-    let gatewayURL: String
-    let gatewayToken: String
+    let identity: SoftwareRemoteDeviceIdentity
     @Environment(\.dismiss) private var dismiss
     @FocusState private var keyboardFocused: Bool
     @StateObject private var peer = RemotePeerConnection()
-    @State private var session = RemoteDesktopSessionState(leaseID: "preview")
+    @AppStorage("gatewayURL") private var gatewayURL = ""
+    @AppStorage("gatewayToken") private var gatewayToken = ""
+    @State private var session: RemoteDesktopSessionState?
     @State private var mapper = RemoteInputMapper(sessionID: "preview")
     @State private var frameImage: UIImage?
     @State private var frameError: String?
     @State private var permissionWarning: String?
+    @State private var sessionTask: Task<Void, Never>?
     @State private var frameTask: Task<Void, Never>?
     @State private var webRTCTask: Task<Void, Never>?
     @State private var inputTask: Task<Void, Never>?
@@ -139,7 +141,7 @@ struct RemoteDesktopView: View {
                             interactionMode = interactionMode == .control ? .pan : .control
                         },
                         onDisconnect: {
-                            session.disconnect()
+                            session?.disconnect()
                             peer.disconnect()
                             dismiss()
                         }
@@ -159,23 +161,21 @@ struct RemoteDesktopView: View {
             }
             .ignoresSafeArea(edges: .bottom)
             .onAppear {
-                mapper = RemoteInputMapper(sessionID: UUID().uuidString)
-                peer.connect()
-                session.connected()
-                startFrameLoop()
-                startWebRTC()
+                startRemoteSession()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                session.enterBackground()
+                session?.enterBackground()
                 peer.suspend()
                 stopFrameLoop()
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-                session.enterForeground()
-                if !session.shouldRequireNewLease() {
+                session?.enterForeground()
+                if session?.shouldRequireNewLease() == false, let leaseID = session?.leaseID {
                     peer.connect()
-                    startFrameLoop()
-                    startWebRTC()
+                    startFrameLoop(sessionID: leaseID)
+                    startWebRTC(sessionID: leaseID)
+                } else {
+                    startRemoteSession()
                 }
             }
             .onReceive(peer.$videoTrack) { track in
@@ -188,6 +188,8 @@ struct RemoteDesktopView: View {
                 viewport.cursor = cursor
             }
             .onDisappear {
+                sessionTask?.cancel()
+                sessionTask = nil
                 stopFrameLoop()
                 stopWebRTC()
                 inputTask?.cancel()
@@ -206,14 +208,46 @@ struct RemoteDesktopView: View {
         }
     }
 
-    private func startFrameLoop() {
+    private func startRemoteSession() {
+        sessionTask?.cancel()
         stopFrameLoop()
-        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
-              !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        stopWebRTC()
+        guard let api = remoteDesktopAPI() else {
             frameError = "Gateway is not configured."
             return
         }
-        let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
+        frameError = nil
+        peer.connect()
+        sessionTask = Task {
+            do {
+                let nonce = try await api.issueNonce(deviceID: identity.deviceID)
+                let signature = try identity.sign(Data(nonce.utf8))
+                let lease = try await api.startSession(
+                    deviceID: identity.deviceID,
+                    nonce: nonce,
+                    signature: signature
+                )
+                await MainActor.run {
+                    session = RemoteDesktopSessionState(leaseID: lease.id)
+                    mapper = RemoteInputMapper(sessionID: lease.id)
+                    session?.connected()
+                    startFrameLoop(sessionID: lease.id)
+                    startWebRTC(sessionID: lease.id)
+                }
+            } catch {
+                await MainActor.run {
+                    frameError = "Session unavailable: \(Self.errorText(error))"
+                }
+            }
+        }
+    }
+
+    private func startFrameLoop(sessionID: String) {
+        stopFrameLoop()
+        guard let api = remoteDesktopAPI() else {
+            frameError = "Gateway is not configured."
+            return
+        }
         frameTask = Task {
             if let status = try? await api.status() {
                 await MainActor.run {
@@ -234,12 +268,12 @@ struct RemoteDesktopView: View {
             }
             while !Task.isCancelled {
                 do {
-                    let data = try await api.frame()
+                    let data = try await api.frame(sessionID: sessionID)
                     if let image = UIImage(data: data) {
                         await MainActor.run {
                             frameImage = image
                             frameError = nil
-                            session.connected()
+                            session?.connected()
                         }
                     }
                     try await Task.sleep(nanoseconds: 140_000_000)
@@ -253,15 +287,13 @@ struct RemoteDesktopView: View {
         }
     }
 
-    private func startWebRTC() {
+    private func startWebRTC(sessionID: String) {
         stopWebRTC()
-        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
-              !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard let api = remoteDesktopAPI() else { return }
         webRTCTask = Task {
             while !Task.isCancelled {
                 do {
-                    try await peer.connect(api: api)
+                    try await peer.connect(api: api, sessionID: sessionID)
                     await MainActor.run {
                         frameError = nil
                     }
@@ -287,13 +319,11 @@ struct RemoteDesktopView: View {
     }
 
     private func send(_ event: RemoteInputEvent) {
-        session.enqueueInput(event)
+        session?.enqueueInput(event)
         if peer.sendInput(event) {
             return
         }
-        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
-              !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard let api = remoteDesktopAPI() else { return }
         let previous = inputTask
         inputTask = Task {
             _ = await previous?.result
@@ -313,6 +343,14 @@ struct RemoteDesktopView: View {
                 }
             }
         }
+    }
+
+    private func remoteDesktopAPI() -> RemoteDesktopAPI? {
+        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
+        return RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     private func pasteClipboard() {

@@ -3280,6 +3280,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private lazy var macPeerConnection = MacPeerConnection { [weak self] event in
         guard let self else { return nil }
         let displayFrame = CGDisplayBounds(CGMainDisplayID())
+        try self.requireActiveRemoteDesktopLease(event.sessionId)
         try self.remoteInputInjector.handle(event, displayFrame: displayFrame)
         let cursor = CGEvent(source: nil)?.location ?? .zero
         return CGPoint(
@@ -3289,6 +3290,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
     private var remoteDesktopCoordinator: RemoteDesktopCoordinator?
     private var remoteDesktopSocketServer: RemoteDesktopSocketServer?
+    private var remoteSessionLeaseStore: SessionLeaseStore?
     private var statusItem: NSStatusItem!
     private let menu = NSMenu()
     private var setupWindowController: CodePilotSetupWindowController?
@@ -3302,10 +3304,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         statusItem.button?.title = "CodePilot"
         menu.delegate = self
         statusItem.menu = menu
-        if RemoteDesktopHostPolicy.isEnabled {
-            remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
-        }
-        if RemoteDesktopHostPolicy.isEnabled, let remoteDesktopCoordinator {
+        remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
+        if let remoteDesktopCoordinator {
+            remoteSessionLeaseStore = SessionLeaseStore { deviceID in
+                guard let device = remoteDesktopCoordinator.pairingStore.trustedDevice(id: deviceID) else {
+                    throw RemoteDesktopSecurityError.untrustedDevice
+                }
+                guard device.revokedAt == nil else {
+                    throw RemoteDesktopSecurityError.deviceRevoked
+                }
+            }
             do {
                 let server = RemoteDesktopSocketServer { [weak self, weak remoteDesktopCoordinator] request in
                     guard let self, let remoteDesktopCoordinator else {
@@ -3553,12 +3561,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 ])
 
             case "frame.capture":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let sessionID = try Self.remoteDesktopString(payload["sessionId"])
+                try requireActiveRemoteDesktopLease(sessionID)
                 let frame = try remoteFrameCaptureService.captureMainDisplayJPEG()
                 return HostRPCResponse(id: request.id, status: 200, payload: frame, errorCode: nil)
+
+            case "session.nonce":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                guard let device = coordinator.pairingStore.trustedDevice(id: deviceID) else {
+                    throw RemoteDesktopSecurityError.untrustedDevice
+                }
+                guard device.revokedAt == nil else {
+                    throw RemoteDesktopSecurityError.deviceRevoked
+                }
+                let nonce = try remoteDesktopLeaseStore().issueNonce(for: deviceID)
+                return try Self.remoteDesktopRPCJSON(request.id, ["nonce": nonce])
+
+            case "session.start":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let deviceID = try Self.remoteDesktopString(payload["deviceId"])
+                let nonce = try Self.remoteDesktopString(payload["nonce"])
+                let signature = try Self.remoteDesktopBase64(payload["signature"])
+                let proof = try coordinator.pairingStore.verifyNonce(
+                    deviceID: deviceID,
+                    nonce: nonce,
+                    signature: signature
+                )
+                let lease = try remoteDesktopLeaseStore().createLease(using: proof)
+                coordinator.registerActiveSession(deviceID: lease.deviceId, leaseID: lease.id)
+                return try Self.remoteDesktopRPCCodable(request.id, lease)
 
             case "session.signal":
                 let payload = try Self.remoteDesktopRPCPayload(request.payload)
                 let sessionID = try Self.remoteDesktopString(payload["sessionId"])
+                try requireActiveRemoteDesktopLease(sessionID)
                 let sequence = try Self.remoteDesktopUInt64(payload["sequence"])
                 let kindRaw = try Self.remoteDesktopString(payload["kind"])
                 guard let kind = MacPeerSignal.Kind(rawValue: kindRaw) else {
@@ -3593,6 +3631,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 )
 
             case "session.end":
+                let payload = try Self.remoteDesktopRPCPayload(request.payload)
+                let sessionID = try Self.remoteDesktopString(payload["sessionId"])
+                try requireActiveRemoteDesktopLease(sessionID)
+                remoteSessionLeaseStore?.endLease(leaseID: sessionID)
+                coordinator.emergencyDisconnect()
                 macPeerConnection.disconnect()
                 return try Self.remoteDesktopRPCJSON(request.id, ["ok": true])
 
@@ -3603,6 +3646,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
                 let decoder = JSONDecoder()
                 let event = try decoder.decode(RemoteInputEvent.self, from: request.payload)
+                try requireActiveRemoteDesktopLease(event.sessionId)
+                try remoteDesktopLeaseStore().validateSequence(event.sequence, for: event.sessionId)
                 let displayFrame = CGDisplayBounds(CGMainDisplayID())
                 try remoteInputInjector.handle(event, displayFrame: displayFrame)
                 let cursor = CGEvent(source: nil)?.location ?? .zero
@@ -3623,6 +3668,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 status: 400,
                 code: Self.remoteDesktopRPCErrorCode(error)
             )
+        }
+    }
+
+    private func remoteDesktopLeaseStore() throws -> SessionLeaseStore {
+        guard let remoteSessionLeaseStore else {
+            throw RemoteDesktopSecurityError.leaseUnknown
+        }
+        return remoteSessionLeaseStore
+    }
+
+    private func requireActiveRemoteDesktopLease(_ leaseID: String) throws {
+        guard let activeLease = try remoteDesktopLeaseStore().activeLease(),
+              activeLease.id == leaseID else {
+            throw RemoteDesktopSecurityError.leaseUnknown
         }
     }
 
@@ -3695,6 +3754,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return "invalid_signature"
         case .deviceRevoked, .untrustedDevice:
             return "untrusted_device"
+        case .leaseExpired:
+            return "session_expired"
+        case .leaseUnknown:
+            return "unauthorized"
+        case .sequenceReplay:
+            return "sequence_replay"
+        case .controllerBusy:
+            return "controller_busy"
         default:
             return "invalid_request"
         }
