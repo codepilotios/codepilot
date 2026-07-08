@@ -332,7 +332,7 @@ struct EmptySettingsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Connect to CodePilot", systemImage: "link.circle")
                         .font(.title2.weight(.semibold))
-                    Text("CodePilot connects to a Mac running the CodePilot gateway. Enter the gateway URL and bearer token from the Mac setup screen.")
+                    Text("CodePilot connects to a Mac running the CodePilot gateway. Enter the gateway URL and iOS connection token from the Mac setup screen.")
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
@@ -360,7 +360,7 @@ struct EmptySettingsView: View {
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
-                SecureField("Bearer token", text: $gatewayToken)
+                SecureField("iOS connection token", text: $gatewayToken)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
@@ -383,7 +383,7 @@ struct EmptySettingsView: View {
                         .foregroundStyle(connectionMessage.hasPrefix("Connected") ? .green : .orange)
                 }
             } footer: {
-                Text("The token is stored on the Mac at ~/.codex-account-switcher/phone-gateway-token.")
+                Text("Copy the token from the Mac setup screen. Do not share it in issue reports or screenshots.")
             }
         }
         .navigationTitle("CodePilot")
@@ -429,7 +429,7 @@ struct EmptySettingsView: View {
             case .invalidURL:
                 return "Enter a valid gateway URL."
             case .http(let status) where status == 401 || status == 403:
-                return "Invalid or expired bearer token."
+                return "Invalid or expired iOS connection token."
             case .http(let status) where status == 502:
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
@@ -1857,7 +1857,7 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
         return "Enter the gateway URL from the Mac setup screen."
     }
     if trimmedToken.isEmpty {
-        return "Enter the bearer token from the Mac setup screen."
+        return "Enter the iOS connection token from the Mac setup screen."
     }
     guard let url = try? gatewayRootURL(from: trimmedURL) else {
         return "Gateway URL must start with http:// or https:// and include a host."
@@ -2198,7 +2198,7 @@ struct SettingsView: View {
                     TextField("URL", text: $gatewayURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    SecureField("Bearer token", text: $gatewayToken)
+                    SecureField("iOS connection token", text: $gatewayToken)
                         .textInputAutocapitalization(.never)
                 }
 
@@ -2248,7 +2248,7 @@ struct SettingsView: View {
                     }
                     .disabled(!canTestConnection || isTestingConnection)
 
-                    Text("The token is stored on the Mac at ~/.codex-account-switcher/phone-gateway-token.")
+                    Text("Copy the token from the Mac setup screen. Do not share it in issue reports or screenshots.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -2304,7 +2304,7 @@ struct SettingsView: View {
             case .invalidURL:
                 return "Enter a valid gateway URL."
             case .http(let status) where status == 401 || status == 403:
-                return "Invalid or expired bearer token."
+                return "Invalid or expired iOS connection token."
             case .http(let status) where status == 502:
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):

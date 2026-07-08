@@ -61,7 +61,7 @@ final class RemoteDesktopTests: XCTestCase {
         )
         XCTAssertEqual(
             gatewaySetupValidationMessage(url: "https://codepilot.example.com", token: "", connectionKind: .cloudflare),
-            "Enter the bearer token from the Mac setup screen."
+            "Enter the iOS connection token from the Mac setup screen."
         )
     }
 

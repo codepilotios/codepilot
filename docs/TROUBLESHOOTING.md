@@ -18,7 +18,7 @@ Open **Setup CodePilot... > Cloudflare Remote Access** and review the details fo
 
 ## iPhone Shows 401 Or 403
 
-The saved gateway token is missing or wrong. Copy the current token from CodePilot on the Mac and update the iPhone connection.
+The saved iOS connection token is missing or wrong. Copy the current token from CodePilot on the Mac and update the iPhone connection.
 
 If the token was rotated, every connected iPhone must be updated.
 

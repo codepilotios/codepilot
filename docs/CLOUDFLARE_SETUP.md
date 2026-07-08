@@ -14,7 +14,7 @@ The wizard explains and can configure:
 - A temporary TryCloudflare URL for testing without a domain.
 - A macOS LaunchAgent that keeps the tunnel running.
 
-CodePilot does not open inbound ports. Cloudflare Tunnel makes outbound connections to Cloudflare. The iPhone app still needs the CodePilot gateway token.
+CodePilot does not open inbound ports. Cloudflare Tunnel makes outbound connections to Cloudflare. The iPhone app still needs the iOS connection token from the Mac setup screen.
 
 ## Permanent Hostname
 

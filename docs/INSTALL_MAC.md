@@ -82,13 +82,13 @@ http://127.0.0.1:18790
 
 That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly; use Cloudflare remote access for the default setup, or deliberately start the gateway on a LAN address before using the iOS **Same Network** option.
 
-The bearer token is stored at:
+Use **Setup CodePilot...** to copy the iOS connection token into the iPhone app. For advanced troubleshooting, the token is stored at:
 
 ```text
 ~/.codex-account-switcher/phone-gateway-token
 ```
 
-Copy this token into the iOS app connection screen. Do not share it in issue reports or screenshots.
+Do not share this token in issue reports or screenshots.
 
 ## Remote iPhone Access
 

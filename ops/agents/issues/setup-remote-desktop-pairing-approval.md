@@ -8,7 +8,7 @@ Remote Desktop pairing currently completes from the iOS flow after the device si
 
 ## Reproduction
 
-1. Configure the iOS app with a valid gateway URL and bearer token.
+1. Configure the iOS app with a valid gateway URL and iOS connection token.
 2. Open **Remote Desktop**.
 3. Tap **Start Pairing**.
 
