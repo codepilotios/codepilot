@@ -2584,7 +2584,7 @@ enum CodePilotGatewayHealthProbe {
     }
 }
 
-private struct CodePilotSetupStatus {
+struct CodePilotSetupStatus {
     let rows: [CodePilotSetupRow]
 
     static func load() -> CodePilotSetupStatus {
@@ -2614,6 +2614,7 @@ private struct CodePilotSetupStatus {
             cloudflareRequirement = .cloudflareNeedsConfiguration
             cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
         }
+        let gatewayRequirement = gatewayHealthRequirement()
         return CodePilotSetupStatus(rows: [
             CodePilotSetupRow(
                 title: "Codex CLI",
@@ -2637,8 +2638,8 @@ private struct CodePilotSetupStatus {
             ),
             CodePilotSetupRow(
                 title: "Gateway",
-                requirement: gatewayHealthRequirement(),
-                detail: gatewayHealthDetail()
+                requirement: gatewayRequirement,
+                detail: gatewayHealthDetail(for: gatewayRequirement)
             ),
             CodePilotSetupRow(
                 title: "Cloudflare",
@@ -2701,10 +2702,10 @@ private struct CodePilotSetupStatus {
         return result
     }
 
-    private static func gatewayHealthDetail() -> String {
-        gatewayHealthRequirement() == .gatewayRunning
+    static func gatewayHealthDetail(for requirement: CodePilotSetupRequirement) -> String {
+        requirement == .gatewayRunning
             ? "Reachable on 127.0.0.1:18790"
-            : "Not reachable on 127.0.0.1:18790"
+            : "Start or restart the gateway from the setup window"
     }
 
     private static func cloudflareMetadataExists() -> Bool {

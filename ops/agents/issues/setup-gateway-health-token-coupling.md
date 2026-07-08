@@ -23,3 +23,5 @@ The setup checklist reported the gateway as stopped because the health probe req
 ## Local Audit Fix
 
 The `agent/setup-audit` branch now probes `/api/health` without an `Authorization` header and only marks the gateway ready when the public health JSON reports `gateway.running: true`.
+
+This audit pass also reuses one gateway health result per setup refresh and changes the stopped detail from a repeated local endpoint to the recovery action: start or restart the gateway from the setup window.

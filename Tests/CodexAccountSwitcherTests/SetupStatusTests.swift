@@ -31,4 +31,15 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: stoppedPayload), .gatewayStopped)
         XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: Data("not json".utf8)), .gatewayStopped)
     }
+
+    func testGatewayHealthDetailGivesRecoveryActionWhenStopped() {
+        XCTAssertEqual(
+            CodePilotSetupStatus.gatewayHealthDetail(for: .gatewayStopped),
+            "Start or restart the gateway from the setup window"
+        )
+        XCTAssertEqual(
+            CodePilotSetupStatus.gatewayHealthDetail(for: .gatewayRunning),
+            "Reachable on 127.0.0.1:18790"
+        )
+    }
 }
