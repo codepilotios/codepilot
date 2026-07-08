@@ -81,10 +81,18 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertNil(gatewaySetupValidationMessage(url: "https://codepilot.example.com", token: "token", connectionKind: .cloudflare))
     }
 
+    func testGatewaySetupValidationRejectsLoopbackForCloudflare() {
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://127.0.0.1:18790", token: "token", connectionKind: .cloudflare),
+            "Cloudflare needs the public tunnel URL from the Mac setup screen, not localhost or 127.0.0.1."
+        )
+    }
+
     func testGatewaySetupCompletenessRequiresValidURLAndToken() {
         XCTAssertFalse(isGatewaySetupComplete(url: "", token: "token", connectionKind: .cloudflare))
         XCTAssertFalse(isGatewaySetupComplete(url: "https://codepilot.example.com", token: "", connectionKind: .cloudflare))
         XCTAssertFalse(isGatewaySetupComplete(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local))
+        XCTAssertFalse(isGatewaySetupComplete(url: "https://127.0.0.1:18790", token: "token", connectionKind: .cloudflare))
         XCTAssertTrue(isGatewaySetupComplete(url: "https://codepilot.example.com", token: "token", connectionKind: .cloudflare))
     }
 
