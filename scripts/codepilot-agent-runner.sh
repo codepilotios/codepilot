@@ -10,6 +10,7 @@ WORKTREE_ROOT="$STATE_DIR/worktrees"
 THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
 CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-}"
+AGENT_TIMEOUT_SECONDS="${CODEPILOT_AGENT_TIMEOUT_SECONDS:-7200}"
 GUARD_BIN="$ROOT/scripts/agent-guard-bin"
 PUBLIC_AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-launch}"
 
@@ -148,15 +149,34 @@ escalation only when maintainer intervention is genuinely required.
 EOF
 )
 
+prompt_file="$(mktemp "${TMPDIR:-/tmp}/codepilot-agent-prompt.XXXXXX")"
+trap 'rm -f "$prompt_file" 2>/dev/null || true; rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
+
 {
   printf '%s\n\n' "$PUBLIC_WRITE_POLICY"
   cat "$PROMPT"
-} | "$CODEX_BIN" exec \
+} > "$prompt_file"
+
+"$CODEX_BIN" exec \
     --cd "$PWD" \
     "${model_args[@]}" \
     --config "model_reasoning_effort=\"$REASONING_EFFORT\"" \
     --sandbox danger-full-access \
-    -
+    - < "$prompt_file" &
+codex_pid="$!"
+deadline=$((SECONDS + AGENT_TIMEOUT_SECONDS))
+while kill -0 "$codex_pid" 2>/dev/null; do
+  if (( SECONDS >= deadline )); then
+    echo "CodePilot agent timed out after ${AGENT_TIMEOUT_SECONDS}s: $JOB" >&2
+    kill -TERM "$codex_pid" 2>/dev/null || true
+    sleep 10
+    kill -KILL "$codex_pid" 2>/dev/null || true
+    wait "$codex_pid" 2>/dev/null || true
+    exit 124
+  fi
+  sleep 5
+done
+wait "$codex_pid"
 
 fi
 
