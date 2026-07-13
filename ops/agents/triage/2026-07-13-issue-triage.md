@@ -37,3 +37,13 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
 
 - OTA build and public OTA asset verification are still required for iOS changes, but were not run because this unattended policy prohibits non-GitHub external system mutation.
 - Closing stale GitHub issues or draft PRs remains maintainer cleanup; this policy allows creating issues, branches, commits, pushes, and draft PRs, but does not explicitly allow closing existing public GitHub items.
+
+## Current Sweep
+
+- Open issue inventory rechecked: #2, #3, and #8 remain the only open issues.
+- Proposed labels remain unchanged:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- Draft PR #19 for this branch is open and mergeable.
+- No new public GitHub write was made in this sweep.
