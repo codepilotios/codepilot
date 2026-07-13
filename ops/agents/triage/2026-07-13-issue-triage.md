@@ -58,7 +58,7 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
   - #2: `setup`, `ios`, `gateway`, `severity: medium`.
   - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
   - #8: `documentation`, `severity: low`.
-- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open, cleanly mergeable, and its `Test and Audit` check is passing.
+- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open; its previous `Test and Audit` check passed before this note refresh, and the new check was pending after push.
 - Draft PR #16 for the screenshot manifest remains open, cleanly mergeable, and its `Test and Audit` check is passing.
 - Draft PRs #15, #18, and #20 remain open and merge-conflicted; no issue-triage-owned public write was made to them in this sweep.
 - No new reproduction attempt was needed because no new actionable bug reports were filed.
@@ -72,7 +72,7 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
   - #2: `setup`, `ios`, `gateway`, `severity: medium`.
   - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
   - #8: `documentation`, `severity: low`.
-- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open and cleanly mergeable.
+- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open; after this note refresh, GitHub reported the new `Test and Audit` check in progress.
 - Draft PR #16 for `agent/issue-8-screenshot-plan` remains open and cleanly mergeable.
 - Draft PRs #15, #18, and #20 remain open and merge-conflicted; no issue-triage-owned follow-up was required.
 - No new reproduction attempt was needed because no new actionable bug reports were filed.
@@ -86,7 +86,7 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
   - #2: `setup`, `ios`, `gateway`, `severity: medium`.
   - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
   - #8: `documentation`, `severity: low`.
-- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open, cleanly mergeable, and its `Test and Audit` check is passing.
+- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open; its previous `Test and Audit` check passed before this note refresh, and the new check was pending after push.
 - Draft PR #16 for `agent/issue-8-screenshot-plan` remains open, cleanly mergeable, and its `Test and Audit` check is passing.
 - Draft PRs #15, #18, and #20 remain open and merge-conflicted; no issue-triage-owned action was required.
 - No new reproduction attempt was needed because no new actionable bug reports were filed.
