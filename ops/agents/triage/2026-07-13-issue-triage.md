@@ -45,5 +45,7 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
   - #2: `setup`, `ios`, `gateway`, `severity: medium`.
   - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
   - #8: `documentation`, `severity: low`.
-- Draft PR #19 for this branch is open and mergeable.
-- No new public GitHub write was made in this sweep.
+- Issue #8 has maintainer approval to capture and publish a sanitized demo-only screenshot set, but the screenshot-manifest work is already isolated in draft PR #16 (`agent/issue-8-screenshot-plan`), which remains open, cleanly mergeable, and has a passing `Test and Audit` check.
+- Draft PR #19 for this branch remains open and mergeable.
+- Draft PR #20 (`agent/setup-audit`) is open and merge-conflicted; that is setup-audit scope, not new issue-triage scope.
+- No new public GitHub issue or PR write was made in this sweep.
