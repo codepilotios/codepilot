@@ -48,7 +48,7 @@ if not updated:
     out.append(line)
 
 env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
-os.chmod(env_path, 0o600)
+env_path.chmod(0o600)
 PY
 
 echo "Saved FASTLANE_SESSION to $ENV_FILE"

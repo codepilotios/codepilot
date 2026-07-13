@@ -8,15 +8,9 @@ The beta is focused on practical workflows for AI coding users:
 
 - See active Codex usage, reset timing, available reset credits, and account status from the Mac and iPhone.
 - Switch saved Codex account profiles after active turns finish.
-- Connect the iPhone app to the Mac gateway through a user-owned Cloudflare Tunnel during the public beta.
-- Upload files, inspect threads, steer or stop turns where supported, and receive turn-finished notifications when APNs is configured for the gateway.
-- Open loopback web links from Codex output in the iPhone app through the authenticated Mac gateway.
-
-## Beta Access
-
-The Mac app currently builds from source on macOS 13 or later. The iPhone companion requires iOS 17 or later and access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
-
-Start with the [Mac installation guide](INSTALL_MAC.md). If you already have an approved iPhone beta build, continue with the [iOS installation guide](INSTALL_IOS.md).
+- Connect the iPhone app through a user-owned Cloudflare Tunnel during the public beta.
+- Upload files, inspect threads, steer or stop turns where supported, and receive turn-finished notifications.
+- Use remote desktop features only after pairing and macOS permission checks.
 
 CodePilot is source-available for noncommercial use. It is not OSI open source. See the repository license files before redistributing or using it commercially.
 

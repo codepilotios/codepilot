@@ -568,6 +568,7 @@ final class CodexAccountSwitcher {
                     try fileManager.removeItem(at: settings.loginBackupAuth)
                 }
                 try fileManager.copyItem(at: settings.activeAuth, to: settings.loginBackupAuth)
+                try enforceOwnerOnlyFilePermissions(settings.loginBackupAuth)
                 try fileManager.removeItem(at: settings.activeAuth)
             }
             loginCapturePending = true
@@ -1178,6 +1179,8 @@ final class CodexAccountSwitcher {
     private func createFolders() {
         try? fileManager.createDirectory(at: settings.accountsDir, withIntermediateDirectories: true)
         try? fileManager.createDirectory(at: settings.backupsDir, withIntermediateDirectories: true)
+        try? fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: settings.accountsDir.path)
+        try? fileManager.setAttributes([.posixPermissions: 0o700], ofItemAtPath: settings.backupsDir.path)
     }
 
     private func recoverPendingLoginCapture() {
@@ -1537,6 +1540,11 @@ final class CodexAccountSwitcher {
         let active = activeAccountName().replacingOccurrences(of: "/", with: "_")
         let backup = settings.backupsDir.appendingPathComponent("\(stamp)-\(active)-auth.json")
         try fileManager.copyItem(at: settings.activeAuth, to: backup)
+        try enforceOwnerOnlyFilePermissions(backup)
+    }
+
+    private func enforceOwnerOnlyFilePermissions(_ url: URL) throws {
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
 
     private func appendAudit(_ line: String) {
