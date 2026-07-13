@@ -37,6 +37,8 @@ final class RemoteDesktopTests: XCTestCase {
 
     func testGatewayConnectionKindUsesUserFacingTitles() {
         XCTAssertEqual(GatewayConnectionKind.publicBetaCases, [.cloudflare])
+        XCTAssertEqual(GatewayConnectionKind.selectableCases, GatewayConnectionKind.publicBetaCases)
+        XCTAssertEqual(GatewayConnectionKind.defaultPublicBetaCase, .cloudflare)
         XCTAssertEqual(GatewayConnectionKind.local.title, "Same Network")
         XCTAssertEqual(GatewayConnectionKind.cloudflare.title, "Cloudflare")
         XCTAssertTrue(GatewayConnectionKind.local.isPublicBetaAvailable == false)
