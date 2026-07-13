@@ -49,3 +49,17 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
 - Draft PR #19 for this branch remains open and mergeable.
 - Draft PR #20 (`agent/setup-audit`) is open and merge-conflicted; that is setup-audit scope, not new issue-triage scope.
 - No new public GitHub issue or PR write was made in this sweep.
+
+## Launch-Autonomy Sweep
+
+- Open issue inventory rechecked again on 2026-07-13: #2, #3, and #8 remain the only open issues.
+- No new issue comments or label changes were found after the 2026-07-03 maintainer decisions on #2, #3, and #8.
+- Proposed labels remain unchanged:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open, cleanly mergeable, and its `Test and Audit` check is passing.
+- Draft PR #16 for the screenshot manifest remains open, cleanly mergeable, and its `Test and Audit` check is passing.
+- Draft PRs #15, #18, and #20 remain open and merge-conflicted; no issue-triage-owned public write was made to them in this sweep.
+- No new reproduction attempt was needed because no new actionable bug reports were filed.
+- No new public GitHub issue, comment, label, branch push, or PR write was made in this sweep.
