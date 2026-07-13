@@ -63,3 +63,17 @@ Remote write policy: public GitHub writes are allowed only after privacy audit a
 - Draft PRs #15, #18, and #20 remain open and merge-conflicted; no issue-triage-owned public write was made to them in this sweep.
 - No new reproduction attempt was needed because no new actionable bug reports were filed.
 - No new public GitHub issue, comment, label, branch push, or PR write was made in this sweep.
+
+## Unattended Sweep
+
+- Open issue inventory rechecked on 2026-07-13: #2, #3, and #8 remain the only open issues.
+- Issue bodies and comments were reviewed; no new comments or labels appeared after the 2026-07-03 maintainer decisions.
+- Proposed labels remain unchanged:
+  - #2: `setup`, `ios`, `gateway`, `severity: medium`.
+  - #3: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - #8: `documentation`, `severity: low`.
+- Draft PR #19 for `agent/issue-triage-2026-07-08` remains open and cleanly mergeable.
+- Draft PR #16 for `agent/issue-8-screenshot-plan` remains open and cleanly mergeable.
+- Draft PRs #15, #18, and #20 remain open and merge-conflicted; no issue-triage-owned follow-up was required.
+- No new reproduction attempt was needed because no new actionable bug reports were filed.
+- No public GitHub issue, comment, label, branch push, or PR write was made in this sweep.
