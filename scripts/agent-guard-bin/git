@@ -5,6 +5,30 @@ REAL_GIT="${CODEPILOT_AGENT_REAL_GIT:-/usr/bin/git}"
 ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
 AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
 
+current_branch() {
+  "$REAL_GIT" branch --show-current 2>/dev/null || true
+}
+
+case "${1:-}" in
+  commit|merge|rebase|cherry-pick|reset)
+    branch="$(current_branch)"
+    if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+      echo "CodePilot agent guard blocked git $1 on protected branch '$branch'." >&2
+      exit 77
+    fi
+    ;;
+  checkout|switch)
+    for arg in "$@"; do
+      case "$arg" in
+        main|master|origin/main|origin/master)
+          echo "CodePilot agent guard blocked switching to protected branch '$arg'." >&2
+          exit 77
+          ;;
+      esac
+    done
+    ;;
+esac
+
 if [[ "${1:-}" == "push" ]]; then
   if [[ "$AUTONOMY" == "launch" ]]; then
     for arg in "$@"; do

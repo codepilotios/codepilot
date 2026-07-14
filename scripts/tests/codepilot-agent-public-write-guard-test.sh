@@ -17,6 +17,10 @@ EOF
 
 cat > "$TMP_ROOT/git" <<'EOF'
 #!/bin/zsh
+if [[ "$1" == "branch" && "$2" == "--show-current" ]]; then
+  printf '%s\n' "${CODEPILOT_FAKE_GIT_BRANCH:-agent/test}"
+  exit 0
+fi
 printf '%s\n' "$@" > "$CODEPILOT_GUARD_CAPTURE"
 EOF
 
@@ -45,6 +49,16 @@ fi
 
 "$GUARD_BIN/git" status --short
 grep -qx 'status' "$TMP_ROOT/capture"
+
+if CODEPILOT_FAKE_GIT_BRANCH="main" "$GUARD_BIN/git" commit -m unsafe; then
+  echo "Guard allowed git commit on main" >&2
+  exit 1
+fi
+
+if CODEPILOT_FAKE_GIT_BRANCH="agent/test" "$GUARD_BIN/git" switch main; then
+  echo "Guard allowed switching to main" >&2
+  exit 1
+fi
 
 cat > "$TMP_ROOT/fastlane" <<'EOF'
 #!/bin/zsh

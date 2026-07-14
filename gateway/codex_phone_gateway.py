@@ -40,7 +40,7 @@ DEFAULT_UPLOADS_DIR = DEFAULT_SWITCHER_HOME / "phone-uploads"
 DEFAULT_THREAD_MESSAGE_CACHE_DIR = DEFAULT_SWITCHER_HOME / "phone-thread-message-cache"
 DEFAULT_NOTIFICATION_DEVICES_FILE = DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
 DEFAULT_LIVE_ACTIVITIES_FILE = DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
-DEFAULT_CODEX = Path("/Applications/Codex.app/Contents/Resources/codex")
+DEFAULT_CODEX = Path("/Applications/ChatGPT.app/Contents/Resources/codex")
 CODEX_CHILD_PATH_PREFIXES = (
     "/opt/homebrew/bin",
     "/opt/homebrew/sbin",
@@ -203,6 +203,7 @@ class CodexAppServerClient:
             self.reader_thread = None
 
     def thread_start(self, cwd: str | None = None, reasoning_effort: str | None = None) -> dict:
+        reasoning_effort = codex_app_server_reasoning_effort(reasoning_effort)
         params = {
             "cwd": cwd,
             "approvalPolicy": "never" if self.allow_dangerous else "on-request",
@@ -245,6 +246,7 @@ class CodexAppServerClient:
         })
 
     def turn_start(self, thread_id: str, text: str, reasoning_effort: str | None = None) -> dict:
+        reasoning_effort = codex_app_server_reasoning_effort(reasoning_effort)
         params = {
             "threadId": thread_id,
             "input": [self.text_input(text)],
@@ -1837,6 +1839,13 @@ def normalized_reasoning_effort(value) -> str | None:
         return None
     if effort not in VALID_REASONING_EFFORTS:
         raise ValueError("Reasoning effort must be one of: none, minimal, low, medium, high, xhigh")
+    return effort
+
+
+def codex_app_server_reasoning_effort(value: str | None) -> str | None:
+    effort = normalized_reasoning_effort(value)
+    if effort in {"none", "minimal"}:
+        return "low"
     return effort
 
 

@@ -525,7 +525,27 @@ class AppServerClientTests(unittest.TestCase):
         turn = sent[2]
 
         self.assertEqual(turn["method"], "turn/start")
-        self.assertEqual(turn["params"]["effort"], "minimal")
+        self.assertEqual(turn["params"]["effort"], "low")
+
+    def test_thread_start_maps_minimal_reasoning_effort_to_low(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "start-id"]).__next__,
+        )
+
+        client.start()
+        client.thread_start("/tmp/workspace", reasoning_effort="minimal")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        start = sent[2]
+
+        self.assertEqual(start["method"], "thread/start")
+        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "low"})
 
     def test_thread_resume_sends_thread_id(self):
         process = FakeAppServerProcess([
