@@ -24,15 +24,30 @@ mkdir -p "$STATE_DIR/last-run"
 
 now="$(date +%s)"
 
-jobs=(
-  "health-watch:3600"
-  "issue-triage:7200"
-  "setup-audit:86400"
-  "release-readiness:86400"
-  "presence-maintenance:604800"
-  "community-drafts:604800"
-  "security-scan:604800"
-)
+if [[ "${CODEPILOT_AGENT_CONTINUOUS:-0}" == "1" ]]; then
+  jobs=(
+    "health-watch:300"
+    "issue-triage:300"
+    "setup-audit:600"
+    "release-readiness:600"
+    "presence-maintenance:900"
+    "security-scan:900"
+    "community-drafts:1800"
+  )
+else
+  jobs=(
+    "health-watch:3600"
+    "issue-triage:7200"
+    "setup-audit:86400"
+    "release-readiness:86400"
+    "presence-maintenance:604800"
+    "community-drafts:604800"
+    "security-scan:604800"
+  )
+fi
+
+selected_job=""
+selected_score=-1
 
 for entry in "${jobs[@]}"; do
   job="${entry%%:*}"
@@ -43,9 +58,17 @@ for entry in "${jobs[@]}"; do
     last="$(cat "$stamp_file" 2>/dev/null || echo 0)"
   fi
   if (( now - last >= interval )); then
-    printf '%s\n' "$now" > "$stamp_file"
-    exec "$RUNNER" "$job"
+    score=$(( now - last - interval ))
+    if (( score > selected_score )); then
+      selected_score="$score"
+      selected_job="$job"
+    fi
   fi
 done
+
+if [[ -n "$selected_job" ]]; then
+  printf '%s\n' "$now" > "$STATE_DIR/last-run/$selected_job"
+  exec "$RUNNER" "$selected_job"
+fi
 
 echo "No CodePilot agent jobs due."
