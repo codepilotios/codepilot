@@ -24,7 +24,7 @@ struct RemotePairingView: View {
 
                 Section {
                     NavigationLink {
-                        RemoteDesktopView(identity: identity)
+                        RemoteDesktopView(identity: identity, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                     } label: {
                         Label("Start Session", systemImage: "play.rectangle")
                     }

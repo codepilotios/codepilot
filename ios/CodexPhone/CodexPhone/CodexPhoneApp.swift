@@ -5,11 +5,100 @@ import Network
 import PhotosUI
 import QuickLook
 import SafariServices
+import Security
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
 import WebKit
+
+enum SecureGatewayTokenStore {
+    private static let service = "io.codepilot.gateway"
+    private static let account = "gatewayToken"
+    private static let legacyDefaultsKey = "gatewayToken"
+
+    static func read() -> String {
+        var query = baseQuery()
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let token = String(data: data, encoding: .utf8) else {
+            return ""
+        }
+        return token
+    }
+
+    static func save(_ token: String) {
+        let token = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
+        guard !token.isEmpty else {
+            delete()
+            return
+        }
+
+        let data = Data(token.utf8)
+        let attributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+        ]
+        let status = SecItemUpdate(baseQuery() as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            var query = baseQuery()
+            query[kSecValueData as String] = data
+            query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            SecItemAdd(query as CFDictionary, nil)
+        }
+    }
+
+    @discardableResult
+    static func migrateLegacyTokenIfNeeded() -> String {
+        let current = read()
+        let legacy = UserDefaults.standard.string(forKey: legacyDefaultsKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if current.isEmpty, !legacy.isEmpty {
+            save(legacy)
+            return legacy
+        }
+        UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
+        return current
+    }
+
+    private static func delete() {
+        SecItemDelete(baseQuery() as CFDictionary)
+    }
+
+    private static func baseQuery() -> [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+    }
+}
+
+@MainActor
+final class GatewayCredentials: ObservableObject {
+    @Published var gatewayURL: String {
+        didSet {
+            UserDefaults.standard.set(gatewayURL, forKey: "gatewayURL")
+        }
+    }
+
+    @Published var gatewayToken: String {
+        didSet {
+            SecureGatewayTokenStore.save(gatewayToken)
+        }
+    }
+
+    init() {
+        SecureGatewayTokenStore.migrateLegacyTokenIfNeeded()
+        gatewayURL = UserDefaults.standard.string(forKey: "gatewayURL") ?? ""
+        gatewayToken = SecureGatewayTokenStore.read()
+    }
+}
 
 @main
 struct CodexPhoneApp: App {
@@ -31,6 +120,8 @@ struct CodexPhoneApp: App {
             switch arguments[index] {
             case "--gateway-url" where arguments.indices.contains(index + 1):
                 UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayURL")
+            case "--gateway-token" where arguments.indices.contains(index + 1):
+                SecureGatewayTokenStore.save(arguments[index + 1])
             default:
                 break
             }
@@ -112,8 +203,6 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
     @StateObject private var credentials = GatewayCredentials()
-    @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
@@ -207,12 +296,7 @@ struct RootView: View {
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(
-                    gatewayURL: gatewayURLBinding,
-                    gatewayToken: gatewayTokenBinding,
-                    model: model,
-                    liveActivityError: $liveActivityError
-                )
+                SettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding, model: model)
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showingStatus) {
@@ -315,6 +399,28 @@ struct RootView: View {
         } catch {
             liveActivityError = "The credit Live Activity could not be updated: \(error.localizedDescription)"
         }
+    }
+
+    private var gatewayURL: String {
+        credentials.gatewayURL
+    }
+
+    private var gatewayToken: String {
+        credentials.gatewayToken
+    }
+
+    private var gatewayURLBinding: Binding<String> {
+        Binding(
+            get: { credentials.gatewayURL },
+            set: { credentials.gatewayURL = $0 }
+        )
+    }
+
+    private var gatewayTokenBinding: Binding<String> {
+        Binding(
+            get: { credentials.gatewayToken },
+            set: { credentials.gatewayToken = $0 }
+        )
     }
 }
 

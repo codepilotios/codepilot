@@ -12,6 +12,7 @@ Maintainer intervention is needed before public launch for one remaining product
 Validated scan outcome:
 
 - No live secrets, private keys, private email addresses, or machine-specific absolute paths were found in tracked source/docs during the configured privacy audit.
+- iOS gateway bearer token storage was hardened during this scan: the token now migrates from legacy UserDefaults storage into a Keychain generic password item and is removed from UserDefaults.
 - Gateway file previews require a thread id and only serve files inside that thread workspace.
 - Remote desktop frame capture and input injection are bound to an active trusted-device lease.
 - Auth backup files and Fastlane session env files now enforce owner-only file permissions on write.
