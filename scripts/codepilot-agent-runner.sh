@@ -12,7 +12,7 @@ CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"
 CODEX_MODEL="${CODEPILOT_AGENT_MODEL:-}"
 AGENT_TIMEOUT_SECONDS="${CODEPILOT_AGENT_TIMEOUT_SECONDS:-7200}"
 GUARD_BIN="$ROOT/scripts/agent-guard-bin"
-PUBLIC_AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-launch}"
+PUBLIC_AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-review}"
 
 if [[ -z "$JOB" ]]; then
   echo "Usage: $0 <job-name>" >&2
@@ -61,6 +61,13 @@ cd "$ROOT"
 
 WORKTREE="$WORKTREE_ROOT/$JOB"
 BRANCH="agent/$JOB"
+
+root_realpath="$(cd "$ROOT" && pwd -P)"
+worktree_parent_realpath="$(mkdir -p "$WORKTREE_ROOT" && cd "$WORKTREE_ROOT" && pwd -P)"
+if [[ "$worktree_parent_realpath" == "$root_realpath" || "$worktree_parent_realpath" == "$root_realpath"/* ]]; then
+  echo "Refusing to run agents with worktrees inside the production checkout: $WORKTREE_ROOT" >&2
+  exit 78
+fi
 
 if [[ ! -d "$WORKTREE/.git" && ! -f "$WORKTREE/.git" ]]; then
   git worktree prune
@@ -125,27 +132,26 @@ fi
 PUBLIC_WRITE_POLICY=$(cat <<'EOF'
 # Public write policy
 
-Autonomy mode: launch.
+Autonomy mode: review by default.
 
 Use the public CodePilot identity. Do not mention private names, private email
 addresses, personal hosts, local usernames, machine-specific paths, tokens, or
 private screenshots in commits, issues, pull requests, docs, metadata, logs, or
 escalations.
 
-This unattended run may inspect public systems, create local branches and
-commits, push `agent/*` branches, create GitHub issues, and open draft GitHub
-pull requests when that directly advances public launch readiness. Run the
-privacy audit before any public write.
+This unattended run may inspect public systems and create local commits only in
+its isolated agent worktree. It MUST NOT edit the production checkout, push
+branches, create GitHub issues, open pull requests, merge pull requests, publish
+releases, submit App Store review, upload TestFlight/App Store builds, alter
+pricing or legal metadata, create accounts, post publicly on social/community
+sites, change credentials, or mutate non-GitHub external systems.
 
-This unattended run MUST NOT merge pull requests, publish releases, submit App
-Store review, upload TestFlight/App Store builds, alter pricing or legal
-metadata, create accounts, post publicly on social/community sites, change
-credentials, or mutate non-GitHub external systems. This applies to shell
-commands, connectors, apps, browsers, HTTP APIs, and any other tool. Do not
-bypass the command guards or invoke absolute binary paths to evade them.
+This applies to shell commands, connectors, apps, browsers, HTTP APIs, and any
+other tool. Do not bypass the command guards or invoke absolute binary paths to
+evade them.
 
-Prepare TestFlight/App Store metadata as local files or draft PRs only. Write an
-escalation only when maintainer intervention is genuinely required.
+Prepare TestFlight/App Store metadata as local files only. Write an escalation
+only when maintainer intervention is genuinely required.
 EOF
 )
 

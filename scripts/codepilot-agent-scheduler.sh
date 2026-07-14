@@ -6,6 +6,11 @@ STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 RUNNER="$ROOT/scripts/codepilot-agent-runner.sh"
 LOCK_DIR="${TMPDIR:-/tmp}/codepilot-agent-scheduler.lock"
 
+if [[ "${CODEPILOT_AGENT_ENABLED:-0}" != "1" ]]; then
+  echo "CodePilot agent scheduler disabled. Set CODEPILOT_AGENT_ENABLED=1 to run unattended agents."
+  exit 0
+fi
+
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   existing_pid=""
   if [[ -f "$LOCK_DIR/pid" ]]; then
