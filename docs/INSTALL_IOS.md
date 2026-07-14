@@ -28,6 +28,10 @@ For the default Mac setup, choose **Cloudflare** and enter the Cloudflare Tunnel
 
 The gateway URL must include `http://` or `https://`.
 
+## App Store Connect
+
+App Store Connect setup is maintainer-only and is not required to connect the iOS app to your Mac. It requires Apple account access and explicit release approval. Maintainer notes live in `docs/APP_STORE_CONNECT_SETUP.md`.
+
 ## Notifications
 
 The iOS app can register for turn-finished notifications. APNs certificates or keys must be configured in the gateway environment before background notifications can be delivered reliably.
