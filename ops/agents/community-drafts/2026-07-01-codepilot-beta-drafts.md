@@ -2,7 +2,7 @@
 
 Status: draft only. Do not post publicly without explicit maintainer approval.
 
-Last rule review: 2026-07-13.
+Last rule review: 2026-07-14.
 
 Identity: `codepilotios`
 
@@ -33,13 +33,13 @@ Operational rules for this queue:
 
 | Community | Fit | Rule summary | Recommendation |
 | --- | --- | --- | --- |
-| `r/ChatGPTCoding` | High | Self-promotion thread permits project sharing, with rules including no selling model access and one promotion per project. Karma filters are active. Source: <https://www.reddit.com/r/ChatGPTCoding/comments/1rqo7nn/self_promotion_thread/> | Best first Reddit placement. Use the self-promotion thread only. Human approval before posting. |
-| `r/codex` | High | Community is specifically for OpenAI Codex tools. Search-visible rules require posts to be directly related to Codex and avoid low-effort rants. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. Use text-only feedback framing unless mods approve a beta link. |
-| `r/SideProject` | Medium-high | Community is explicitly for sharing and receiving feedback on side projects. Current posts show beta/product feedback asks are common. Source: <https://www.reddit.com/r/SideProject/> | Good standalone beta feedback post. Keep it story/feedback-first, not a launch blast. |
-| `r/iOSProgramming` | Medium | App posts are allowed only on Saturday, one app post per year, and should not come from accounts with no previous activity. App Saturday requires sections for tech stack, challenge/solution, and AI disclosure. Sources: <https://www.reddit.com/r/iOSProgramming/> and <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/> | Approval required. Hold until Saturday and until `codepilotios` has prior participation. |
+| `r/ChatGPTCoding` | High | Current sidebar rules require civility, post flair, prompt disclosure where possible, no selling model access, and route service-style promotion to the designated self-promotion thread unless sponsorship is approved by modmail. The active self-promotion thread permits project sharing, but still says one promotion per project and no selling model access. Sources: <https://www.reddit.com/r/ChatGPTCoding/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1rqo7nn/self_promotion_thread/> | Best first Reddit placement. Use the self-promotion thread only unless moderators approve main-feed placement. Human approval before posting. |
+| `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Search-visible rules require posts to be directly related to Codex and avoid low-effort rants. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. Use text-only feedback framing unless mods approve a beta link. |
+| `r/SideProject` | Medium-high | Community is for sharing and receiving constructive feedback on side projects. Current posts show beta/product feedback asks are common, and recent discussion warns that burying links in comments may be a rule-sensitive pattern. Sources: <https://www.reddit.com/r/SideProject/> and <https://www.reddit.com/r/SideProject/comments/1t7yd6x/post_your_project_looking_for_beta_testers_for_an/> | Good standalone beta feedback post after maintainer approval. Keep it story/feedback-first, avoid engagement manipulation, and use only approved links if links are allowed. |
+| `r/iOSProgramming` | Medium | App posts are allowed only on Saturday, one app post per year, and should not come from accounts with no previous activity. Current rule text says App Saturday posts must follow the wiki content guideline; moderator reminders reinforce Saturday timing and one-app-per-year. A proposed stricter participation requirement has been discussed but is not treated here as active unless adopted in the sidebar/wiki. Sources: <https://www.reddit.com/r/iOSProgramming/> and <https://www.reddit.com/r/iOSProgramming/comments/1k4lasw/reminder_app_saturday/> | Approval required. Hold until Saturday and until `codepilotios` has prior participation; re-check the wiki immediately before use. |
 | `r/swift` | Medium | Self-promotion is tolerated only for active contributors; fewer than 5 posts/comments in the sub or account age under 2 months means no self-promotion. Source: <https://www.reddit.com/r/swift/> | Approval required. Do not post from a new `codepilotios` account. Use only after account age/activity threshold is met. |
-| `r/macapps` | Medium | Main feed promotion requires qualification, 10 local karma, official distribution links only, no redirects/referrals, 30-day promotion spacing, relationship disclosure, and monthly megathread fallback. Recent megathreads require PCP format, including pricing amounts and a link. Sources: <https://www.reddit.com/r/macapps/> and <https://www.reddit.com/r/macapps/comments/1ttp8mu/megathread_the_app_pile_june_2026/> | Hold. Current pricing/link requirements conflict with the no-pricing/no-unapproved-link launch constraint unless moderators approve a beta-feedback exception. |
-| `r/OpenAI` | Medium-low | Search-visible rule text says self-promotional direct link posts to projects are not allowed and points to self-promo guidance. Source: <https://www.reddit.com/r/OpenAI/> | Approval required. Avoid direct link posts. Consider only a non-link discussion post after moderator approval. |
+| `r/macapps` | Medium | Current front page shows active app posts with pricing/flair labels and a pinned June 2026 App Pile megathread. Existing rule notes still require qualification, 10 local karma, official distribution links only, no redirects/referrals, 30-day promotion spacing, relationship disclosure, and monthly megathread fallback. Recent megathreads require PCP format, including pricing amounts and a link. Sources: <https://www.reddit.com/r/macapps/> and <https://www.reddit.com/r/macapps/comments/1ttp8mu/megathread_the_app_pile_june_2026/> | Hold. Current pricing/link requirements conflict with the no-pricing/no-unapproved-link launch constraint unless moderators approve a beta-feedback exception. |
+| `r/OpenAI` | Medium-low | Search-visible rule text says self-promotion should stay under a 1/10 guideline, direct self-promotional project links are not allowed, and promotional project posts need context in text posts. Other current rule snippets show stricter enforcement language against solicitation/self-promotion. Sources: <https://www.reddit.com/r/OpenAI/> and <https://www.reddit.com/r/OpenAI/about/> | Approval required. Avoid direct link posts. Consider only a non-link discussion post after moderator approval. |
 | `r/MacOS` | Low for now | Mod post says self-promotion is allowed only for apps available in the macOS App Store; otherwise use `r/macapps`. Source: <https://www.reddit.com/r/MacOS/comments/1ntopuw/new_rules_for_app_self_promotion/> | Do not post unless/until CodePilot Mac is in the macOS App Store or mods explicitly approve. |
 | `r/selfhosted` | Low-medium later | Self-promotion is limited by Reddit self-promotion norms; promoted apps must be production-ready and have docs, and comments should add relevant value. Source: <https://www.reddit.com/r/selfhosted/> | Hold for now. CodePilot has a local gateway and optional user-owned tunnel, but this is not primarily a self-hosted server product and should not be promoted there until public docs and production readiness are stronger. |
 | `r/ClaudeAI` | Low | Search-visible rules and moderation comments indicate self-promotion, solicitation, and AI-created promotional content are not allowed. Source: <https://www.reddit.com/r/ClaudeAI/> | Do not post CodePilot promotion. Only answer organically if directly relevant and approved by a maintainer. |
@@ -49,8 +49,9 @@ Operational rules for this queue:
 ## Rules That Require Approval Before Posting
 
 - Any public Reddit post, comment, or account profile must be approved by a maintainer per the launch plan.
+- `r/ChatGPTCoding`: use the self-promotion thread for this run; main-feed promotion needs modmail/sponsorship approval.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply.
-- `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, mandatory App Saturday content sections.
+- `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, mandatory App Saturday content sections; re-check the App Saturday wiki before posting.
 - `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit.
 - `r/macapps`: requires 10 local karma and qualification for main feed; otherwise use monthly megathread. Official distribution links only. Current megathread PCP format expects pricing and link fields, so posting needs moderator guidance while pricing/link status is intentionally withheld.
 - `r/OpenAI`: direct self-promotional project links are not allowed; ask mods before any non-link discussion that mentions CodePilot.
@@ -92,6 +93,7 @@ Approval status: needs maintainer approval before posting.
 
 Rule notes:
 - Fits the self-promotion thread.
+- Use a comment in the thread, not a main-feed post, unless moderators explicitly approve otherwise.
 - Do not mention selling access to models.
 - Promote once per project.
 - Expect karma filtering if `codepilotios` is new.
@@ -109,6 +111,14 @@ I am looking for a small number of beta testers who already use Codex CLI on mac
 - what errors or recovery steps are still confusing
 
 This is not a paid-subscription announcement and I am not asking for upvotes. If this matches your workflow, reply here with what setup you use for Codex today, and I will share the approved beta link once it is ready for public distribution.
+```
+
+Moderator note if main-feed placement is desired later:
+
+```text
+Hi mods, I am the maker of CodePilot, a beta Mac + iPhone companion for people running Codex from a Mac they control.
+
+I saw the self-promotion rule and the designated promotion thread. For now I plan to use only that thread. If there is a future version that would be useful as a main-feed technical discussion, should I request sponsorship/mod approval first, or should all CodePilot mentions stay in the promotion thread?
 ```
 
 ## Draft 2: `r/codex` Moderator-First Beta Feedback Post
@@ -158,6 +168,11 @@ Posting target: `r/SideProject`
 
 Approval status: needs maintainer approval before posting.
 
+Rule notes:
+- Fit is strongest when framed as a specific side-project feedback request.
+- Do not ask friends, testers, or communities to upvote.
+- Include only an approved public link if links are allowed at posting time; otherwise ask for replies and share the approved beta link only after maintainer approval.
+
 Title options:
 
 ```text
@@ -186,6 +201,16 @@ Remote access is optional through a user-owned Cloudflare Tunnel. The iOS app ta
 I am not announcing pricing or asking for votes. I am trying to learn whether the setup is understandable and whether this solves a real problem for Codex users.
 
 If you use Codex CLI on macOS: what would make you trust or reject a setup like this? What would you want to see before installing a beta that touches local coding-agent credentials?
+```
+
+No-link variant if link placement is unclear:
+
+```text
+I am the maker of CodePilot, a beta Mac + iPhone companion for people who run Codex on a Mac.
+
+I am not dropping a launch link here. I am trying to pressure-test the idea before wider distribution: Codex stays on the Mac, a token-protected local gateway exposes narrow session/status/file endpoints, and an iPhone app connects to that gateway for status, file upload, and turn controls. Remote access can use a user-owned Cloudflare Tunnel, but the provider login stays on the Mac.
+
+For people who build or use developer tools: would this solve a real workflow problem, or would the local gateway/auth-file aspect make you reject it? What would you need documented before trying a beta?
 ```
 
 ## Draft 4: `r/iOSProgramming` App Saturday Post
