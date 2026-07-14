@@ -104,6 +104,26 @@ brew_bin() {
   return 1
 }
 
+validate_hostname() {
+  local hostname="$1"
+  /usr/bin/python3 - "$hostname" <<'PY'
+import re
+import sys
+
+hostname = sys.argv[1].strip().rstrip(".")
+label = r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+pattern = re.compile(rf"^{label}(?:\.{label})+$")
+if pattern.fullmatch(hostname) and len(hostname) <= 253:
+    raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
+validate_tunnel_name() {
+  local tunnel_name="$1"
+  [[ "$tunnel_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$ ]]
+}
+
 write_metadata() {
   local mode="$1"
   local hostname="$2"
@@ -220,8 +240,14 @@ configure_permanent() {
     echo "--hostname is required" >&2
     exit 2
   }
-  validate_tunnel_inputs "$hostname" "$tunnel_name"
-  validate_gateway_url
+  validate_hostname "$hostname" || {
+    echo "--hostname must be a DNS hostname such as codepilot.example.com, without https://, paths, spaces, or underscores." >&2
+    exit 2
+  }
+  validate_tunnel_name "$tunnel_name" || {
+    echo "--tunnel-name must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens." >&2
+    exit 2
+  }
 
   local cf create_output tunnel_id
   cf="$(cloudflared_bin)" || {
