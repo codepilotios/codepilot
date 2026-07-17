@@ -54,7 +54,7 @@ The Mac app currently builds from source on macOS 13 or later. The iPhone compan
    scripts/install-phone-gateway-agent.sh
    ```
 
-5. Optional: configure Cloudflare Tunnel for remote iPhone access.
+5. Configure Cloudflare Tunnel for the standard iPhone setup. The advanced same-network path requires a deliberately configured and secured LAN listener.
 6. After receiving an approved beta build, install the iOS app and enter the gateway URL plus iOS connection token from the Mac setup screen. A public install link is not available yet.
 
 See:

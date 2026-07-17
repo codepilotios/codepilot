@@ -2615,6 +2615,7 @@ struct CodePilotSetupStatus {
             cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
         }
         let gatewayRequirement = gatewayHealthRequirement()
+        let gatewayTokenRequirement = gatewayTokenRequirement(at: tokenPath)
         return CodePilotSetupStatus(rows: [
             CodePilotSetupRow(
                 title: "Codex CLI",
@@ -2633,8 +2634,8 @@ struct CodePilotSetupStatus {
             ),
             CodePilotSetupRow(
                 title: "iOS Connection Token",
-                requirement: FileManager.default.fileExists(atPath: tokenPath.path) ? .gatewayTokenPresent : .gatewayTokenMissing,
-                detail: FileManager.default.fileExists(atPath: tokenPath.path) ? "Ready to copy to iPhone" : "Start the gateway to create it"
+                requirement: gatewayTokenRequirement,
+                detail: gatewayTokenDetail(for: gatewayTokenRequirement)
             ),
             CodePilotSetupRow(
                 title: "Gateway",
@@ -2738,6 +2739,20 @@ struct CodePilotSetupStatus {
         default:
             return "\(count) profiles"
         }
+    }
+
+    static func gatewayTokenRequirement(at tokenPath: URL) -> CodePilotSetupRequirement {
+        guard let token = try? String(contentsOf: tokenPath, encoding: .utf8),
+              !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return .gatewayTokenMissing
+        }
+        return .gatewayTokenPresent
+    }
+
+    static func gatewayTokenDetail(for requirement: CodePilotSetupRequirement) -> String {
+        requirement == .gatewayTokenPresent
+            ? "Ready to copy to iPhone"
+            : "Start or restart the gateway to create it"
     }
 
     private static func cloudflareMetadataExists() -> Bool {

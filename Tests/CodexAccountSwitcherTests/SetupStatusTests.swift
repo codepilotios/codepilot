@@ -106,4 +106,24 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupStatus.accountProfilesDetail(count: 1), "1 profile")
         XCTAssertEqual(CodePilotSetupStatus.accountProfilesDetail(count: 2), "2 profiles")
     }
+
+    func testGatewayTokenMustContainANonWhitespaceValue() throws {
+        let temporaryDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let tokenPath = temporaryDirectory.appendingPathComponent("phone-gateway-token")
+        try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+
+        XCTAssertEqual(CodePilotSetupStatus.gatewayTokenRequirement(at: tokenPath), .gatewayTokenMissing)
+
+        try Data("\n  \t".utf8).write(to: tokenPath)
+        XCTAssertEqual(CodePilotSetupStatus.gatewayTokenRequirement(at: tokenPath), .gatewayTokenMissing)
+
+        try Data("test-token\n".utf8).write(to: tokenPath)
+        XCTAssertEqual(CodePilotSetupStatus.gatewayTokenRequirement(at: tokenPath), .gatewayTokenPresent)
+        XCTAssertEqual(
+            CodePilotSetupStatus.gatewayTokenDetail(for: .gatewayTokenMissing),
+            "Start or restart the gateway to create it"
+        )
+    }
 }

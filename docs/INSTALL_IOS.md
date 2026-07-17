@@ -11,7 +11,7 @@ This guide configures a beta build that a tester has already received. A public 
 - A Mac running the CodePilot gateway.
 - A reachable gateway URL.
 - The iOS connection token from the Mac setup screen.
-- Optional: Cloudflare Tunnel for remote access outside the local network.
+- A permanent Cloudflare Tunnel hostname for the supported setup path.
 
 ## Connection
 
@@ -27,7 +27,7 @@ The first-run screen remains open until the authenticated connection test succee
 
 The app stores these values locally on the device. Do not share the token in issue reports or screenshots.
 
-The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. **Same Network (Advanced)** is not supported by the standard installer; use it only after deliberately configuring and securing the gateway on a Mac LAN address.
+The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. This makes Cloudflare required for the standard iPhone setup. **Same Network (Advanced)** is not supported by the standard installer; use it only after deliberately configuring and securing the gateway on a Mac LAN address.
 
 The gateway URL must include `http://` or `https://`.
 
