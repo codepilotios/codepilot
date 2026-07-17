@@ -1,6 +1,6 @@
 # CodePilot Release Readiness Escalation
 
-Date: 2026-07-17
+Date: 2026-07-18
 
 Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. Local unsigned builds, gateway tests, and public CI are healthy, but release identity, signing/App Store Connect access, privacy work, screenshots, and review metadata remain blocked.
 
@@ -17,7 +17,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
-- The latest OTA status still points to a July 8 build with no recorded source commit. Its install-linked manifest and IPA both returned HTTP 200 in a read-only check, but the manifest does not match the current bundle ID and the public OTA install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
+- A July 18 read-only OTA check still points to a July 8 build with no recorded source commit. Its install-linked manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public OTA install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
 
 ## Release Blockers
 
@@ -25,7 +25,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - **Canonical bundle identity requires a maintainer decision.** The latest distributed OTA build uses a legacy identifier that differs from the current Xcode project and Fastlane default. Publishing without aligning OTA, signing, and App Store Connect could create a second installation.
 - The latest OTA build is stale relative to current source and has no recorded source commit. No OTA build was triggered because this run is not authorized to mutate external distribution systems.
 - The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
-- App Store Connect credentials and the Apple developer team setting are unavailable. The launch guard also blocks `asc`, including read-only discovery, so the app record, processed builds, availability, version attachment, and strict validation could not be checked.
+- App Store Connect inspection was unavailable in this run. The Apple developer team setting is empty and the launch guard blocks `asc`, including read-only discovery, so the app record, processed builds, availability, version attachment, and strict validation could not be checked.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
 - Public Git history contains legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
 - A Fastlane lockfile is committed, but the system Ruby cannot start it because the lockfile-required Bundler 4.0.11 is unavailable. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
