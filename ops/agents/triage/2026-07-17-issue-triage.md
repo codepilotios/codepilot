@@ -8,6 +8,15 @@ Remote write policy: public GitHub writes require a privacy audit. This pass pus
   - Proposed labels: `bug`, `remote-desktop`, `mac`, `ios`, `gateway`, `severity: critical`.
   - Current labels already match the proposal; no label change is needed.
   - Classification: confirmed security defect and release blocker for OTA, TestFlight, and App Store distribution.
+- #2 Support or disable the iOS Same Network setup path
+  - Current labels already matched the proposal: `setup`, `ios`, `gateway`, `severity: medium`.
+  - Merged PR #14 already disabled Same Network for the public beta, so the stale resolved issue was closed.
+- #3 Require clear Remote Desktop pairing approval in setup
+  - Current labels already matched the proposal: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
+  - Merged PR #14 already requires explicit Mac approval, so the stale resolved issue was closed.
+- #8 Prepare sanitized public screenshot set
+  - Current labels already match the proposal: `documentation`, `severity: low`.
+  - The issue remains open for approved demo-only screenshot capture; no screenshot asset was created or published in this pass.
 
 ## Reproduction and Diagnosis
 
@@ -28,6 +37,7 @@ Remote write policy: public GitHub writes require a privacy audit. This pass pus
 
 - No code fix was attempted. Correct enforcement spans the iOS session lifecycle, gateway routing, native RPC boundary, lease expiry/revocation, and HTTP/WebRTC parity; a partial patch would be security-sensitive and outside low-risk issue triage.
 - Keep Remote Desktop distribution blocked until regression tests prove that unpaired, expired, revoked, replayed, arbitrary, and mismatched sessions fail at both gateway and native boundaries.
+- Closed superseded draft PR #15 after confirming its #2 and #3 fixes had already landed through merged PR #14 with passing CI.
 
 ## Blockers
 
