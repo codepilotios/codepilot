@@ -47,8 +47,20 @@ grep -q "No such file" /tmp/codepilot-status.err && fail "status should not cras
 [ -f "$HOME/.cloudflared/codepilot-config.yaml" ] || fail "config file missing"
 grep -q "hostname: codepilot.example.com" "$HOME/.cloudflared/codepilot-config.yaml" || fail "hostname missing from config"
 grep -q "service: http://127.0.0.1:18790" "$HOME/.cloudflared/codepilot-config.yaml" || fail "gateway service missing from config"
+[ "$(stat -f '%Lp' "$HOME/.cloudflared/codepilot-config.yaml")" = "600" ] || fail "config must be owner-only"
 [ -f "$HOME/.codex-account-switcher/cloudflare-setup.json" ] || fail "metadata missing"
 ! grep -qi "token" "$HOME/.codex-account-switcher/cloudflare-setup.json" || fail "metadata must not contain token"
+[ "$(stat -f '%Lp' "$HOME/.codex-account-switcher/cloudflare-setup.json")" = "600" ] || fail "metadata must be owner-only"
+
+if "$SCRIPT" configure-permanent --hostname $'safe.example.com\nservice: http://169.254.169.254' --tunnel-name codepilot >/dev/null 2>&1; then
+  fail "hostname YAML injection was accepted"
+fi
+if "$SCRIPT" configure-permanent --hostname codepilot.example.com --tunnel-name $'codepilot\ningress' >/dev/null 2>&1; then
+  fail "tunnel-name YAML injection was accepted"
+fi
+if CODEPILOT_GATEWAY_URL="http://192.0.2.10:18790" "$SCRIPT" start-trycloudflare >/dev/null 2>&1; then
+  fail "non-loopback tunnel target was accepted"
+fi
 
 "$SCRIPT" install-service
 [ -f "$HOME/Library/LaunchAgents/io.codepilot.phone-cloudflared.plist" ] || fail "LaunchAgent plist missing"

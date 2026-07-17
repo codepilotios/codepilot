@@ -24,6 +24,7 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Made desktop-sync archives owner-only and rejected archive links and special entries during import.
 - Sanitized current tracked documentation and test fixtures, and extended the privacy audit with quiet regression-tested checks for private identifiers, non-placeholder OTA hosts, and private bundle namespaces.
 - Restricted file previews to CodePilot uploads by default, with explicit opt-in download roots for advanced setups.
+- Restricted Cloudflare tunnel setup to validated DNS/tunnel identifiers and a loopback-only HTTP gateway origin, and forced its local configuration and metadata files to owner-only permissions.
 - Migrated the iOS gateway bearer token from preferences to a device-only Keychain item and removed the legacy preference after a successful migration.
 - Forced gateway tokens, uploads, secret-bearing environment files, and generated LaunchAgent plists to owner-only permissions; gateway token symlinks and empty token files are rejected.
 - Made cached assistant thread messages and their cache directory owner-only, using exclusive temporary files and atomic replacement instead of a predictable default-permission temporary path.
