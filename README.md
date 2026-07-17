@@ -86,7 +86,7 @@ Remove gateway URLs, tokens, hostnames, account names, local paths, private prom
 
 - Manual account profile capture and switching.
 - Automatic switching only after active turns are finished.
-- 5-hour and weekly usage status across accounts.
+- 5-hour and weekly usage status, reset timing, and available reset credits per account.
 - Global iOS credit progress indicator.
 - iOS remote chat and file upload.
 - Conversation steering and stop-turn controls where supported.

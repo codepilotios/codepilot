@@ -6,7 +6,7 @@ The current release track is a public beta for existing Codex CLI users. It is n
 
 The beta is focused on practical workflows for AI coding users:
 
-- See active Codex usage and account status from the Mac and iPhone.
+- See active Codex usage, reset timing, available reset credits, and account status from the Mac and iPhone.
 - Switch saved Codex account profiles after active turns finish.
 - Connect the iPhone app to the Mac gateway through a user-owned Cloudflare Tunnel during the public beta.
 - Upload files, inspect threads, steer or stop turns where supported, and receive turn-finished notifications.

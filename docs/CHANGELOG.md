@@ -38,6 +38,7 @@
 
 ### Recent Product Work
 
+- Added per-account Codex usage reset timing and available reset-credit controls on Mac and iPhone.
 - Added Cloudflare setup wizard docs and automation.
 - Added gateway health, setup, and recovery guidance.
 - Added Remote Desktop foundations, localhost URL opening, file preview, and gateway-backed iPhone control improvements. Remote Desktop remains gated from the supported public beta pending security verification.
