@@ -3036,10 +3036,13 @@ private final class CodePilotSetupWindowController: NSWindowController {
     }
 
     @objc private func openCloudflareGuide() {
-        let sourceURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("docs/CLOUDFLARE_SETUP.md")
-        if FileManager.default.fileExists(atPath: sourceURL.path) {
-            NSWorkspace.shared.open(sourceURL)
+        let candidates = [
+            Bundle.main.resourceURL?.appendingPathComponent("docs/CLOUDFLARE_SETUP.md"),
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+                .appendingPathComponent("docs/CLOUDFLARE_SETUP.md")
+        ].compactMap { $0 }
+        if let guideURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+            NSWorkspace.shared.open(guideURL)
         } else if let url = URL(string: "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/") {
             NSWorkspace.shared.open(url)
         }
