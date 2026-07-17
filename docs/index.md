@@ -19,6 +19,7 @@ CodePilot is source-available for noncommercial use. It is not OSI open source. 
 - [Cloudflare remote access](CLOUDFLARE_SETUP.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [FAQ](FAQ.md)
+- [Beta feedback guide](BETA_FEEDBACK.md)
 - [Privacy](PRIVACY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
@@ -32,3 +33,5 @@ CodePilot currently targets Codex CLI. Future provider support is not part of th
 The public-beta iPhone setup uses Cloudflare Tunnel. Same-network iPhone access is not part of the supported beta path until CodePilot ships explicit LAN-binding, firewall, and trust guidance.
 
 Do not share screenshots, logs, gateway URLs, tokens, account names, hostnames, or local file paths in public issues unless they have been sanitized.
+
+For beta reports, include the affected area, the failing step, visible recovery text, and whether Codex CLI was already working on the Mac. See the [beta feedback guide](BETA_FEEDBACK.md).

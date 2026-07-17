@@ -54,6 +54,7 @@ See:
 - [iOS Installation](docs/INSTALL_IOS.md)
 - [Cloudflare Setup](docs/CLOUDFLARE_SETUP.md)
 - [FAQ](docs/FAQ.md)
+- [Beta Feedback Guide](docs/BETA_FEEDBACK.md)
 - [Privacy](docs/PRIVACY.md)
 - [Support](docs/SUPPORT.md)
 - [Changelog](docs/CHANGELOG.md)

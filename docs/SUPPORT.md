@@ -10,6 +10,7 @@ Check:
 - [iOS installation](INSTALL_IOS.md)
 - [Cloudflare setup](CLOUDFLARE_SETUP.md)
 - [Troubleshooting](TROUBLESHOOTING.md)
+- [Beta feedback guide](BETA_FEEDBACK.md)
 - [Security](SECURITY.md)
 - [FAQ](FAQ.md)
 
@@ -24,6 +25,7 @@ Include:
 - What happened instead.
 - Whether Cloudflare setup, gateway connection, or token entry is the failing step.
 - The visible recovery message, if one appears.
+- Whether Codex CLI was already working on the Mac before CodePilot setup.
 - Sanitized logs with private values removed.
 
 ## Do Not Share
