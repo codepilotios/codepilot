@@ -7,11 +7,11 @@ struct RemoteDesktopView: View {
         case pan
     }
 
+    let gatewayURL: String
+    let gatewayToken: String
     @Environment(\.dismiss) private var dismiss
     @FocusState private var keyboardFocused: Bool
     @StateObject private var peer = RemotePeerConnection()
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var session = RemoteDesktopSessionState(leaseID: "preview")
     @State private var mapper = RemoteInputMapper(sessionID: "preview")
     @State private var frameImage: UIImage?

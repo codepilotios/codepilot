@@ -3,6 +3,27 @@ import XCTest
 @testable import CodexPhone
 
 final class RemoteDesktopTests: XCTestCase {
+    func testLegacyGatewayTokenMigratesOutOfPreferences() {
+        let defaults = UserDefaults.standard
+        let previousToken = SecureGatewayTokenStore.read()
+        let previousLegacyToken = defaults.string(forKey: "gatewayToken")
+        defer {
+            SecureGatewayTokenStore.save(previousToken)
+            if let previousLegacyToken {
+                defaults.set(previousLegacyToken, forKey: "gatewayToken")
+            } else {
+                defaults.removeObject(forKey: "gatewayToken")
+            }
+        }
+
+        XCTAssertTrue(SecureGatewayTokenStore.save(""))
+        defaults.set("legacy-test-token", forKey: "gatewayToken")
+
+        XCTAssertEqual(SecureGatewayTokenStore.migrateLegacyTokenIfNeeded(), "legacy-test-token")
+        XCTAssertEqual(SecureGatewayTokenStore.read(), "legacy-test-token")
+        XCTAssertNil(defaults.object(forKey: "gatewayToken"))
+    }
+
     func testGatewayErrorRecoveryCopyUsesStablePayload() {
         let error = GatewayErrorPayload.ErrorBody(
             code: "gateway_unavailable",

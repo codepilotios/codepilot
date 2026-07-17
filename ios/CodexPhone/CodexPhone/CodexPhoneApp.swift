@@ -32,7 +32,7 @@ struct CodexPhoneApp: App {
             case "--gateway-url" where arguments.indices.contains(index + 1):
                 UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayURL")
             case "--gateway-token" where arguments.indices.contains(index + 1):
-                UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayToken")
+                SecureGatewayTokenStore.save(arguments[index + 1])
             default:
                 break
             }
@@ -73,7 +73,7 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
     private func sendDeviceTokenToGateway(_ deviceToken: Data) {
         let gatewayURL = UserDefaults.standard.string(forKey: "gatewayURL") ?? ""
-        let gatewayToken = UserDefaults.standard.string(forKey: "gatewayToken") ?? ""
+        let gatewayToken = SecureGatewayTokenStore.read()
         guard !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let root = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
               let url = URL(string: "/api/notifications/device", relativeTo: root)?.absoluteURL else {
@@ -113,9 +113,8 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
 struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
+    @StateObject private var credentials = GatewayCredentials()
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var showingSettings = false
     @State private var showingStatus = false
@@ -129,11 +128,11 @@ struct RootView: View {
         NavigationStack {
             Group {
                 if gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    EmptySettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken)
+                    EmptySettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding)
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
-                    ThreadListView(model: model) {
+                    ThreadListView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken) {
                         showingRemoteDesktop = true
                     }
                 }
@@ -211,8 +210,8 @@ struct RootView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(
-                    gatewayURL: $gatewayURL,
-                    gatewayToken: $gatewayToken,
+                    gatewayURL: gatewayURLBinding,
+                    gatewayToken: gatewayTokenBinding,
                     model: model,
                     liveActivityError: $liveActivityError
                 )
@@ -222,7 +221,7 @@ struct RootView: View {
                 AccountStatusView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
             .fullScreenCover(isPresented: $showingRemoteDesktop) {
-                RemotePairingView()
+                RemotePairingView(gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
             .sheet(isPresented: $showingAccountSwitcher) {
                 AccountSwitcherView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
@@ -240,7 +239,7 @@ struct RootView: View {
                 .presentationDetents([.medium, .large])
             }
             .navigationDestination(item: $openedThread) { thread in
-                ChatView(model: model, thread: thread)
+                ChatView(model: model, thread: thread, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
             .alert("CodePilot", isPresented: .constant(model.errorMessage != nil)) {
                 Button("OK") { model.errorMessage = nil }
@@ -264,6 +263,28 @@ struct RootView: View {
                 showingRemoteDesktop = false
             }
         }
+    }
+
+    private var gatewayURL: String {
+        credentials.gatewayURL
+    }
+
+    private var gatewayToken: String {
+        credentials.gatewayToken
+    }
+
+    private var gatewayURLBinding: Binding<String> {
+        Binding(
+            get: { credentials.gatewayURL },
+            set: { credentials.gatewayURL = $0 }
+        )
+    }
+
+    private var gatewayTokenBinding: Binding<String> {
+        Binding(
+            get: { credentials.gatewayToken },
+            set: { credentials.updateGatewayToken($0) }
+        )
     }
 
     private var liveActivityReconciliationID: String {
@@ -584,9 +605,9 @@ struct ReasoningLevelPicker: View {
 
 struct ThreadListView: View {
     @ObservedObject var model: CodexPhoneModel
+    let gatewayURL: String
+    let gatewayToken: String
     var onRemoteDesktop: () -> Void = {}
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var renamingThread: CodexThread?
     @State private var renameText = ""
     @State private var deletingThread: CodexThread?
@@ -694,7 +715,7 @@ struct ThreadListView: View {
 
     private func threadRow(_ thread: CodexThread) -> some View {
         NavigationLink {
-            ChatView(model: model, thread: thread)
+            ChatView(model: model, thread: thread, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                 .id(thread.id)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
@@ -947,9 +968,9 @@ struct NewThreadView: View {
 struct ChatView: View {
     @ObservedObject var model: CodexPhoneModel
     let thread: CodexThread
+    let gatewayURL: String
+    let gatewayToken: String
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var prompt = ""
     @State private var attachments: [PendingAttachment] = []
     @State private var showingFileImporter = false
