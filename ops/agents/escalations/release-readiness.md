@@ -2,13 +2,14 @@
 
 Date: 2026-07-17
 
-Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. Local unsigned builds and tests are healthy, but release identity, signing/App Store Connect access, privacy work, screenshots, and review metadata remain blocked.
+Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. Local unsigned builds and public CI are healthy, but release identity, signing/App Store Connect access, privacy work, screenshots, review metadata, and a reproducible local gateway test toolchain remain blocked.
 
 ## Verified Locally
 
 - `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
 - `swift test`: passed; 57 tests, 0 failures.
-- Gateway unit tests: passed with the default Python toolchain; 112 tests, 0 failures.
+- The public CI run for the current commit passed its privacy audit, SwiftPM tests, gateway tests, Fastlane syntax check, and iOS simulator build.
+- Gateway unit tests do not run with this release runner's default Python 3.9 toolchain: four imports fail because the application requires the Python 3.11 `tomllib` module. This is a local/toolchain reproducibility failure; the same configured suite passes in public CI.
 - macOS Swift release build: passed.
 - iOS simulator Debug and clean Release builds: passed with code signing disabled.
 - Unsigned generic-device iOS Release archive compile: passed.
@@ -26,6 +27,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
 - App Store Connect credentials and the Apple developer team setting are unavailable. The launch guard also blocks `asc`, including read-only discovery, so the app record, processed builds, availability, version attachment, and strict validation could not be checked.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
+- Pin or document Python 3.11+ for gateway development and release verification, or add a tested Python 3.9 compatibility dependency; the documented default `python3` test command currently fails on this release runner.
 - Public Git history contains legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
 - A Fastlane lockfile is committed, but the system Ruby cannot start it because the lockfile-required Bundler 4.0.11 is unavailable. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
