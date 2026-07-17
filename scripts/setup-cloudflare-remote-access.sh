@@ -366,7 +366,24 @@ if configured_hostname != verified_hostname:
     print(f"--url must use the configured Cloudflare hostname: {configured_hostname}", file=sys.stderr)
     raise SystemExit(2)
 PY
-  curl -fsS "$url/api/health" >/dev/null
+  local health_response
+  health_response="$(curl -fsS "$url/api/health")"
+  /usr/bin/python3 - "$url" "$health_response" <<'PY'
+import json
+import sys
+
+url = sys.argv[1]
+try:
+    payload = json.loads(sys.argv[2])
+except (json.JSONDecodeError, OSError):
+    print(f"{url}/api/health did not return a CodePilot health response.", file=sys.stderr)
+    raise SystemExit(23)
+
+gateway = payload.get("gateway")
+if not isinstance(gateway, dict) or gateway.get("running") is not True:
+    print(f"{url}/api/health did not report a running CodePilot gateway.", file=sys.stderr)
+    raise SystemExit(23)
+PY
   /usr/bin/python3 - "$METADATA_PATH" "$url" <<'PY'
 import json
 import sys

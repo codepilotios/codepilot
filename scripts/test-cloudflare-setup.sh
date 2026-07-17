@@ -38,18 +38,7 @@ esac
 '
 write_stub brew 'echo "brew $*"'
 write_stub launchctl 'echo "launchctl $*"'
-write_stub curl '
-[[ "$*" == *"--config -"* ]] || exit 90
-[[ "$*" == *"--proto =https"* ]] || exit 92
-[[ "$*" == *"--proto-redir =https"* ]] || exit 93
-[[ "$*" == *"--max-redirs 0"* ]] || exit 94
-[[ "$*" == *"https://codepilot.example.com/api/health"* ]] || exit 95
-config="$(cat)"
-[[ "$config" == '\''header = "Authorization: Bearer test-gateway-token"'\'' ]] || exit 91
-echo "{\"ok\":true}"
-'
-mkdir -p "$HOME/.codex-account-switcher"
-printf '%s\n' "test-gateway-token" > "$HOME/.codex-account-switcher/phone-gateway-token"
+write_stub curl 'echo "{\"gateway\":{\"running\":true}}"'
 
 "$SCRIPT" status >/tmp/codepilot-status.json 2>/tmp/codepilot-status.err || true
 grep -q "No such file" /tmp/codepilot-status.err && fail "status should not crash when config is missing"
@@ -134,6 +123,20 @@ if "$SCRIPT" verify --url 'https://codepilot.example.com/unexpected?probe=1' >/t
   fail "verify should reject URLs with paths or queries"
 fi
 grep -qi "without a path" /tmp/codepilot-path-verify.err || fail "path verification failure should explain the origin-only requirement"
+
+write_stub curl 'echo "<html>not CodePilot</html>"'
+if "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-wrong-service.out 2>/tmp/codepilot-wrong-service.err; then
+  fail "verify should reject a non-CodePilot response"
+fi
+grep -qi "CodePilot health response" /tmp/codepilot-wrong-service.err || fail "wrong-service failure should identify the expected health response"
+
+write_stub curl 'echo "{\"gateway\":{\"running\":false}}"'
+if "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-stopped.out 2>/tmp/codepilot-stopped.err; then
+  fail "verify should reject a stopped gateway response"
+fi
+grep -qi "running CodePilot gateway" /tmp/codepilot-stopped.err || fail "stopped-gateway failure should identify the readiness requirement"
+
+write_stub curl 'echo "{\"gateway\":{\"running\":true}}"'
 
 "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-verify.out
 grep -q "verified" /tmp/codepilot-verify.out || fail "verify output should say verified"
