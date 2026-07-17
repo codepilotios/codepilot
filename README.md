@@ -55,7 +55,7 @@ The Mac app currently builds from source on macOS 13 or later. The iPhone compan
    ```
 
 5. Optional: configure Cloudflare Tunnel for remote iPhone access.
-6. Install the iOS app and enter the gateway URL plus iOS connection token from the Mac setup screen.
+6. After receiving an approved beta build, install the iOS app and enter the gateway URL plus iOS connection token from the Mac setup screen. A public install link is not available yet.
 
 See:
 

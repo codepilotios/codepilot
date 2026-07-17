@@ -27,4 +27,4 @@ Add a Mac-generated QR code or short-lived pairing code that transfers the gatew
 
 ## Local Audit Fix
 
-The `agent/setup-audit` branch changes iOS and docs copy from protocol-level "bearer token" wording to "iOS connection token" and removes the hidden token file path from primary iOS setup screens.
+The `agent/setup-audit` branch changes Mac, iOS, Cloudflare, and docs copy from protocol-level "bearer token" or ambiguous "gateway token" wording to "iOS connection token" and removes the hidden token file path from primary iOS setup screens.

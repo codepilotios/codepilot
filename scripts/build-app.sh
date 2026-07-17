@@ -18,8 +18,9 @@ if [[ -d "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" ]]; t
   cp -R "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" "$FRAMEWORKS/"
   install_name_tool -add_rpath "@executable_path/../Frameworks" "$MACOS/CodePilot" 2>/dev/null || true
 fi
-cp "$ROOT/scripts/"*.sh "$RESOURCES/scripts/"
-cp "$ROOT/scripts/"*.py "$RESOURCES/scripts/" 2>/dev/null || true
+cp "$ROOT/scripts/install-phone-gateway-agent.sh" "$RESOURCES/scripts/"
+cp "$ROOT/scripts/setup-cloudflare-remote-access.sh" "$RESOURCES/scripts/"
+cp "$ROOT/scripts/start-phone-cloudflared.sh" "$RESOURCES/scripts/"
 cp "$ROOT/gateway/codex_phone_gateway.py" "$RESOURCES/gateway/"
 cp "$ROOT/gateway/remote_desktop_gateway.py" "$RESOURCES/gateway/"
 chmod +x "$RESOURCES/scripts/"*.sh

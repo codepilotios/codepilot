@@ -2632,9 +2632,9 @@ struct CodePilotSetupStatus {
                 detail: accountCount == 1 ? "1 profile" : "\(accountCount) profiles"
             ),
             CodePilotSetupRow(
-                title: "Gateway Token",
+                title: "iOS Connection Token",
                 requirement: FileManager.default.fileExists(atPath: tokenPath.path) ? .gatewayTokenPresent : .gatewayTokenMissing,
-                detail: FileManager.default.fileExists(atPath: tokenPath.path) ? "Token present" : "Missing token"
+                detail: FileManager.default.fileExists(atPath: tokenPath.path) ? "Ready to copy to iPhone" : "Start the gateway to create it"
             ),
             CodePilotSetupRow(
                 title: "Gateway",
@@ -2869,7 +2869,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
             buttons: [
                 button("Restart Gateway When Idle", #selector(restartGatewayWhenIdle)),
                 button("Force Restart Gateway...", #selector(forceRestartGateway)),
-                button("Copy iOS Token", #selector(copyToken))
+                button("Copy iOS Connection Token", #selector(copyToken))
             ]
         ))
         root.addArrangedSubview(section(
@@ -2970,12 +2970,12 @@ private final class CodePilotSetupWindowController: NSWindowController {
             .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
         guard let token = try? String(contentsOf: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
               !token.isEmpty else {
-            outputLabel.stringValue = "No gateway token found."
+            outputLabel.stringValue = "No iOS connection token found. Start the gateway, then refresh setup."
             return
         }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(token, forType: .string)
-        outputLabel.stringValue = "Copied iOS token."
+        outputLabel.stringValue = "Copied iOS connection token. Keep it private."
     }
 
     @objc private func openCloudflareGuide() {
@@ -3077,7 +3077,7 @@ private final class CodePilotCloudflareWizardController: NSWindowController {
         root.addArrangedSubview(title)
 
         let intro = NSTextField(wrappingLabelWithString: """
-        CodePilot can use Cloudflare Tunnel so your iPhone can reach the Mac gateway away from your local network. Setup may install cloudflared, sign in to Cloudflare, create a tunnel, add a DNS route, write ~/.cloudflared/codepilot-config.yaml, and install a LaunchAgent to keep the tunnel running. No inbound ports are opened; the iOS app still needs the gateway token.
+        CodePilot can use Cloudflare Tunnel so your iPhone can reach the Mac gateway away from your local network. Setup may install cloudflared, sign in to Cloudflare, create a tunnel, add a DNS route, write ~/.cloudflared/codepilot-config.yaml, and install a LaunchAgent to keep the tunnel running. No inbound ports are opened; the iOS app still needs the iOS connection token.
         """)
         intro.textColor = .secondaryLabelColor
         root.addArrangedSubview(intro)

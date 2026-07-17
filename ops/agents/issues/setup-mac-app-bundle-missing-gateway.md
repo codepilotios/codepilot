@@ -23,4 +23,4 @@ Before this audit fix, `Contents/Resources/scripts/install-phone-gateway-agent.s
 
 ## Local Fix
 
-The `agent/setup-audit` branch now packages both production gateway modules in the Mac app and updates the Mac install guide to make the in-app action the primary gateway setup path.
+The `agent/setup-audit` branch now packages both production gateway modules and only their required runtime setup scripts in the Mac app. It also updates the Mac install guide to make the in-app action the primary gateway setup path.

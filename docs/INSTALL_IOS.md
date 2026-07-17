@@ -2,6 +2,8 @@
 
 CodePilot iOS connects to a Mac running the CodePilot gateway.
 
+This guide configures a beta build that a tester has already received. A public TestFlight or App Store install link has not been approved yet.
+
 ## Requirements
 
 - An iPhone running iOS 17 or later.
