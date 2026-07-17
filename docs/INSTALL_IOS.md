@@ -26,28 +26,6 @@ For the public beta, enter the Cloudflare Tunnel URL. The Mac gateway listens on
 
 The gateway URL must include `http://` or `https://`.
 
-## App Store Connect Setup
-
-The local Fastlane credentials live in the ignored file:
-
-```sh
-ios/CodexPhone/fastlane/.env
-```
-
-To create an Apple web session for App Store record creation, run from the repo root:
-
-```sh
-scripts/apple-spaceauth.sh
-```
-
-Paste the generated `FASTLANE_SESSION` into `ios/CodexPhone/fastlane/.env`, then run:
-
-```sh
-scripts/create-app-store-record.sh
-```
-
-The App Store Connect API key can manage signing resources, but Apple still requires an Apple ID web session for creating a new App Store app record.
-
 ## Notifications
 
 The iOS app can register for turn-finished notifications. APNs certificates or keys must be configured in the gateway environment before background notifications can be delivered reliably.

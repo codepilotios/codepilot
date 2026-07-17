@@ -7,6 +7,8 @@
 - [ ] `scripts/privacy-audit.sh`
 - [ ] OTA build if iOS app files changed
 - [ ] Public manifest and IPA return HTTP 200 from the OTA domain
+- [ ] App Store Connect/Fastlane credentials stay in ignored local files only
+- [ ] App Store Connect record or web-session setup is performed only by an approved maintainer
 - [ ] TestFlight upload if shipping a beta build
 - [ ] `docs/APP_STORE_METADATA_DRAFT.md` reviewed before App Store Connect changes
 - [ ] Public docs checked for personal names, private email addresses, tokens, hostnames, Apple team IDs, and machine-specific paths
