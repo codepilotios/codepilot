@@ -39,6 +39,7 @@ Operational rules for this queue:
 | Community | Fit | Rule summary | Recommendation |
 | --- | --- | --- | --- |
 | `r/ChatGPTCoding` | High | Sidebar/wiki guidance routes service-style promotion to the designated self-promotion thread unless sponsorship is approved by modmail. The latest search-visible official thread reviewed permits project sharing, says one promotion per project, and prohibits selling model access. Sources: <https://www.reddit.com/r/ChatGPTCoding/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/> | Best first Reddit placement once a current thread is confirmed. Use the self-promotion thread only unless moderators approve main-feed placement. Human approval before posting. |
+| `r/TestFlight` | High once the public beta link is live | Live rules require posts to concern a TestFlight app, allow only TestFlight links, require an app-name title without tags such as `[Tester]` or `[Recruiting]`, require platform flair, and ask developers not to flood the feed with repeat posts. Source: <https://www.reddit.com/r/TestFlight/> | Best direct tester-recruitment target after the public TestFlight link is verified and approved. Use `iOS` flair, keep the title to the app name plus a short message, and put later updates in comments rather than reposting. |
 | `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Current rules require posts to be directly related to Codex, use the right flair, avoid low-effort rants, and not use bots. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/about/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. A maintainer must post manually; use text-only feedback framing unless mods approve a beta link. |
 | `r/SideProject` | Medium-high | Community is for sharing and receiving constructive feedback on side projects. Current posts show beta/product feedback asks are common, and recent discussion warns that burying links in comments may be a rule-sensitive pattern. Sources: <https://www.reddit.com/r/SideProject/> and <https://www.reddit.com/r/SideProject/comments/1t7yd6x/post_your_project_looking_for_beta_testers_for_an/> | Good standalone beta feedback post after maintainer approval. Keep it story/feedback-first, avoid engagement manipulation, and use only approved links if links are allowed. |
 | `r/iOSProgramming` | Medium | App posts are Saturday-only and limited to one post per app per year. The live App Saturday guide requires `Tech Stack Used`, `Development Challenge + How You Solved It`, and `AI Disclosure` content. The live rule also asks authors not to post without previous community activity but does not state a numeric karma threshold. Sources: <https://www.reddit.com/r/iOSProgramming/about/> and <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/> | Approval required. Hold until Saturday and do not use a new/inactive `codepilotios` account. |
@@ -55,6 +56,7 @@ Operational rules for this queue:
 
 - Any public Reddit post, comment, or account profile must be approved by a maintainer per the launch plan.
 - `r/ChatGPTCoding`: use the self-promotion thread for this run; main-feed promotion needs modmail/sponsorship approval.
+- `r/TestFlight`: hold until there is a verified, approved public TestFlight link. Use only that link, select `iOS` flair, keep the title free of recruitment tags, and avoid repeat posts; later updates belong in the original post's comments.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply, and the explicit no-bots rule means a maintainer must post manually.
 - `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, and mandatory App Saturday content sections. The live rules do not currently state a numeric karma threshold, but eligibility must still be re-checked before posting.
 - `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit; self-promotional content must also remain below 5% of the account's posts and comments there.
@@ -417,6 +419,49 @@ I am looking for setup and trust feedback, not upvotes. For Mac users who run co
 I have left out the link in this draft until the public repository or distribution page has passed launch review. If approved at posting time, I will add only the direct official link.
 ```
 
+## Draft 10: `r/TestFlight` Beta Post
+
+Posting target: `r/TestFlight`
+
+Approval status: hold until a maintainer approves final posting and a public
+TestFlight link has been verified. The placeholder below must never be posted.
+
+Posting gates:
+- The title must be the app name with only an optional short message; do not use
+  tags such as `[Tester]` or `[Recruiting]`.
+- Select the `iOS` post flair.
+- Include only the direct Apple TestFlight link. Do not include the repository,
+  website, redirects, or other external links.
+- Keep the body and follow-up comments focused on the TestFlight app.
+- Do not repost routine updates; add them as comments on the original post.
+- Do not request personal information. Ask testers to use approved feedback
+  channels and remind them not to share tokens, private logs, or credentials.
+
+Title:
+
+```text
+CodePilot - iPhone companion for Codex sessions on your Mac
+```
+
+Body:
+
+```text
+I am the maker of CodePilot. This is a beta iPhone companion for people who already run Codex on a Mac they control.
+
+The iPhone app connects to CodePilot's token-protected gateway on the Mac. It can show session and account status, browse threads, upload files, receive turn-finished notifications, and steer or stop an active turn. Codex credentials and project files remain on the Mac. For remote access in the current beta, testers use a Cloudflare Tunnel they control.
+
+I am especially looking for feedback on:
+
+- whether the Mac-to-iPhone connection setup is understandable
+- whether token and tunnel recovery steps are clear
+- whether session controls are useful away from the desk
+- which setup step would make you abandon the beta
+
+Please do not send gateway tokens, credentials, private hostnames, private logs, or project files in Reddit messages or comments. Use only sanitized reproduction steps in feedback.
+
+TestFlight: [APPROVED_PUBLIC_TESTFLIGHT_LINK]
+```
+
 ## Hacker News / Show HN Outline
 
 Do not paste this as-is. HN guidelines ask users not to post generated or AI-edited comments. A maintainer should rewrite manually if posting.
@@ -482,4 +527,7 @@ Escalation needed: yes/no
 
 ## Escalation Status
 
-No escalation file was created for this draft packet. Account creation, moderator messages, final post approval, and any public posting remain human approval steps, but none block draft preparation.
+An escalation note was created at
+`ops/agents/escalations/community-drafts.md`. Draft preparation is complete, but
+all public posting remains blocked on maintainer approval. The `r/TestFlight`
+draft additionally requires a verified public TestFlight link.
