@@ -323,7 +323,7 @@ curl -fsS -X POST http://127.0.0.1:8787/codexphone/api/build
 curl -fsS http://127.0.0.1:8787/codexphone/api/status
 ```
 
-Wait until `current.state == "complete"`, then verify the manifest and IPA from the configured OTA domain return HTTP 200.
+Wait until `current.state == "complete"`, then verify the manifest and IPA from the approved OTA host, for example `https://ota.example.com`, return HTTP 200.
 
 - [ ] **Step 8: Commit**
 
@@ -502,6 +502,8 @@ curl -I https://ota.example.com/codexphone/CodePilot.ipa
 ```
 
 Expected: HTTP 200 or the exact current generated manifest/IPA paths return HTTP 200.
+Use example OTA hostnames in public docs. Keep real OTA hostnames in private
+release notes or maintainer-run scripts unless they are approved for publishing.
 
 - [ ] **Step 5: Verify GitHub/source package state**
 
