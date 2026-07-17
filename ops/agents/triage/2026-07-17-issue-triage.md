@@ -1,6 +1,6 @@
 # CodePilot Issue Triage - 2026-07-17
 
-Remote write policy: public GitHub writes are limited to new issues and draft pull requests after a privacy audit. This pass did not make a public write.
+Remote write policy: public GitHub writes require a privacy audit. This pass pushed the focused `agent/issue-triage-remote-desktop-lease-blocker` branch and opened draft PR #26 after the audit passed.
 
 ## Reviewed Issues
 
