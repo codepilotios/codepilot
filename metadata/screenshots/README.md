@@ -8,6 +8,8 @@ Prepare approved screenshots for:
 
 - First connection screen with the Cloudflare connection choice.
 - Gateway health or setup status after a successful connection.
+- Total-credit status with synthetic account names and balances.
+- Total Credit Live Activity on a supported Lock Screen or Dynamic Island.
 - Thread list or active turn view.
 - File preview from a local Mac path.
 - Local Mac web page opened through the gateway.

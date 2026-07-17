@@ -13,6 +13,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - iOS simulator Debug and clean Release builds: passed with code signing disabled.
 - Unsigned generic-device iOS Release archive compile: passed.
 - iOS simulator tests: passed; 37 tests, 0 failures.
+- The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
 - The latest OTA status still points to a July 8 build with no recorded source commit. Its install-linked manifest and IPA both returned HTTP 200 in a read-only check, but the manifest does not match the current bundle ID and the public OTA install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
@@ -39,9 +40,9 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 
 ## Prepared Artifacts
 
-- Draft TestFlight notes: `metadata/testflight/0.1/en-US.md`.
-- Draft App Store metadata and release notes: `metadata/version/0.1/en-US.json`.
-- Screenshot capture/redaction checklist: `metadata/screenshots/README.md`.
+- Draft TestFlight notes, including total-credit, Live Activity, and reset-credit coverage: `metadata/testflight/0.1/en-US.md`.
+- Draft App Store metadata and benefit-focused release notes: `metadata/version/0.1/en-US.json`.
+- Screenshot capture/redaction checklist, including sanitized total-credit and Live Activity captures: `metadata/screenshots/README.md`.
 
 ## Maintainer Actions
 
