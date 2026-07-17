@@ -4488,7 +4488,10 @@ class GatewayState:
     ):
         env = codex_child_env(self.codex_home)
         codex = str(self.codex_path if self.codex_path.exists() else shutil.which("codex") or DEFAULT_CODEX)
-        output_file = Path(tempfile.gettempdir()) / f"codex-phone-{job_id}.txt"
+        output_descriptor, output_name = tempfile.mkstemp(prefix=f"codex-phone-{job_id}-", suffix=".txt")
+        os.close(output_descriptor)
+        output_file = Path(output_name)
+        os.chmod(output_file, 0o600)
         args = [
             codex,
             "exec",
@@ -4590,6 +4593,11 @@ class GatewayState:
                 push_job = self.prepare_turn_completion_push_locked(job)
             if push_job:
                 self.send_turn_completion_push(push_job)
+        finally:
+            try:
+                output_file.unlink()
+            except FileNotFoundError:
+                pass
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -4967,8 +4975,28 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
+    def log_request(self, code="-", size="-"):
+        parsed = urllib.parse.urlsplit(self.path)
+        path = parsed.path
+        if path.startswith("/api/local-web/"):
+            path = "/api/local-web/[redacted]"
+        self.log_message(
+            '"%s %s %s" %s %s',
+            self.command,
+            path,
+            self.request_version,
+            str(code),
+            str(size),
+        )
+
     def log_message(self, format, *args):
-        print(f"{self.address_string()} - {format % args}", flush=True)
+        message = format % args
+        safe_message = re.sub(
+            r"[\x00-\x1f\x7f-\x9f]",
+            lambda match: f"\\x{ord(match.group(0)):02x}",
+            message,
+        )
+        print(f"{self.client_address[0]} - {safe_message}", flush=True)
 
 
 class GatewayServer(ThreadingHTTPServer):

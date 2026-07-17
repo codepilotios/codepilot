@@ -932,6 +932,71 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
         self.assertEqual(path.parent.parent.stat().st_mode & 0o777, 0o700)
 
+    def test_gateway_logs_redact_queries_and_local_web_capabilities(self):
+        handler = object.__new__(gateway.Handler)
+        handler.command = "GET"
+        handler.path = "/api/local-web/private-capability/dashboard?path=/private/file"
+        handler.request_version = "HTTP/1.1"
+
+        with mock.patch.object(handler, "log_message") as log_message:
+            handler.log_request(200, 42)
+
+        format_string, *arguments = log_message.call_args.args
+        rendered = format_string % tuple(arguments)
+        self.assertIn("/api/local-web/[redacted]", rendered)
+        self.assertNotIn("private-capability", rendered)
+        self.assertNotIn("/private/file", rendered)
+
+    def test_gateway_logs_escape_control_characters(self):
+        handler = object.__new__(gateway.Handler)
+        handler.client_address = ("127.0.0.1", 12345)
+
+        with mock.patch("builtins.print") as print_mock:
+            handler.log_message("request %s", "safe\nforged")
+
+        self.assertEqual(print_mock.call_args.args[0], r"127.0.0.1 - request safe\x0aforged")
+
+    def test_exec_fallback_uses_private_temporary_output_and_removes_it(self):
+        captured = {}
+
+        class Process:
+            stdin = io.StringIO()
+            stdout = []
+
+            @staticmethod
+            def wait():
+                return 0
+
+        def process_factory(arguments, **_kwargs):
+            output_path = Path(arguments[arguments.index("-o") + 1])
+            captured["path"] = output_path
+            captured["mode"] = output_path.stat().st_mode & 0o777
+            output_path.write_text("Finished privately", encoding="utf-8")
+            return Process()
+
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        job_id = "private-output-test"
+        gateway.JOBS[job_id] = {
+            "id": job_id,
+            "threadId": "thread-id",
+            "status": "running",
+            "events": [],
+        }
+        try:
+            with mock.patch.object(gateway.subprocess, "Popen", side_effect=process_factory):
+                state.run_turn_exec(
+                    job_id,
+                    {"id": "thread-id", "cwd": "/tmp"},
+                    "prompt",
+                    [],
+                )
+
+            self.assertEqual(captured["mode"], 0o600)
+            self.assertFalse(captured["path"].exists())
+            self.assertEqual(gateway.JOBS[job_id]["lastMessage"], "Finished privately")
+        finally:
+            gateway.JOBS.pop(job_id, None)
+
     def test_public_health_exposes_safe_gateway_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             original_switcher_home = gateway.DEFAULT_SWITCHER_HOME

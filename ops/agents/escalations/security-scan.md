@@ -11,7 +11,7 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 ## 2026-07-17 Remaining High-Risk Work
 
 - Deliver the iOS Keychain migration through the authorized OTA/TestFlight process, then rotate gateway tokens used by beta devices that may have backed up the old preference value. This unattended scan did not publish a build because its public-write policy prohibits non-GitHub external mutations.
-- A scan of all 209 reachable commits found private-identifier matches in 128 historical commit trees and no recognized live-secret pattern. The current tree passes the privacy audit. Coordinate a history rewrite and clone migration before representing the repository history as sanitized; never paste historical values into an issue or pull request.
+- A scan of all 212 reachable commits found private-identifier matches in 129 historical commit trees and no recognized live-secret pattern. Commit metadata also includes four distinct identities, with non-public identity or email metadata on a small subset of commits. The current tree passes the privacy audit. Coordinate a history-and-metadata rewrite plus clone migration before representing the repository history as sanitized; never paste historical values into an issue or pull request.
 - Localhost proxy sessions remain bearerless capability URLs after creation. This branch removes wildcard CORS and adds no-referrer/nosniff response headers, but a leaked live capability URL can still reach the selected loopback port until its short expiry. Keep the capability private and consider a WebView-bound authentication design before broad launch.
 
 ## 2026-07-17 Hardening Completed Locally
@@ -21,3 +21,5 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Forced gateway tokens, uploads, secret-bearing environment files, and generated LaunchAgent plists to owner-only permissions; gateway token symlinks and empty token files are rejected.
 - Added remote-desktop tests to CI and made agent guard tests independent of inherited autonomy/model environment settings.
 - Removed remaining private identity strings from the current tracked source and aligned the APNs topic with the public bundle identifier.
+- Made fallback Codex output files owner-only and removed them immediately after ingestion instead of leaving private turn output in the shared temporary directory.
+- Redacted query strings and localhost capability identifiers from gateway access logs, and escaped control characters to prevent forged log lines.
