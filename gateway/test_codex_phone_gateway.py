@@ -1967,7 +1967,8 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                     devices, notification = push_notifier.sent[0]
                     self.assertEqual(devices[0]["token"], "abc123")
                     self.assertEqual(notification["title"], "Codex finished")
-                    self.assertIn("Main", notification["body"])
+                    self.assertEqual(notification["body"], "Open CodePilot to view the result.")
+                    self.assertNotIn("Main", json.dumps(notification))
                     self.assertEqual(notification["jobId"], "job-1")
                     public = gateway.public_job(gateway.JOBS["job-1"])
                     self.assertIsInstance(public["completionNotificationSentAt"], int)
@@ -1978,6 +1979,22 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                         gateway.JOBS.update(old_jobs)
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_failure_push_excludes_thread_title_and_error_details(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        notification = state.turn_completion_notification({
+            "id": "job-1",
+            "threadId": "thread-a",
+            "threadTitle": "Private project",
+            "status": "failed",
+            "error": "credential rejected at a private path",
+        })
+
+        self.assertEqual(notification["title"], "Codex failed")
+        self.assertEqual(notification["body"], "Open CodePilot to review the error.")
+        serialized = json.dumps(notification)
+        self.assertNotIn("Private project", serialized)
+        self.assertNotIn("credential rejected", serialized)
 
     def test_completion_push_without_registered_device_does_not_mark_sent(self):
         with tempfile.TemporaryDirectory() as tmp:

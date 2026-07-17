@@ -3340,37 +3340,19 @@ class GatewayState:
         self.push_notifier.send_turn_completion(devices, notification)
 
     def turn_completion_notification(self, job: dict) -> dict:
-        thread_title = str(job.get("threadTitle") or "").strip()
-        if not thread_title:
-            thread_title = self.thread_title_for_notification(str(job.get("threadId") or ""))
-        if not thread_title:
-            thread_title = "Codex thread"
-
         status = str(job.get("status") or "")
         if status == "failed":
             title = "Codex failed"
-            error = str(job.get("error") or "").strip()
-            body = f"{thread_title}: {truncate_text(error, 120)}" if error else f"Turn failed in {thread_title}."
+            body = "Open CodePilot to review the error."
         else:
             title = "Codex finished"
-            body = f"Turn finished in {thread_title}."
+            body = "Open CodePilot to view the result."
         return {
             "title": title,
             "body": body,
             "threadId": str(job.get("threadId") or ""),
             "jobId": str(job.get("id") or ""),
         }
-
-    def thread_title_for_notification(self, thread_id: str) -> str:
-        if not thread_id:
-            return ""
-        try:
-            thread = self.get_thread_state_db(thread_id)
-        except Exception:
-            return ""
-        if not thread:
-            return ""
-        return str(thread.get("title") or "").strip()
 
     def switch_account(self, raw_name: str) -> dict:
         account_name = self.resolve_account_profile_name(raw_name)
