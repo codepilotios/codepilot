@@ -13,7 +13,7 @@ The beta is focused on practical workflows for AI coding users:
 
 ## Beta Access
 
-The Mac app currently builds from source. The iPhone companion requires access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
+The Mac app currently builds from source on macOS 13 or later. The iPhone companion requires iOS 17 or later and access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
 
 Start with the [Mac installation guide](INSTALL_MAC.md). If you already have an approved iPhone beta build, continue with the [iOS installation guide](INSTALL_IOS.md).
 

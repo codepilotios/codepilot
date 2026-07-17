@@ -5,11 +5,19 @@ CodePilot Mac is a menu bar app. It currently builds from source with SwiftPM.
 ## Requirements
 
 - macOS 13 or later.
+- Git.
 - Xcode command line tools.
 - Codex installed and available as `codex`.
 - A local Codex login at `~/.codex/auth.json`.
 
 Successful setup means the menu bar app shows `CodePilot`, at least one account profile exists, and the setup window marks the gateway token and gateway as ready.
+
+## Get The Source
+
+```sh
+git clone https://github.com/codepilotios/codepilot.git
+cd codepilot
+```
 
 ## Build
 

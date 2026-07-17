@@ -4,6 +4,8 @@ CodePilot iOS connects to a Mac running the CodePilot gateway.
 
 ## Requirements
 
+- An iPhone running iOS 17 or later.
+- Access to an approved CodePilot beta build.
 - A Mac running the CodePilot gateway.
 - A reachable gateway URL.
 - The gateway bearer token from the Mac.

@@ -6,7 +6,7 @@ CodePilot is for AI coding users who already run Codex CLI on a Mac and want an 
 
 ## How do I access the beta?
 
-The Mac app currently builds from source using the repository installation guide. The iPhone companion requires access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
+The Mac app currently builds from source on macOS 13 or later using the repository installation guide. The iPhone companion requires iOS 17 or later and access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
 
 ## Is CodePilot ready for production teams?
 

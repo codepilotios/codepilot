@@ -29,6 +29,7 @@
 - Clarified that the Mac app builds from source while iPhone access still requires an approved beta build, without implying public TestFlight or App Store availability.
 - Added direct privacy-safe bug and feature-request paths to the README, Pages landing page, FAQ, and support copy.
 - Added concrete draft support and privacy URLs that remain gated on GitHub Pages enablement and maintainer verification.
+- Added the missing repository checkout step and documented the supported macOS 13 and iOS 17 minimums for beta setup.
 
 ### Recent Product Work
 
