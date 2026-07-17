@@ -2589,7 +2589,7 @@ struct CodePilotSetupStatus {
 
     static func load() -> CodePilotSetupStatus {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let codexAuth = home.appendingPathComponent(".codex/auth.json").path
+        let codexAuth = home.appendingPathComponent(".codex/auth.json")
         let appDir = home.appendingPathComponent(".codex-account-switcher", isDirectory: true)
         let accountsDir = appDir.appendingPathComponent("accounts", isDirectory: true)
         let tokenPath = appDir.appendingPathComponent("phone-gateway-token")
@@ -2597,10 +2597,11 @@ struct CodePilotSetupStatus {
             at: accountsDir,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
-        ).filter { FileManager.default.fileExists(atPath: $0.appendingPathComponent("auth.json").path) }.count) ?? 0
+        ).filter { authFileIsUsable(at: $0.appendingPathComponent("auth.json")) }.count) ?? 0
 
         let codexCLI = executablePath(named: "codex")
         let cloudflared = executablePath(named: "cloudflared")
+        let codexAuthUsable = authFileIsUsable(at: codexAuth)
         let remoteDesktopPermissions = SystemRemoteDesktopPermissions()
         let cloudflareRequirement: CodePilotSetupRequirement
         let cloudflareDetail: String
@@ -2624,8 +2625,8 @@ struct CodePilotSetupStatus {
             ),
             CodePilotSetupRow(
                 title: "Codex Login",
-                requirement: FileManager.default.fileExists(atPath: codexAuth) ? .codexSignedIn : .codexSignedOut,
-                detail: codexLoginDetail(signedIn: FileManager.default.fileExists(atPath: codexAuth))
+                requirement: codexAuthUsable ? .codexSignedIn : .codexSignedOut,
+                detail: codexLoginDetail(signedIn: codexAuthUsable)
             ),
             CodePilotSetupRow(
                 title: "Account Profiles",
@@ -2739,6 +2740,14 @@ struct CodePilotSetupStatus {
         default:
             return "\(count) profiles"
         }
+    }
+
+    static func authFileIsUsable(at authFile: URL) -> Bool {
+        guard let data = try? Data(contentsOf: authFile),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return false
+        }
+        return !object.isEmpty
     }
 
     static func gatewayTokenRequirement(at tokenPath: URL) -> CodePilotSetupRequirement {

@@ -107,6 +107,28 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupStatus.accountProfilesDetail(count: 2), "2 profiles")
     }
 
+    func testAuthReadinessRejectsEmptyAndMalformedFiles() throws {
+        let temporaryDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let authPath = temporaryDirectory.appendingPathComponent("auth.json")
+        try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
+
+        XCTAssertFalse(CodePilotSetupStatus.authFileIsUsable(at: authPath))
+
+        try Data("\n  \t".utf8).write(to: authPath)
+        XCTAssertFalse(CodePilotSetupStatus.authFileIsUsable(at: authPath))
+
+        try Data("not json".utf8).write(to: authPath)
+        XCTAssertFalse(CodePilotSetupStatus.authFileIsUsable(at: authPath))
+
+        try Data("{}".utf8).write(to: authPath)
+        XCTAssertFalse(CodePilotSetupStatus.authFileIsUsable(at: authPath))
+
+        try Data(#"{"auth_mode":"chatgpt"}"#.utf8).write(to: authPath)
+        XCTAssertTrue(CodePilotSetupStatus.authFileIsUsable(at: authPath))
+    }
+
     func testGatewayTokenMustContainANonWhitespaceValue() throws {
         let temporaryDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
