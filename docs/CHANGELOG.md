@@ -19,6 +19,8 @@
 - Aligned public-beta iPhone connection copy around Cloudflare Tunnel while LAN setup remains unsupported.
 - Tightened beta issue templates and screenshot guidance so public reports ask for recovery context without broad log dumps or private desktop content.
 - Aligned beta support and bug-report categories with promoted file upload, notification, turn-control, and remote desktop workflows.
+- Clarified the current security-reporting limitation so beta users are not directed to share sensitive evidence publicly.
+- Added launch checks for the live Pages URL, repository website field, and a private security-reporting channel.
 
 ### Recent Product Work
 

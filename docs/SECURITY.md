@@ -34,3 +34,5 @@ CodePilot swaps local provider auth files. It waits for active turns to finish b
 Do not include auth files, bearer tokens, logs containing tokens, or uploaded private files in issue reports.
 
 Before sharing logs, search for account names, email addresses, hostnames, tokens, Apple team identifiers, and local file paths.
+
+CodePilot does not currently publish a private security-reporting channel. Do not put credentials, exploit details, private files, or other sensitive evidence in a public issue. If coordination is necessary, open only a minimal public issue requesting a private reporting path and include no sensitive details.

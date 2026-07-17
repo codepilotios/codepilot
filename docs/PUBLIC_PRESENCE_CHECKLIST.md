@@ -43,3 +43,10 @@ Maintainer approval is required before publishing or submitting:
 - App Store privacy labels, age rating, export compliance, pricing, subscriptions, or legal terms.
 - TestFlight external testing, App Store review, public launch announcements, paid promotion, or community posts.
 - Claims about hosted services, production readiness, non-Codex provider support, or subscription value.
+
+## Publishing Readiness
+
+- Confirm GitHub Pages is enabled from the approved `main` branch `docs/` source and the site returns successfully.
+- Add the live Pages URL to the repository website field and resolve the App Store support and privacy URL drafts to live pages.
+- Confirm a private security-reporting channel is enabled and linked from `SECURITY.md` before broader beta promotion.
+- Keep sensitive vulnerability details out of public issues, even when asking for private coordination.
