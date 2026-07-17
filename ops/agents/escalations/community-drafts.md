@@ -8,6 +8,10 @@ Status: maintainer action required before any public posting.
   an account solely to satisfy this request.
 - For `r/TestFlight`, provide or approve a verified public Apple TestFlight link;
   the draft must contain no other link.
+- For `r/BetaTests`, approve the no-link tester-feedback draft and confirm that
+  the `codepilotios` identity is at least 24 hours old with at least 2 combined
+  Reddit karma. The community currently permits product beta posts without
+  moderator pre-approval, but final maintainer approval is still required.
 - Do not cross-post the beta recruitment to `r/appledevelopers`, which directs
   TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed for
   this AI-first beta; its monthly App Shelf requires approved pricing/status
