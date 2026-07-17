@@ -185,14 +185,18 @@ The feedback I am looking for:
 This is a beta feedback request, not an upvote request. I am trying to make the beta safer and clearer before broader distribution.
 ```
 
-## Draft 3: `r/SideProject` Standalone Feedback Post
+## Draft 3: `r/SideProject` Standalone Feedback Post (Held Alternative)
 
 Posting target: `r/SideProject`
 
-Approval status: needs maintainer approval before posting.
+Approval status: hold. Prefer Draft 13 in a current self-promotion thread. Use
+this standalone alternative only if the thread is unavailable and a maintainer
+explicitly approves standalone placement after re-checking the live community.
 
 Rule notes:
 - Fit is strongest when framed as a specific side-project feedback request.
+- Current community sentiment strongly disfavors promotion-only participation
+  and link drops, even though the live About page lists no specific rules.
 - Do not ask friends, testers, or communities to upvote.
 - Include only an approved public link if links are allowed at posting time; otherwise ask for replies and share the approved beta link only after maintainer approval.
 
