@@ -2870,18 +2870,26 @@ private final class CodePilotSetupWindowController: NSWindowController {
 
     private func buildUI() {
         guard let contentView = window?.contentView else { return }
+        let scrollView = NSScrollView()
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(scrollView)
+
         let root = NSStackView()
         root.orientation = .vertical
         root.alignment = .leading
         root.spacing = 16
+        root.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         root.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(root)
+        scrollView.documentView = root
 
         NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            root.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            root.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
-            root.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20)
+            scrollView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            root.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor)
         ])
 
         let title = NSTextField(labelWithString: "CodePilot Setup")

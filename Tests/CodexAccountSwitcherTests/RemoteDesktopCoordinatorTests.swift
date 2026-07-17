@@ -26,6 +26,23 @@ final class RemoteDesktopCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.snapshot.screenRecordingGranted, true)
     }
 
+    func testPermissionPromptsOnlyRunWhenExplicitlyRequested() throws {
+        let permissions = FakeRemoteDesktopPermissions(
+            screenRecordingGranted: false,
+            accessibilityGranted: false
+        )
+        let coordinator = try makeCoordinator(permissions: permissions)
+
+        XCTAssertEqual(permissions.screenRecordingRequestCount, 0)
+        XCTAssertEqual(permissions.accessibilityRequestCount, 0)
+
+        coordinator.requestScreenRecordingPermission()
+        coordinator.requestAccessibilityPermission()
+
+        XCTAssertEqual(permissions.screenRecordingRequestCount, 1)
+        XCTAssertEqual(permissions.accessibilityRequestCount, 1)
+    }
+
     func testPairingCanBeApprovedOrRejectedLocally() throws {
         let coordinator = try makeCoordinator()
         let privateKey = P256.Signing.PrivateKey()
@@ -158,6 +175,8 @@ final class FakeRemoteDesktopPermissions: RemoteDesktopPermissionChecking {
     var screenRecordingGranted: Bool
     var accessibilityGranted: Bool
     var macUnlocked: Bool
+    private(set) var screenRecordingRequestCount = 0
+    private(set) var accessibilityRequestCount = 0
 
     init(
         screenRecordingGranted: Bool = true,
@@ -167,5 +186,13 @@ final class FakeRemoteDesktopPermissions: RemoteDesktopPermissionChecking {
         self.screenRecordingGranted = screenRecordingGranted
         self.accessibilityGranted = accessibilityGranted
         self.macUnlocked = macUnlocked
+    }
+
+    func requestScreenRecording() {
+        screenRecordingRequestCount += 1
+    }
+
+    func requestAccessibility() {
+        accessibilityRequestCount += 1
     }
 }

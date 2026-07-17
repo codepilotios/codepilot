@@ -22,3 +22,7 @@ Application startup calls the Screen Recording request API unconditionally when 
 ## Suggested Fix
 
 Move the request behind a clear action in the setup or Remote Desktop window. Keep both permission statuses visible and provide direct links to the relevant System Settings panes.
+
+## Local Audit Fix
+
+The `agent/setup-audit` branch removes the unconditional launch-time prompt. The Remote Desktop window now explains why each permission is needed and exposes explicit **Allow Screen Recording** and **Allow Accessibility** actions only when the corresponding permission is missing.

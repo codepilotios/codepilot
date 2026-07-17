@@ -38,26 +38,7 @@ Pull to refresh the thread list. If a live stream was interrupted, open the thre
 
 ## File Upload Is Rejected
 
-Confirm the iPhone can still load threads from the Mac gateway, then retry with a smaller selection. One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit.
-
-Uploads that succeed remain under the CodePilot state directory on the Mac until you delete them. Do not attach the original private file or an unsanitized gateway response to a public issue. If the same sanitized sample file still fails, report the visible recovery message and the file's approximate size and type.
-
-## Turn-Finished Notifications Do Not Arrive
-
-Check each part of the optional notification path:
-
-1. In iOS Settings, confirm notifications are allowed for CodePilot.
-2. Confirm the Mac is awake and online and that the CodePilot gateway and Cloudflare Tunnel are running.
-3. Confirm the iPhone can still load threads using the saved gateway URL and token.
-4. For background delivery, confirm APNs is configured in the gateway environment.
-
-Live Activities use a separate iOS control. Enabling notifications does not automatically enable Live Activities, and disabling one does not disable the other.
-
-If delivery still fails, report whether it fails only in the background or also while CodePilot is open. Share only sanitized recovery text; notification registration details and device tokens are private.
-
-## Remote Desktop Is Unavailable
-
-Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not work around this restriction or enable the feature in beta builds.
+Open **Remote Desktop...** on the Mac and confirm Screen Recording and Accessibility permissions are granted. Use **Allow Screen Recording** or **Allow Accessibility** for a missing permission, then restart CodePilot after changing macOS privacy permissions.
 
 ## Localhost Link Does Not Open
 

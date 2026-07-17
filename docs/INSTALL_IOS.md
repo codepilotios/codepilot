@@ -47,4 +47,4 @@ Files selected in the iOS app are uploaded to the Mac gateway and saved under th
 
 ## Remote Desktop
 
-Remote Desktop requires the Mac app to show Screen Recording as granted before viewing and Accessibility as granted before control. If pairing reports missing permissions, grant them in macOS System Settings, restart CodePilot on the Mac, then retry pairing from the iOS app.
+Remote Desktop requires the Mac app to show Screen Recording as granted before viewing and Accessibility as granted before control. If pairing reports missing permissions, open **Remote Desktop...** on the Mac, use the matching **Allow** action, restart CodePilot, then retry pairing from the iOS app.

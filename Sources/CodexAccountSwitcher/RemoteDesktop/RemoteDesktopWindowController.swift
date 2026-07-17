@@ -59,8 +59,19 @@ final class RemoteDesktopWindowController: NSWindowController {
         addSection("Permissions", rows: [
             "Screen Recording: \(snapshot.screenRecordingGranted ? "Granted" : "Missing")",
             "Accessibility: \(snapshot.accessibilityGranted ? "Granted" : "Missing")",
-            "Mac unlocked: \(snapshot.macUnlocked ? "Yes" : "No")"
+            "Mac unlocked: \(snapshot.macUnlocked ? "Yes" : "No")",
+            "Screen Recording lets the iPhone view this Mac. Accessibility enables pointer and keyboard control."
         ])
+        var permissionActions: [(String, Selector)] = []
+        if !snapshot.screenRecordingGranted {
+            permissionActions.append(("Allow Screen Recording", #selector(requestScreenRecordingPermission)))
+        }
+        if !snapshot.accessibilityGranted {
+            permissionActions.append(("Allow Accessibility", #selector(requestAccessibilityPermission)))
+        }
+        if !permissionActions.isEmpty {
+            addButtonRow(permissionActions)
+        }
 
         if let pending = snapshot.pendingPairing {
             addSection("Pending Pairing", rows: [
@@ -149,6 +160,16 @@ final class RemoteDesktopWindowController: NSWindowController {
 
     @objc private func approvePendingPairing() {
         try? coordinator.approvePendingPairing()
+        refresh()
+    }
+
+    @objc private func requestScreenRecordingPermission() {
+        coordinator.requestScreenRecordingPermission()
+        refresh()
+    }
+
+    @objc private func requestAccessibilityPermission() {
+        coordinator.requestAccessibilityPermission()
         refresh()
     }
 
