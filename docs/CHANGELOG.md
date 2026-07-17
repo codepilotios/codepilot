@@ -24,6 +24,8 @@
 - Clarified that Codex credentials remain on the Mac while Cloudflare processes gateway traffic and connection metadata for the user-owned tunnel.
 - Aligned support, beta feedback, issue-template, and screenshot guidance with the promoted usage and connector/plugin status workflows.
 - Removed Remote Desktop from public-beta promotion while its pairing and session-authorization enforcement remains a release blocker.
+- Removed Remote Desktop from the default TestFlight beta description and aligned that metadata with the supported thread, usage, account, upload, turn-control, and notification workflows.
+- Shortened the App Store promotional text and keyword draft to fit their submission field limits while preserving the Codex CLI beta positioning.
 
 ### Recent Product Work
 

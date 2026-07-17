@@ -12,7 +12,9 @@ Codex companion for your Mac
 
 ## Promotional Text
 
-Public beta for Codex CLI users who want iPhone visibility, file uploads, turn control, notifications, and safe gateway-backed access to coding-agent sessions running on their own Mac.
+Public beta for Codex CLI users who want iPhone access to thread status, file uploads, turn controls, notifications, and coding-agent sessions on their own Mac.
+
+Character count: 160 of 170.
 
 ## Description
 
@@ -26,7 +28,9 @@ CodePilot handles local coding-agent credentials and gateway access. Review the 
 
 ## Keywords
 
-Codex, coding agent, developer tools, Mac, iPhone, remote coding, AI coding, TestFlight, gateway, Cloudflare
+Codex,coding agent,developer tools,Mac,iPhone,remote coding,AI coding,gateway,Cloudflare
+
+Character count: 88 of 100.
 
 ## What To Test
 
