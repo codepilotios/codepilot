@@ -52,6 +52,9 @@ final class RemoteDesktopTests: XCTestCase {
         )
         XCTAssertNotNil(GatewayEndpoint.baseURL(from: "http://localhost:18790"))
         XCTAssertNotNil(GatewayEndpoint.baseURL(from: "http://127.0.0.2:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://127.example:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://127.0.0.1.example:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://127.0.0.256:18790"))
         XCTAssertNil(GatewayEndpoint.baseURL(from: "http://gateway.example"))
         XCTAssertNil(GatewayEndpoint.baseURL(from: "ftp://gateway.example"))
     }

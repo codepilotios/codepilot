@@ -51,7 +51,19 @@ enum GatewayEndpoint {
     }
 
     private static func isLoopbackHost(_ host: String) -> Bool {
-        host == "localhost" || host == "::1" || host.hasPrefix("127.")
+        if host == "localhost" || host == "::1" {
+            return true
+        }
+
+        let octets = host.split(separator: ".", omittingEmptySubsequences: false)
+        guard octets.count == 4, octets[0] == "127" else {
+            return false
+        }
+        return octets.allSatisfy { octet in
+            !octet.isEmpty
+                && octet.allSatisfy(\.isNumber)
+                && Int(octet).map { (0...255).contains($0) } == true
+        }
     }
 }
 

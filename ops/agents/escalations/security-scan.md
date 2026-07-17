@@ -43,3 +43,4 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Required every origin push refspec to target an explicit `agent/*` branch, rejected broad push modes, constrained GitHub writes to the CodePilot repository, and added the public-write guard suite to CI.
 - Disabled the unauthenticated native remote-desktop host at application startup and stopped requesting Screen Recording permission for an unavailable feature.
 - Restricted the CI workflow token to read-only repository contents and pinned the checkout action to an immutable revision.
+- Prevented the iOS client from treating DNS names that merely begin with `127.` as plaintext-HTTP loopback endpoints, closing a gateway bearer-token disclosure path.

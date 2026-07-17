@@ -23,7 +23,7 @@ Recommended:
 - Rotate the token if a device is lost.
 - Restrict Cloudflare access where practical.
 
-The iOS client refuses non-HTTPS gateway URLs except for explicit loopback development addresses. It also rejects gateway URLs containing user information, query strings, or fragments, and credential-bearing requests do not follow cross-origin redirects.
+The iOS client refuses non-HTTPS gateway URLs except for `localhost`, `::1`, and syntactically valid `127.x.x.x` loopback addresses. DNS names that merely begin with `127.` are not loopback exceptions and still require HTTPS. The client also rejects gateway URLs containing user information, query strings, or fragments, and credential-bearing requests do not follow cross-origin redirects.
 
 The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
 
