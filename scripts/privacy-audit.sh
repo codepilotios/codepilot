@@ -85,15 +85,18 @@ if contains_disallowed_bundle_namespace; then
 fi
 
 secret_patterns=(
-  "g""hp_[A-Za-z0-9_]+"
+  "g""(hp|ho|hu|hs|hr)_[A-Za-z0-9_]{20,}"
   "github_""pat_[A-Za-z0-9_]+"
   "s""k-[A-Za-z0-9]{20,}"
+  "s""k-(proj|svcacct)-[A-Za-z0-9_-]{20,}"
+  "(sbp|sb_secret)_[A-Za-z0-9._-]{20,}"
   "-----BEGIN ((RSA|OPENSSH|EC|DSA) )?PRIVATE ""KEY-----"
   "-----BEGIN PGP PRIVATE KEY ""BLOCK-----"
   'Bearer [A-Za-z0-9._-]{20,}'
   '(AKIA|ASIA)[A-Z0-9]{16}'
   'AIza[A-Za-z0-9_-]{30,}'
   'xox[baprs]-[A-Za-z0-9-]{10,}'
+  'xapp-[A-Za-z0-9-]{10,}'
   '(s|r)k_live_[A-Za-z0-9]{16,}'
   'glpat-[A-Za-z0-9_-]{16,}'
   'npm_[A-Za-z0-9]{20,}'
