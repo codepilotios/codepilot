@@ -22,6 +22,7 @@
 - Clarified the current security-reporting limitation so beta users are not directed to share sensitive evidence publicly.
 - Added launch checks for the live Pages URL, repository website field, and a private security-reporting channel.
 - Clarified that Codex credentials remain on the Mac while Cloudflare processes gateway traffic and connection metadata for the user-owned tunnel.
+- Aligned support, beta feedback, issue-template, and screenshot guidance with the promoted usage and connector/plugin status workflows.
 
 ### Recent Product Work
 

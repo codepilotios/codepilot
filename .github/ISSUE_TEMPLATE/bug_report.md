@@ -13,6 +13,8 @@ assignees: ""
 - [ ] Gateway
 - [ ] Cloudflare setup
 - [ ] Account switching
+- [ ] Usage status
+- [ ] Connector/plugin status
 - [ ] Remote desktop
 - [ ] File upload
 - [ ] Notifications
@@ -32,6 +34,7 @@ Check the closest match:
 - [ ] Gateway URL entry
 - [ ] Token entry
 - [ ] Thread loading
+- [ ] Usage or connector status
 - [ ] File upload
 - [ ] Steering or stop-turn control
 - [ ] Notification delivery
@@ -53,7 +56,8 @@ Paste the visible recovery message or status text, with private values removed.
 - macOS version:
 - iOS version:
 - CodePilot build or commit:
-- Codex CLI installed: yes/no
+- Codex CLI version (if available):
+- Codex CLI already working on this Mac: yes/no
 - Connection path: Cloudflare Tunnel / other
 
 ## Sanitized logs or screenshots

@@ -21,6 +21,7 @@ Recommended beta screenshot set:
 - Cloudflare setup wizard using an example hostname.
 - iPhone connection wizard for the public-beta Cloudflare path.
 - iPhone thread list with demo thread names.
+- iPhone usage and connector/plugin status with demo account names.
 - File upload confirmation using non-private sample files.
 - Remote desktop permission screen without a live private desktop.
 

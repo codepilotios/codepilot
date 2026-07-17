@@ -6,11 +6,11 @@ CodePilot public beta feedback is most useful when it helps reproduce a real Cod
 
 Include:
 
-- The area affected: Mac app, iPhone app, gateway, Cloudflare setup, account switching, remote desktop, file upload, notifications, or docs.
+- The area affected: Mac app, iPhone app, gateway, Cloudflare setup, account switching, usage status, connector/plugin status, remote desktop, file upload, notifications, or docs.
 - What you were trying to do.
 - What happened instead.
 - The visible recovery message or status text.
-- Whether the failing step was setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, upload, notification delivery, or turn control.
+- Whether the failing step was setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, usage or connector status, upload, notification delivery, turn control, or remote desktop.
 - macOS version, iOS version, CodePilot build or commit, and Codex CLI version when available.
 - Sanitized logs or screenshots only when they make the issue clearer.
 

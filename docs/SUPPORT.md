@@ -20,12 +20,13 @@ Use the repository bug report template when available.
 
 Include:
 
-- Mac app, gateway, or iOS app area affected.
+- The affected area: Mac app, iPhone app, gateway, Cloudflare setup, account switching, usage status, connector/plugin status, remote desktop, file upload, notifications, or docs.
 - What you expected to happen.
 - What happened instead.
 - Whether setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, file upload, notification delivery, turn control, or remote desktop is the failing step.
 - The visible recovery message, if one appears.
 - Whether Codex CLI was already working on the Mac before CodePilot setup.
+- macOS version, iOS version, CodePilot build or commit, and Codex CLI version when available.
 - Sanitized logs with private values removed.
 
 ## Do Not Share
