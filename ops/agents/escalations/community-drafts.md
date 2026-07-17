@@ -9,8 +9,9 @@ Status: maintainer action required before any public posting.
 - For `r/TestFlight`, provide or approve a verified public Apple TestFlight link;
   the draft must contain no other link.
 - Do not cross-post the beta recruitment to `r/appledevelopers`, which directs
-  TestFlight apps to `r/TestFlight`; do not promote it in `r/iosapps` while that
-  community excludes apps whose core feature is generative AI.
+  TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed for
+  this AI-first beta; its monthly App Shelf requires approved pricing/status
+  language and a direct App Store link before a compliant draft can be posted.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 
