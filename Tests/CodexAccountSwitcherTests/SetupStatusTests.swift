@@ -49,6 +49,7 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupRequirement.gatewayStopped.statusLabel, "Stopped")
         XCTAssertEqual(CodePilotSetupRequirement.gatewayBlockedByActiveTurn.statusLabel, "Blocked by active turn")
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareOptional.statusLabel, "Optional")
+        XCTAssertEqual(CodePilotSetupRequirement.cloudflareNeedsVerification.statusLabel, "Needs verification")
         XCTAssertEqual(CodePilotSetupRequirement.screenRecordingReady.statusLabel, "Ready")
         XCTAssertEqual(CodePilotSetupRequirement.screenRecordingMissing.statusLabel, "Missing")
         XCTAssertEqual(CodePilotSetupRequirement.accessibilityReady.statusLabel, "Ready")
@@ -60,6 +61,7 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareReady.statusLabel, "Ready")
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareMissing.statusLabel, "Missing")
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareNeedsConfiguration.statusLabel, "Needs setup")
+        XCTAssertEqual(CodePilotSetupRequirement.cloudflareNeedsVerification.statusLabel, "Needs verification")
         XCTAssertEqual(CodePilotSetupRequirement.cloudflareOptional.statusLabel, "Optional")
     }
 

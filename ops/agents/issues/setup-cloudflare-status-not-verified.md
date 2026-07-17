@@ -23,3 +23,7 @@ The presence of setup metadata or either supported config file produces **Ready*
 ## Suggested Fix
 
 Record successful verification in metadata, probe LaunchAgent state, and expose a finite **Verify Remote Access** action. Preserve **Configured** for offline Macs instead of treating temporary network failure as loss of configuration.
+
+## Local Audit Progress
+
+The local setup-audit branch now records successful public health verification, labels configured-but-unverified tunnels **Needs verification**, and provides a **Verify Remote Access** action. Live LaunchAgent-state reporting and stale-verification expiry remain follow-up work.

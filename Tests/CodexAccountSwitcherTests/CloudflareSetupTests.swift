@@ -40,6 +40,32 @@ final class CloudflareSetupTests: XCTestCase {
         XCTAssertNil(metadata.remoteAccessURL)
     }
 
+    func testCloudflareMetadataRequiresSuccessfulVerificationForReadyState() {
+        let unverified = CodePilotCloudflareMetadata(
+            mode: "permanent",
+            hostname: "codepilot.example.com",
+            tunnelName: "codepilot",
+            tunnelId: "tun_123",
+            configPath: "/tmp/codepilot-config.yaml",
+            launchAgentLabel: "io.codepilot.phone-cloudflared",
+            lastVerifiedAt: nil
+        )
+        let verified = CodePilotCloudflareMetadata(
+            mode: "permanent",
+            hostname: "codepilot.example.com",
+            tunnelName: "codepilot",
+            tunnelId: "tun_123",
+            configPath: "/tmp/codepilot-config.yaml",
+            launchAgentLabel: "io.codepilot.phone-cloudflared",
+            lastVerifiedAt: "2026-07-17T12:00:00+00:00"
+        )
+
+        XCTAssertFalse(unverified.isVerified)
+        XCTAssertNil(unverified.verifiedRemoteAccessURL)
+        XCTAssertTrue(verified.isVerified)
+        XCTAssertEqual(verified.verifiedRemoteAccessURL?.absoluteString, "https://codepilot.example.com")
+    }
+
     func testCloudflareScriptErrorMapsToRecoveryCopy() {
         XCTAssertEqual(
             CodePilotCloudflareErrorMapper.message(forExitCode: 20),

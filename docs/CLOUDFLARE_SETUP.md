@@ -18,6 +18,8 @@ CodePilot does not open inbound ports. Cloudflare Tunnel makes outbound connecti
 
 After permanent setup succeeds, return to **Setup CodePilot... > iPhone Connection** and use **Copy Remote Access URL** and **Copy iOS Connection Token** to configure the iPhone app.
 
+The setup wizard verifies the public gateway health endpoint before marking Cloudflare ready. If setup shows **Needs verification**, use **Verify Remote Access** while the Mac gateway and tunnel are running. CodePilot will not copy an unverified remote URL to the iPhone setup flow.
+
 ## Permanent Hostname
 
 Choose this for regular use. You need a Cloudflare account and a domain managed by Cloudflare.

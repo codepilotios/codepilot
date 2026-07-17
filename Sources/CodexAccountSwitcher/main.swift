@@ -2608,9 +2608,12 @@ struct CodePilotSetupStatus {
         if cloudflared == nil {
             cloudflareRequirement = .cloudflareOptional
             cloudflareDetail = "Optional for remote iPhone access; install cloudflared to use Cloudflare."
-        } else if cloudflareMetadataExists() || cloudflareConfigExists() {
+        } else if let metadata = loadCloudflareMetadata(), metadata.isVerified {
             cloudflareRequirement = .cloudflareReady
             cloudflareDetail = cloudflareReadyDetail(defaultPath: cloudflared)
+        } else if cloudflareMetadataExists() || cloudflareConfigExists() {
+            cloudflareRequirement = .cloudflareNeedsVerification
+            cloudflareDetail = "Tunnel configured; verify remote access before copying it to iPhone."
         } else {
             cloudflareRequirement = .cloudflareNeedsConfiguration
             cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
@@ -2807,6 +2810,11 @@ struct CodePilotCloudflareMetadata: Codable, Equatable {
     let launchAgentLabel: String
     let lastVerifiedAt: String?
 
+    var isVerified: Bool {
+        guard let lastVerifiedAt else { return false }
+        return !lastVerifiedAt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var safeSummary: String {
         let host = hostname.isEmpty ? "No hostname configured" : hostname
         return "\(mode) tunnel \(tunnelName) for \(host)"
@@ -2818,6 +2826,10 @@ struct CodePilotCloudflareMetadata: Codable, Equatable {
         components.scheme = "https"
         components.host = hostname
         return components.url
+    }
+
+    var verifiedRemoteAccessURL: URL? {
+        isVerified ? remoteAccessURL : nil
     }
 }
 
@@ -2850,6 +2862,7 @@ enum CodePilotSetupRequirement: Equatable {
     case cloudflareOptional
     case cloudflareMissing
     case cloudflareNeedsConfiguration
+    case cloudflareNeedsVerification
     case screenRecordingReady
     case screenRecordingMissing
     case accessibilityReady
@@ -2862,6 +2875,8 @@ enum CodePilotSetupRequirement: Equatable {
             return "Ready"
         case .cloudflareNeedsConfiguration:
             return "Needs setup"
+        case .cloudflareNeedsVerification:
+            return "Needs verification"
         case .gatewayStopped:
             return "Stopped"
         case .gatewayBlockedByActiveTurn:
@@ -2954,6 +2969,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
             title: "Cloudflare Remote Access",
             buttons: [
                 button("Set Up Remote Access...", #selector(openCloudflareWizard)),
+                button("Verify Remote Access", #selector(verifyRemoteAccess)),
                 button("Restart Tunnel", #selector(restartCloudflareTunnel)),
                 button("Open Cloudflare Guide", #selector(openCloudflareGuide))
             ]
@@ -3043,6 +3059,18 @@ private final class CodePilotSetupWindowController: NSWindowController {
         runBundledScript(named: "setup-cloudflare-remote-access.sh", arguments: ["restart-service"])
     }
 
+    @objc private func verifyRemoteAccess() {
+        guard let metadata = CodePilotSetupStatus.loadCloudflareMetadata(),
+              let url = metadata.remoteAccessURL else {
+            outputLabel.stringValue = "No permanent remote access URL found. Finish Cloudflare setup first."
+            return
+        }
+        runBundledScript(
+            named: "setup-cloudflare-remote-access.sh",
+            arguments: ["verify", "--url", url.absoluteString]
+        )
+    }
+
     @objc private func copyToken() {
         let tokenPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
@@ -3058,8 +3086,8 @@ private final class CodePilotSetupWindowController: NSWindowController {
 
     @objc private func copyRemoteAccessURL() {
         guard let metadata = CodePilotSetupStatus.loadCloudflareMetadata(),
-              let url = metadata.remoteAccessURL else {
-            outputLabel.stringValue = "No remote access URL found. Set up a permanent Cloudflare hostname, then refresh setup."
+              let url = metadata.verifiedRemoteAccessURL else {
+            outputLabel.stringValue = "No verified remote access URL found. Finish Cloudflare setup, verify remote access, then retry."
             return
         }
         NSPasteboard.general.clearContents()

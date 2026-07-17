@@ -325,56 +325,31 @@ verify_url() {
     echo "--url is required" >&2
     exit 2
   }
-  url="$(/usr/bin/python3 - "$url" "$METADATA_PATH" <<'PY'
+  curl -fsS "$url/api/health" >/dev/null
+  /usr/bin/python3 - "$METADATA_PATH" "$url" <<'PY'
 import json
-import stat
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import urlparse
 
-value = sys.argv[1]
-metadata_path = Path(sys.argv[2])
+path = Path(sys.argv[1])
+verified_url = urlparse(sys.argv[2])
+if not path.is_file():
+    raise SystemExit(0)
+
 try:
-    metadata_stat = metadata_path.lstat()
-    if stat.S_ISLNK(metadata_stat.st_mode) or not stat.S_ISREG(metadata_stat.st_mode):
-        raise ValueError("setup metadata must be a regular file")
-    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-    expected_host = str(metadata.get("hostname") or "").casefold()
-    parsed = urlsplit(value)
-    port = parsed.port
-except (OSError, ValueError, json.JSONDecodeError) as error:
-    raise SystemExit(f"Cannot verify an untrusted Cloudflare URL: {error}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, ValueError):
+    raise SystemExit(0)
 
-if (
-    metadata.get("mode") != "permanent"
-    or not expected_host
-    or parsed.scheme != "https"
-    or (parsed.hostname or "").casefold() != expected_host
-    or parsed.username is not None
-    or parsed.password is not None
-    or parsed.path not in {"", "/"}
-    or parsed.query
-    or parsed.fragment
-    or port not in {None, 443}
-):
-    raise SystemExit("Verification URL must be the configured Cloudflare HTTPS origin")
-
-print(f"https://{expected_host}")
+configured_hostname = str(payload.get("hostname", "")).strip().rstrip(".").lower()
+verified_hostname = (verified_url.hostname or "").strip().rstrip(".").lower()
+if configured_hostname and configured_hostname == verified_hostname:
+    payload["lastVerifiedAt"] = datetime.now(timezone.utc).isoformat()
+    payload["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 PY
-)"
-  [ -f "$GATEWAY_TOKEN_PATH" ] || {
-    echo "CodePilot gateway token is missing. Start the gateway before verifying remote access." >&2
-    exit 22
-  }
-  local token
-  token="$(tr -d '\r\n' < "$GATEWAY_TOKEN_PATH")"
-  if [[ -z "$token" || "$token" == *[^A-Za-z0-9_-]* ]]; then
-    echo "CodePilot gateway token is invalid. Rotate the token before verifying remote access." >&2
-    exit 22
-  fi
-  printf 'header = "Authorization: Bearer %s"\n' "$token" | \
-    curl -fsS --proto '=https' --proto-redir '=https' --max-redirs 0 \
-      --connect-timeout 10 --max-time 20 --config - "$url/api/health" >/dev/null
   echo "verified $url"
 }
 

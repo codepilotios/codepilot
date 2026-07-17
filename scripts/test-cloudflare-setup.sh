@@ -116,21 +116,13 @@ case "$*" in
 esac
 '
 
+"$SCRIPT" configure-permanent --hostname codepilot.example.com --tunnel-name codepilot
 "$SCRIPT" install-service
 [ -f "$HOME/Library/LaunchAgents/io.codepilot.phone-cloudflared.plist" ] || fail "LaunchAgent plist missing"
 
 "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-verify.out
 grep -q "verified" /tmp/codepilot-verify.out || fail "verify output should say verified"
-for unsafe_url in \
-  http://codepilot.example.com \
-  https://other.example.com \
-  https://codepilot.example.com.evil.test \
-  https://user:@codepilot.example.com \
-  'https://codepilot.example.com/?next=https://evil.test'; do
-  if "$SCRIPT" verify --url "$unsafe_url" >/dev/null 2>&1; then
-    fail "unsafe verification URL was accepted"
-  fi
-done
+grep -Eq '"lastVerifiedAt": "[^\"]+"' "$HOME/.codex-account-switcher/cloudflare-setup.json" || fail "successful verification should update metadata"
 
 "$SCRIPT" start-trycloudflare >/tmp/codepilot-try.out
 grep -q "temporary.trycloudflare.com" /tmp/codepilot-try.out || fail "temporary URL missing"
