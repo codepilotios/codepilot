@@ -22,7 +22,7 @@ Yes for the public beta iPhone setup path. The Mac gateway listens on local loop
 
 ## Does CodePilot send my Codex credentials to a hosted service?
 
-No hosted CodePilot service is required for the current beta. Credentials stay on the Mac unless you choose to expose the local gateway through infrastructure you control, such as Cloudflare Tunnel.
+No hosted CodePilot service is required for the current beta, and Codex credentials stay on the Mac. When you use Cloudflare Tunnel, gateway traffic and connection metadata pass through Cloudflare under your Cloudflare account configuration; the gateway still requires its bearer token.
 
 ## What should I avoid posting in issues?
 
