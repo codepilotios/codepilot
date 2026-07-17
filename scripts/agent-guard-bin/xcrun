@@ -1,0 +1,15 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+REAL_XCRUN="${CODEPILOT_AGENT_REAL_XCRUN:-/usr/bin/xcrun}"
+tool="${1:-}"
+
+case "$tool" in
+  altool|notarytool)
+    echo "CodePilot agent guard blocked xcrun $tool." >&2
+    echo "Launch autonomy may not upload, notarize, or submit builds." >&2
+    exit 77
+    ;;
+esac
+
+exec "$REAL_XCRUN" "$@"

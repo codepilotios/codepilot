@@ -39,6 +39,14 @@ Build CodePilot and upload it to the configured TestFlight group
 
 Upload CodePilot for internal TestFlight only
 
+### ios distribute_latest
+
+```sh
+[bundle exec] fastlane ios distribute_latest
+```
+
+Distribute an already uploaded CodePilot build to the configured external TestFlight group
+
 ### ios add_configured_tester
 
 ```sh

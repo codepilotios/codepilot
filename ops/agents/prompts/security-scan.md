@@ -6,7 +6,7 @@ Follow `docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md`.
 
 Rules:
 - Treat secrets, auth tokens, remote desktop access, uploads, and public endpoints as high risk.
-- Create draft PRs for hardening when safe.
+- Create local branches and commits for hardening when safe.
 - Do not disclose secrets in public issues.
 - If intervention is needed, write a concise escalation note to `ops/agents/escalations/security-scan.md`.
 

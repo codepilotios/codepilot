@@ -390,7 +390,7 @@ final class CloudflareSetupTests: XCTestCase {
             hostname: "codepilot.example.com",
             tunnelName: "codepilot",
             tunnelId: "tun_123",
-            configPath: "/Users/test/.cloudflared/codepilot-config.yaml",
+            configPath: "/tmp/codepilot-test/.cloudflared/codepilot-config.yaml",
             launchAgentLabel: "io.codepilot.phone-cloudflared",
             lastVerifiedAt: nil
         )
@@ -904,4 +904,3 @@ If verification caused small fixes:
 git add Sources/CodexAccountSwitcher/main.swift Tests/CodexAccountSwitcherTests scripts docs
 git commit -m "test: verify Cloudflare setup wizard"
 ```
-

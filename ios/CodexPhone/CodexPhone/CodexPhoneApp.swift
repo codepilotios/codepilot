@@ -1,3 +1,4 @@
+import ActivityKit
 import AuthenticationServices
 import Foundation
 import Network
@@ -112,14 +113,17 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
 struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
+    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
     @State private var showingAccountSwitcher = false
     @State private var showingRemoteDesktop = false
     @State private var openedThread: CodexThread?
+    @State private var liveActivityError = ""
 
     var body: some View {
         NavigationStack {
@@ -206,7 +210,12 @@ struct RootView: View {
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken, model: model)
+                SettingsView(
+                    gatewayURL: $gatewayURL,
+                    gatewayToken: $gatewayToken,
+                    model: model,
+                    liveActivityError: $liveActivityError
+                )
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showingStatus) {
@@ -241,6 +250,51 @@ struct RootView: View {
             .task(id: gatewayToken) {
                 await model.pollAccountStatus(baseURL: gatewayURL, token: gatewayToken)
             }
+            .task(id: liveActivityReconciliationID) {
+                guard scenePhase == .active else { return }
+                await reconcileLiveActivity()
+            }
+            .onOpenURL { url in
+                guard CodePilotRoute(url: url) == .threadList else { return }
+                openedThread = nil
+                showingSettings = false
+                showingStatus = false
+                showingNewThread = false
+                showingAccountSwitcher = false
+                showingRemoteDesktop = false
+            }
+        }
+    }
+
+    private var liveActivityReconciliationID: String {
+        "\(totalCreditLiveActivityEnabled)-\(model.accountStatusGeneratedAt ?? 0)-\(scenePhase == .active)"
+    }
+
+    @MainActor
+    private func reconcileLiveActivity() async {
+        let systemEnabled = ActivityAuthorizationInfo().areActivitiesEnabled
+        let shouldEnable = LiveActivityPreference.resolvedEnabled(
+            requested: totalCreditLiveActivityEnabled,
+            activitiesEnabled: systemEnabled
+        )
+        if totalCreditLiveActivityEnabled && !shouldEnable {
+            totalCreditLiveActivityEnabled = false
+            liveActivityError = "Live Activities are disabled in iOS Settings. Enable them for CodePilot, then try again."
+        }
+
+        let state = TotalCreditStatus(accounts: model.accountStatuses, now: .now).activityState
+        do {
+            try await TotalCreditActivityController().reconcile(
+                enabled: shouldEnable,
+                state: state,
+                baseURL: gatewayURL,
+                gatewayToken: gatewayToken
+            )
+            if shouldEnable {
+                liveActivityError = ""
+            }
+        } catch {
+            liveActivityError = "The credit Live Activity could not be updated: \(error.localizedDescription)"
         }
     }
 }
@@ -267,7 +321,7 @@ struct EmptySettingsView: View {
 
             Section("Gateway") {
                 Picker("Connection", selection: $gatewayConnectionKind) {
-                    ForEach(GatewayConnectionKind.allCases) { kind in
+                    ForEach(GatewayConnectionKind.publicBetaCases) { kind in
                         Text(kind.title).tag(kind.rawValue)
                     }
                 }
@@ -308,6 +362,11 @@ struct EmptySettingsView: View {
             }
         }
         .navigationTitle("CodePilot")
+        .onAppear {
+            if !selectedConnectionKind.isPublicBetaAvailable {
+                gatewayConnectionKind = GatewayConnectionKind.cloudflare.rawValue
+            }
+        }
     }
 
     private var canTestConnection: Bool {
@@ -361,6 +420,19 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    static var publicBetaCases: [GatewayConnectionKind] {
+        allCases.filter(\.isPublicBetaAvailable)
+    }
+
+    var isPublicBetaAvailable: Bool {
+        switch self {
+        case .local:
+            false
+        case .cloudflare:
+            true
+        }
+    }
+
     var title: String {
         switch self {
         case .local:
@@ -373,7 +445,7 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     var helpText: String {
         switch self {
         case .local:
-            "Use the Mac gateway URL while your iPhone is on the same Wi-Fi network."
+            "Same Network is disabled for public beta until LAN binding has explicit firewall and trust guidance."
         case .cloudflare:
             "Use your Cloudflare Tunnel hostname for access when you are away from the Mac."
         }
@@ -2017,8 +2089,10 @@ struct SettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
     @ObservedObject var model: CodexPhoneModel
+    @Binding var liveActivityError: String
     @Environment(\.dismiss) private var dismiss
     @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
+    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     @State private var lastConnectedAt: Date?
@@ -2059,6 +2133,25 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(connectionMessage.hasPrefix("Connected") ? .green : .orange)
                     }
+                }
+
+                Section {
+                    Toggle("Total Credit Live Activity", isOn: $totalCreditLiveActivityEnabled)
+                        .disabled(!ActivityAuthorizationInfo().areActivitiesEnabled)
+
+                    if !ActivityAuthorizationInfo().areActivitiesEnabled {
+                        Text("Live Activities are disabled for CodePilot in iOS Settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if !liveActivityError.isEmpty {
+                        Text(liveActivityError)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                } header: {
+                    Text("Lock Screen")
+                } footer: {
+                    Text("Shows total credit across your available accounts and updates through the CodePilot gateway while the app is in the background.")
                 }
 
                 Section {
@@ -2142,6 +2235,8 @@ struct AccountStatusView: View {
     @State private var refreshTargetAccount: AccountUsageStatus?
     @State private var reconnectTargetServer: MCPServerStatus?
     @State private var isAddingAccount = false
+    @State private var rateLimitResetTargetAccount: AccountUsageStatus?
+    @State private var showRateLimitResetConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -2167,13 +2262,17 @@ struct AccountStatusView: View {
                             AccountStatusRow(
                                 account: account,
                                 switchingAccountName: model.switchingAccountName,
-                                refreshingAuthAccountName: model.refreshingAuthAccountName
+                                refreshingAuthAccountName: model.refreshingAuthAccountName,
+                                resettingRateLimitAccountName: model.resettingRateLimitAccountName
                             ) {
                                 Task {
                                     await model.switchAccount(named: account.name, baseURL: gatewayURL, token: gatewayToken)
                                 }
                             } onRefreshAuth: {
                                 refreshTargetAccount = account
+                            } onResetRateLimit: {
+                                rateLimitResetTargetAccount = account
+                                showRateLimitResetConfirmation = true
                             }
                         }
                     }
@@ -2219,6 +2318,23 @@ struct AccountStatusView: View {
             }
             .task {
                 await model.pollAccountStatus(baseURL: gatewayURL, token: gatewayToken)
+            }
+            .confirmationDialog(
+                "Use a reset credit for \(displayValue(rateLimitResetTargetAccount?.name ?? ""))?",
+                isPresented: $showRateLimitResetConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Use Reset Credit") {
+                    let account = rateLimitResetTargetAccount
+                    Task {
+                        if let account {
+                            await model.resetRateLimit(for: account.name, baseURL: gatewayURL, token: gatewayToken)
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This asks Codex to consume one available rate limit reset credit on that account, without switching accounts.")
             }
             .sheet(item: $refreshTargetAccount) { account in
                 AccountAuthRefreshSheet(
@@ -2501,21 +2617,27 @@ struct AccountStatusRow: View {
     let account: AccountUsageStatus
     let switchingAccountName: String?
     let refreshingAuthAccountName: String?
+    let resettingRateLimitAccountName: String?
     let onSwitch: (() -> Void)?
     let onRefreshAuth: (() -> Void)?
+    let onResetRateLimit: (() -> Void)?
 
     init(
         account: AccountUsageStatus,
         switchingAccountName: String? = nil,
         refreshingAuthAccountName: String? = nil,
+        resettingRateLimitAccountName: String? = nil,
         onSwitch: (() -> Void)? = nil,
-        onRefreshAuth: (() -> Void)? = nil
+        onRefreshAuth: (() -> Void)? = nil,
+        onResetRateLimit: (() -> Void)? = nil
     ) {
         self.account = account
         self.switchingAccountName = switchingAccountName
         self.refreshingAuthAccountName = refreshingAuthAccountName
+        self.resettingRateLimitAccountName = resettingRateLimitAccountName
         self.onSwitch = onSwitch
         self.onRefreshAuth = onRefreshAuth
+        self.onResetRateLimit = onResetRateLimit
     }
 
     var body: some View {
@@ -2544,6 +2666,22 @@ struct AccountStatusRow: View {
                     .controlSize(.small)
                     .disabled(refreshingAuthAccountName != nil)
                     .accessibilityLabel("Refresh login for \(account.name)")
+                }
+                if let onResetRateLimit, (account.rateLimitResetCreditsRemaining ?? 0) > 0 {
+                    Button {
+                        onResetRateLimit()
+                    } label: {
+                        if resettingRateLimitAccountName == account.name {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.counterclockwise.circle")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(resettingRateLimitAccountName != nil)
+                    .accessibilityLabel("Use reset credit for \(account.name)")
                 }
                 if let onSwitch, !account.isActive {
                     Button {
@@ -2591,6 +2729,9 @@ struct AccountStatusRow: View {
 
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
+                    if let resetCredits = account.rateLimitResetCreditsRemaining {
+                        usageCounter("Reset credits", resetCredits)
+                    }
                     usageCounter("Limit hits", account.limitHits)
                     usageCounter("Auto switches", account.automaticSwitches)
                     usageCounter("Manual switches", account.manualSwitches)
@@ -2599,6 +2740,9 @@ struct AccountStatusRow: View {
                     }
                 }
                 VStack(alignment: .leading, spacing: 3) {
+                    if let resetCredits = account.rateLimitResetCreditsRemaining {
+                        usageCounter("Reset credits", resetCredits)
+                    }
                     usageCounter("Limit hits", account.limitHits)
                     usageCounter("Auto switches", account.automaticSwitches)
                     usageCounter("Manual switches", account.manualSwitches)
@@ -2747,61 +2891,39 @@ struct AggregateCreditStatus {
     }
 
     init(accounts: [AccountUsageStatus], now: Date) {
-        let nowEpoch = Int(now.timeIntervalSince1970)
-        let buckets = accounts.compactMap { AccountCreditBucket(account: $0) }
-        let availableBuckets = buckets.filter { !$0.authStale }
-        let reportedBuckets = availableBuckets.filter { $0.remainingPercent != nil }
-        let remainingValues = reportedBuckets.map { max(0, min(100, $0.remainingPercent ?? 0)) }
-        let remainingSum = remainingValues.reduce(0, +)
+        let state = TotalCreditStatus(accounts: accounts, now: now).activityState
+        progress = state.progress
 
-        if !reportedBuckets.isEmpty, remainingSum > 0 {
-            let value = Double(remainingSum) / Double(reportedBuckets.count * 100)
-            let usableCount = remainingValues.filter { $0 > 0 }.count
-            title = "\(Int((value * 100).rounded()))% total credit"
-            trailingText = "\(usableCount)/\(reportedBuckets.count) accounts usable"
-            progress = max(0, min(1, value))
+        switch state.kind {
+        case .available:
+            title = "\(state.percent ?? 0)% total credit"
+            trailingText = "\(state.usableAccountCount)/\(state.reportedAccountCount) accounts usable"
             systemImage = "bolt.circle"
-            if value <= 0.10 {
+            if state.progress <= 0.10 {
                 tint = .red
-            } else if value <= 0.30 {
+            } else if state.progress <= 0.30 {
                 tint = .orange
             } else {
                 tint = .green
             }
-            return
-        }
-
-        if let nextRefresh = availableBuckets
-            .compactMap({ bucket -> AccountCreditBucket? in
-                guard let resetAt = bucket.resetAt, resetAt > nowEpoch else { return nil }
-                return bucket
-            })
-            .min(by: { ($0.resetAt ?? Int.max) < ($1.resetAt ?? Int.max) }) {
-            let remainingSeconds = max(0, (nextRefresh.resetAt ?? nowEpoch) - nowEpoch)
-            let windowSeconds = max(60, (nextRefresh.windowMins ?? 0) * 60)
-            let fillValue = 1 - (Double(remainingSeconds) / Double(windowSeconds))
+        case .refilling:
+            let nowEpoch = Int(now.timeIntervalSince1970)
+            let remainingSeconds = max(0, (state.nextRefreshAt ?? nowEpoch) - nowEpoch)
             title = "Refilling credit"
-            trailingText = "\(nextRefresh.accountName) \(nextRefresh.label) in \(Self.durationText(remainingSeconds))"
-            progress = max(0, min(1, fillValue))
+            trailingText = "\(state.refreshLabel ?? "Credit") in \(Self.durationText(remainingSeconds))"
             tint = .blue
             systemImage = "clock.arrow.circlepath"
-            return
-        }
-
-        if accounts.contains(where: \.authStale) && availableBuckets.isEmpty {
+        case .authenticationRequired:
             title = "Auth refresh needed"
             trailingText = "\(accounts.count) account\(accounts.count == 1 ? "" : "s") unavailable"
-            progress = 0
             tint = .orange
             systemImage = "key.fill"
-            return
+        case .unavailable:
+            title = "Credit unavailable"
+            trailingText = accounts.isEmpty ? "Loading usage" : "No reset time reported"
+            tint = .secondary
+            systemImage = "bolt.slash"
         }
-
-        title = "Credit unavailable"
-        trailingText = accounts.isEmpty ? "Loading usage" : "No reset time reported"
-        progress = 0
-        tint = .secondary
-        systemImage = "bolt.slash"
     }
 
     private static func durationText(_ seconds: Int) -> String {
@@ -2829,20 +2951,57 @@ struct AccountCreditBucket {
     init?(account: AccountUsageStatus) {
         accountName = account.name
         authStale = account.authStale
-        if account.fiveHourRemainingPercent != nil || account.fiveHourResetsAt != nil {
-            label = "5h"
-            remainingPercent = account.fiveHourRemainingPercent
-            resetAt = account.fiveHourResetsAt
-            windowMins = account.fiveHourWindowMins
-        } else if account.weeklyRemainingPercent != nil || account.weeklyResetsAt != nil {
-            label = "weekly"
-            remainingPercent = account.weeklyRemainingPercent
-            resetAt = account.weeklyResetsAt
-            windowMins = account.weeklyWindowMins
-        } else {
+
+        let windows = [
+            CreditWindow(
+                label: "5h",
+                remainingPercent: account.fiveHourRemainingPercent,
+                resetAt: account.fiveHourResetsAt,
+                windowMins: account.fiveHourWindowMins
+            ),
+            CreditWindow(
+                label: "weekly",
+                remainingPercent: account.weeklyRemainingPercent,
+                resetAt: account.weeklyResetsAt,
+                windowMins: account.weeklyWindowMins
+            )
+        ].filter { $0.remainingPercent != nil || $0.resetAt != nil }
+
+        guard !windows.isEmpty else {
             return nil
         }
+
+        let knownRemaining = windows.compactMap(\.remainingPercent).map { max(0, min(100, $0)) }
+        remainingPercent = knownRemaining.min()
+
+        if let effectiveRemaining = remainingPercent, effectiveRemaining > 0 {
+            let displayWindow = windows.first { $0.remainingPercent == effectiveRemaining }
+                ?? windows.first
+            label = displayWindow?.label ?? "credit"
+            resetAt = nil
+            windowMins = displayWindow?.windowMins
+            return
+        }
+
+        let depletedWindows = windows.filter { window in
+            guard let remaining = window.remainingPercent else { return false }
+            return remaining <= 0 && window.resetAt != nil
+        }
+        let limitingWindow = depletedWindows.max { left, right in
+            (left.resetAt ?? 0) < (right.resetAt ?? 0)
+        } ?? windows.first
+
+        label = limitingWindow?.label ?? "credit"
+        resetAt = limitingWindow?.resetAt
+        windowMins = limitingWindow?.windowMins
     }
+}
+
+private struct CreditWindow {
+    let label: String
+    let remainingPercent: Int?
+    let resetAt: Int?
+    let windowMins: Int?
 }
 
 struct SignupURL: Identifiable {
@@ -3618,6 +3777,7 @@ final class CodexPhoneModel: ObservableObject {
     @Published var switchingAccountName: String?
     @Published var refreshingAuthAccountName: String?
     @Published var addingAccountName: String?
+    @Published var resettingRateLimitAccountName: String?
     @Published var errorMessage: String?
 
     private var pollingJobIDs: Set<String> = []
@@ -3752,6 +3912,25 @@ final class CodexPhoneModel: ObservableObject {
             applyAccountStatus(response)
             await loadThreads(baseURL: baseURL, token: token)
             await flushQueuedPromptsIfPossible(baseURL: baseURL, token: token)
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
+    func resetRateLimit(for name: String, baseURL: String, token: String) async -> Bool {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard !trimmedName.isEmpty else { return false }
+        guard resettingRateLimitAccountName == nil else { return false }
+        resettingRateLimitAccountName = trimmedName
+        defer { resettingRateLimitAccountName = nil }
+        do {
+            let response = try await client.consumeRateLimitResetCredit(accountName: trimmedName, baseURL: baseURL, token: token)
+            applyAccountStatus(response)
+            await flushQueuedPromptsIfPossible(baseURL: baseURL, token: token)
+            errorMessage = "Rate limit reset requested for \(trimmedName)."
             return true
         } catch {
             report(error)
@@ -4455,6 +4634,16 @@ struct CodexGatewayClient {
         )
     }
 
+    func consumeRateLimitResetCredit(accountName: String, baseURL: String, token: String) async throws -> AccountStatusResponse {
+        try await request(
+            "/api/accounts/rate-limit-reset",
+            method: "POST",
+            body: RateLimitResetRequest(name: accountName),
+            baseURL: baseURL,
+            token: token
+        )
+    }
+
     func refreshAccountAuth(name: String, accessToken: String, baseURL: String, token: String) async throws -> AccountStatusResponse {
         try await request(
             "/api/accounts/auth/refresh",
@@ -4806,6 +4995,10 @@ struct NewThreadRequest: Encodable {
 }
 
 struct SwitchAccountRequest: Encodable {
+    let name: String
+}
+
+struct RateLimitResetRequest: Encodable {
     let name: String
 }
 
@@ -5496,6 +5689,7 @@ struct AccountUsageStatus: Decodable, Identifiable, Hashable {
     let weeklyUsedPercent: Int?
     let weeklyWindowMins: Int?
     let weeklyResetsAt: Int?
+    let rateLimitResetCreditsRemaining: Int?
     let lastRefreshAt: Int?
     let lastUsedAt: Int?
     let lastLimitAt: Int?

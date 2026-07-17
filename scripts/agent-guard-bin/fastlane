@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+set -euo pipefail
+
+echo "CodePilot agent guard blocked fastlane." >&2
+echo "Launch autonomy may prepare metadata files only; uploads and submissions require maintainer action." >&2
+exit 77

@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import tomllib
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import codex_phone_gateway as gateway
@@ -32,12 +33,34 @@ class FailingAppServerClient:
         raise RuntimeError("app-server disabled for test")
 
 
+class RecordingRateLimitResetAppServerClient:
+    def __init__(self):
+        self.started = False
+        self.requests = []
+        self.closed = False
+
+    def start(self):
+        self.started = True
+        return {"ok": True}
+
+    def request(self, method, params=None):
+        self.requests.append((method, params or {}))
+        return {"consumed": True}
+
+    def close(self):
+        self.closed = True
+
+
 class RecordingPushNotifier:
     def __init__(self):
         self.sent = []
 
     def send_turn_completion(self, devices, notification):
         self.sent.append((devices, notification))
+
+    def send_live_activity(self, registrations, content_state):
+        self.sent.append((registrations, content_state))
+        return []
 
 
 class RecordingLocalWebFetcher:
@@ -441,7 +464,48 @@ class AppServerClientTests(unittest.TestCase):
         start = sent[2]
 
         self.assertEqual(start["method"], "thread/start")
-        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "high"})
+        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "medium"})
+
+    def test_thread_start_uses_safe_policy_by_default(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "start-id"]).__next__,
+        )
+
+        client.start()
+        client.thread_start("/tmp/workspace")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        start = sent[2]
+
+        self.assertEqual(start["params"]["approvalPolicy"], "on-request")
+        self.assertEqual(start["params"]["sandbox"], "workspace-write")
+
+    def test_thread_start_allows_dangerous_mode_when_explicitly_enabled(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "start-id"]).__next__,
+            allow_dangerous=True,
+        )
+
+        client.start()
+        client.thread_start("/tmp/workspace")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        start = sent[2]
+
+        self.assertEqual(start["params"]["approvalPolicy"], "never")
+        self.assertEqual(start["params"]["sandbox"], "danger-full-access")
 
     def test_turn_start_sends_reasoning_effort(self):
         process = FakeAppServerProcess([
@@ -461,7 +525,27 @@ class AppServerClientTests(unittest.TestCase):
         turn = sent[2]
 
         self.assertEqual(turn["method"], "turn/start")
-        self.assertEqual(turn["params"]["effort"], "minimal")
+        self.assertEqual(turn["params"]["effort"], "medium")
+
+    def test_thread_start_maps_minimal_reasoning_effort_to_medium(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "start-id"]).__next__,
+        )
+
+        client.start()
+        client.thread_start("/tmp/workspace", reasoning_effort="minimal")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        start = sent[2]
+
+        self.assertEqual(start["method"], "thread/start")
+        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "medium"})
 
     def test_thread_resume_sends_thread_id(self):
         process = FakeAppServerProcess([
@@ -1089,6 +1173,7 @@ class GatewayStateTests(unittest.TestCase):
                     "weeklyLimitRemainingPercent": 45,
                     "weeklyLimitUsedPercent": 55,
                     "weeklyLimitResetsAt": "2026-05-17T19:42:05Z",
+                    "rateLimitResetCreditsRemaining": 3,
                     "lastRateLimitRefreshAt": "2026-05-16T19:18:02Z",
                     "limitHits": 4,
                     "automaticSwitches": 2,
@@ -1111,6 +1196,7 @@ class GatewayStateTests(unittest.TestCase):
                 self.assertTrue(statuses["Main"]["authStale"])
                 self.assertEqual(statuses["Main"]["fiveHourRemainingPercent"], 12)
                 self.assertEqual(statuses["Main"]["weeklyRemainingPercent"], 45)
+                self.assertEqual(statuses["Main"]["rateLimitResetCreditsRemaining"], 3)
                 self.assertEqual(statuses["Main"]["fiveHourResetsAt"], 1778973006)
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
@@ -1159,6 +1245,94 @@ class GatewayStateTests(unittest.TestCase):
                 with gateway.JOBS_LOCK:
                     gateway.JOBS.clear()
                     gateway.JOBS.update(old_jobs)
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_consume_rate_limit_reset_credit_calls_app_server_and_returns_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            codex_home = tmp_path / "codex"
+            switcher_home = tmp_path / "switcher"
+            accounts_dir = switcher_home / "accounts"
+            codex_home.mkdir()
+            (accounts_dir / "Main").mkdir(parents=True)
+            (accounts_dir / "Main" / "auth.json").write_text('{"account":"main"}', encoding="utf-8")
+            (codex_home / "auth.json").write_text('{"account":"main"}', encoding="utf-8")
+            (switcher_home / "active-account.txt").write_text("Main\n", encoding="utf-8")
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            try:
+                state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
+                client = RecordingRateLimitResetAppServerClient()
+                state._app_server_client = client
+                state._app_server_auth_fingerprint = state.active_auth_fingerprint()
+
+                with mock.patch("codex_phone_gateway.uuid.uuid4", return_value="reset-id"):
+                    snapshot = state.consume_rate_limit_reset_credit()
+
+                self.assertTrue(client.started)
+                self.assertEqual(
+                    client.requests,
+                    [(
+                        "account/rateLimitResetCredit/consume",
+                        {
+                            "creditType": "usage_limit",
+                            "idempotencyKey": "codepilot-rate-limit-reset-reset-id",
+                        },
+                    )],
+                )
+                self.assertEqual(snapshot["activeAccount"], "Main")
+                self.assertEqual(snapshot["rateLimitReset"]["consumed"], True)
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_consume_rate_limit_reset_credit_for_named_account_temporarily_switches_and_restores(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            codex_home = tmp_path / "codex"
+            switcher_home = tmp_path / "switcher"
+            accounts_dir = switcher_home / "accounts"
+            codex_home.mkdir()
+            (accounts_dir / "Main").mkdir(parents=True)
+            (accounts_dir / "Free").mkdir(parents=True)
+            main_auth = json.dumps({"tokens": {"account_id": "main", "access_token": "main-token"}})
+            free_auth = json.dumps({"tokens": {"account_id": "free", "access_token": "free-token"}})
+            (accounts_dir / "Main" / "auth.json").write_text(main_auth, encoding="utf-8")
+            (accounts_dir / "Free" / "auth.json").write_text(free_auth, encoding="utf-8")
+            (codex_home / "auth.json").write_text(main_auth, encoding="utf-8")
+            (switcher_home / "active-account.txt").write_text("Main\n", encoding="utf-8")
+            (switcher_home / "usage.json").write_text(json.dumps({
+                "Free": {"rateLimitResetCreditsRemaining": 2}
+            }), encoding="utf-8")
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            try:
+                state = GatewayState(codex_home, "token", Path("/missing-codex"), False)
+                client = RecordingRateLimitResetAppServerClient()
+
+                with mock.patch("codex_phone_gateway.uuid.uuid4", return_value="reset-id"), \
+                        mock.patch.object(state, "app_server_client", return_value=client):
+                    snapshot = state.consume_rate_limit_reset_credit("Free")
+
+                self.assertTrue(client.started)
+                self.assertEqual(
+                    client.requests,
+                    [(
+                        "account/rateLimitResetCredit/consume",
+                        {
+                            "creditType": "usage_limit",
+                            "idempotencyKey": "codepilot-rate-limit-reset-Free-reset-id",
+                        },
+                    )],
+                )
+                self.assertEqual(snapshot["activeAccount"], "Main")
+                statuses = {account["name"]: account for account in snapshot["accounts"]}
+                self.assertEqual(statuses["Free"]["rateLimitResetCreditsRemaining"], 1)
+                self.assertEqual(snapshot["rateLimitReset"]["accountName"], "Free")
+                self.assertEqual((switcher_home / "active-account.txt").read_text(encoding="utf-8"), "Main\n")
+                self.assertEqual((codex_home / "auth.json").read_text(encoding="utf-8"), main_auth)
+            finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
     def test_parse_mcp_list_output_marks_reconnectable_auth_states(self):
@@ -1342,6 +1516,115 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
+    def test_live_activity_registration_is_separate_and_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            switcher_home = tmp_path / "switcher"
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            try:
+                state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
+                payload = {
+                    "activityId": "activity-1",
+                    "pushToken": " ABC123 ",
+                    "environment": "production",
+                    "bundleId": "io.codepilot.iOS",
+                }
+
+                first = state.register_live_activity(payload)
+                second = state.register_live_activity({**payload, "pushToken": "def456"})
+
+                self.assertEqual(first["activityCount"], 1)
+                self.assertEqual(second["activityCount"], 1)
+                registrations = state.read_live_activities()
+                self.assertEqual(registrations[0]["pushToken"], "def456")
+                self.assertFalse((switcher_home / "phone-notification-devices.json").exists())
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_live_activity_registration_rejects_invalid_environment(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = tmp_path / "switcher"
+            try:
+                state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
+                with self.assertRaisesRegex(ValueError, "environment"):
+                    state.register_live_activity({
+                        "activityId": "activity-1",
+                        "pushToken": "abc123",
+                        "environment": "staging",
+                    })
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_unchanged_live_activity_state_is_not_pushed_twice(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = tmp_path / "switcher"
+            notifier = RecordingPushNotifier()
+            try:
+                state = GatewayState(
+                    tmp_path / "codex",
+                    "token",
+                    Path("/missing-codex"),
+                    False,
+                    push_notifier=notifier,
+                )
+                state.register_live_activity({
+                    "activityId": "activity-1",
+                    "pushToken": "abc123",
+                    "environment": "production",
+                    "bundleId": "io.codepilot.iOS",
+                })
+                snapshot = {
+                    "generatedAt": 1_800_000_000,
+                    "accounts": [{
+                        "authStale": False,
+                        "fiveHourRemainingPercent": 68,
+                        "fiveHourResetsAt": 1_800_003_600,
+                        "fiveHourWindowMins": 300,
+                    }],
+                }
+
+                state.publish_live_activity_state(snapshot)
+                state.publish_live_activity_state(snapshot)
+
+                self.assertEqual(len(notifier.sent), 1)
+                registrations, content_state = notifier.sent[0]
+                self.assertEqual(registrations[0]["activityId"], "activity-1")
+                self.assertEqual(content_state["kind"], "available")
+                self.assertEqual(content_state["percent"], 68)
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_live_activity_uses_limiting_account_window(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        now = 1_800_000_000
+        weekly_reset = now + 604_800
+
+        content = state.live_activity_content_state({
+            "generatedAt": now,
+            "accounts": [{
+                "name": "Main",
+                "fiveHourRemainingPercent": 99,
+                "fiveHourResetsAt": now + 3_600,
+                "fiveHourWindowMins": 300,
+                "weeklyRemainingPercent": 0,
+                "weeklyResetsAt": weekly_reset,
+                "weeklyWindowMins": 10_080,
+                "authStale": False,
+            }],
+        })
+
+        self.assertEqual(content["kind"], "refilling")
+        self.assertIsNone(content["percent"])
+        self.assertEqual(content["progress"], 0)
+        self.assertEqual(content["usableAccountCount"], 0)
+        self.assertEqual(content["nextRefreshAt"], weekly_reset)
+        self.assertEqual(content["refreshLabel"], "weekly")
+
     def test_apns_notifier_uses_certificate_credentials_from_environment(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -1370,6 +1653,32 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             finally:
                 gateway.os.environ.clear()
                 gateway.os.environ.update(old_env)
+
+    def test_apns_live_activity_uses_liveactivity_headers_and_event_payload(self):
+        notifier = gateway.APNsPushNotifier("team", "key", Path("/tmp/key.p8"))
+        notifier.jwt = lambda: "jwt-token"
+        completed = subprocess.CompletedProcess([], 0, stdout=b"{}\n200", stderr=b"")
+
+        with mock.patch.object(gateway.subprocess, "run", return_value=completed) as run:
+            invalid = notifier.send_live_activity([{
+                "activityId": "activity-1",
+                "pushToken": "abc123",
+                "environment": "production",
+                "bundleId": "io.codepilot.iOS",
+            }], {
+                "kind": "available",
+                "percent": 68,
+                "progress": 0.68,
+                "generatedAt": 1_800_000_000,
+            })
+
+        command = run.call_args.args[0]
+        payload = json.loads(run.call_args.kwargs["input"])
+        self.assertIn("apns-push-type: liveactivity", command)
+        self.assertIn("apns-topic: io.codepilot.iOS.push-type.liveactivity", command)
+        self.assertEqual(payload["aps"]["event"], "update")
+        self.assertEqual(payload["aps"]["content-state"]["percent"], 68)
+        self.assertEqual(invalid, [])
 
     def test_app_server_turn_completion_sends_registered_push_notification(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1926,7 +2235,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             }
 
         old_run_turn = GatewayState.run_turn
-        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True: None
+        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True, reasoning_effort=None: None
         try:
             state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
             state.get_thread = lambda thread_id: {
@@ -1956,7 +2265,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             }
 
         old_run_turn = GatewayState.run_turn
-        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True: None
+        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True, reasoning_effort=None: None
         try:
             state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
             state.get_thread = lambda thread_id: {
@@ -1998,8 +2307,8 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
 
             job = state.start_turn("thread-b", "Start parallel work", reasoning_effort="high")
 
-            self.assertEqual(job["reasoningEffort"], "high")
-            self.assertEqual(captured["reasoning_effort"], "high")
+            self.assertEqual(job["reasoningEffort"], "medium")
+            self.assertEqual(captured["reasoning_effort"], "medium")
         finally:
             GatewayState.run_turn = old_run_turn
             with gateway.JOBS_LOCK:

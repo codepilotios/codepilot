@@ -15,9 +15,31 @@ final class RemoteDesktopTests: XCTestCase {
     }
 
     func testGatewayConnectionKindUsesUserFacingTitles() {
+        XCTAssertEqual(GatewayConnectionKind.publicBetaCases, [.cloudflare])
         XCTAssertEqual(GatewayConnectionKind.local.title, "Same Network")
         XCTAssertEqual(GatewayConnectionKind.cloudflare.title, "Cloudflare")
-        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("same Wi-Fi"))
+        XCTAssertTrue(GatewayConnectionKind.local.isPublicBetaAvailable == false)
+        XCTAssertTrue(GatewayConnectionKind.cloudflare.isPublicBetaAvailable)
+        XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("disabled for public beta"))
+        XCTAssertTrue(GatewayConnectionKind.cloudflare.helpText.contains("Cloudflare Tunnel"))
+    }
+
+    func testRemotePairingApprovalStatusRoundTrips() throws {
+        let status = RemotePairingApprovalStatus(
+            status: "pending_mac_approval",
+            challengeID: "challenge-1",
+            deviceID: "device-1",
+            macName: "Office Mac"
+        )
+
+        try assertRoundTrip(status)
+    }
+
+    func testRemoteDesktopStartRequiresPairedStatus() {
+        XCTAssertTrue(canStartRemoteDesktop(statusText: "Paired with Office Mac"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Not paired"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Waiting for approval on Office Mac"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Host reachable, relay available"))
     }
 
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
@@ -38,28 +60,28 @@ final class RemoteDesktopTests: XCTestCase {
     }
 
     func testRemoteFilePathAcceptsCustomPreviewURL() throws {
-        let url = try XCTUnwrap(remoteFilePreviewURL(path: "/Users/example/Developer/CodePilot/README.md"))
+        let url = try XCTUnwrap(remoteFilePreviewURL(path: "/tmp/codepilot-sample/README.md"))
 
-        XCTAssertEqual(remoteFilePath(from: url), "/Users/example/Developer/CodePilot/README.md")
+        XCTAssertEqual(remoteFilePath(from: url), "/tmp/codepilot-sample/README.md")
     }
 
     func testRemoteFilePathAcceptsMarkdownAbsolutePathURL() throws {
-        let url = try XCTUnwrap(URL(string: "/Users/example/Developer/CodexAccountSwitcher/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"))
+        let url = try XCTUnwrap(URL(string: "/tmp/codepilot-sample/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"))
 
         XCTAssertEqual(
             remoteFilePath(from: url),
-            "/Users/example/Developer/CodexAccountSwitcher/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"
+            "/tmp/codepilot-sample/docs/superpowers/plans/2026-07-01-codepilot-launch-agent-system.md"
         )
     }
 
     func testRemoteFilePathAcceptsFileURLAndStripsLineSuffix() throws {
-        let url = URL(fileURLWithPath: "/Users/example/Developer/CodePilot/Sources/App.swift:42")
+        let url = URL(fileURLWithPath: "/tmp/codepilot-sample/Sources/App.swift:42")
 
-        XCTAssertEqual(remoteFilePath(from: url), "/Users/example/Developer/CodePilot/Sources/App.swift")
+        XCTAssertEqual(remoteFilePath(from: url), "/tmp/codepilot-sample/Sources/App.swift")
     }
 
     func testRemoteFilePathRejectsWebURLs() throws {
-        let url = try XCTUnwrap(URL(string: "https://example.com/Users/example/README.md"))
+        let url = try XCTUnwrap(URL(string: "https://example.com/tmp/codepilot-sample/README.md"))
 
         XCTAssertNil(remoteFilePath(from: url))
     }

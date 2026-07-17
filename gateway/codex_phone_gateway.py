@@ -39,7 +39,8 @@ DEFAULT_TOKEN_FILE = DEFAULT_SWITCHER_HOME / "phone-gateway-token"
 DEFAULT_UPLOADS_DIR = DEFAULT_SWITCHER_HOME / "phone-uploads"
 DEFAULT_THREAD_MESSAGE_CACHE_DIR = DEFAULT_SWITCHER_HOME / "phone-thread-message-cache"
 DEFAULT_NOTIFICATION_DEVICES_FILE = DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
-DEFAULT_CODEX = Path("/Applications/Codex.app/Contents/Resources/codex")
+DEFAULT_LIVE_ACTIVITIES_FILE = DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
+DEFAULT_CODEX = Path("/Applications/ChatGPT.app/Contents/Resources/codex")
 CODEX_CHILD_PATH_PREFIXES = (
     "/opt/homebrew/bin",
     "/opt/homebrew/sbin",
@@ -134,6 +135,7 @@ class CodexAppServerClient:
         id_factory=None,
         notification_handler=None,
         env: dict | None = None,
+        allow_dangerous: bool = False,
     ):
         self.codex_path = codex_path
         self.cwd = cwd
@@ -141,6 +143,7 @@ class CodexAppServerClient:
         self.id_factory = id_factory or (lambda: str(uuid.uuid4()))
         self.notification_handler = notification_handler
         self.env = env
+        self.allow_dangerous = allow_dangerous
         self.process = None
         self.lock = threading.Lock()
         self.write_lock = threading.Lock()
@@ -200,10 +203,11 @@ class CodexAppServerClient:
             self.reader_thread = None
 
     def thread_start(self, cwd: str | None = None, reasoning_effort: str | None = None) -> dict:
+        reasoning_effort = codex_app_server_reasoning_effort(reasoning_effort)
         params = {
             "cwd": cwd,
-            "approvalPolicy": "never",
-            "sandbox": "danger-full-access",
+            "approvalPolicy": "never" if self.allow_dangerous else "on-request",
+            "sandbox": "danger-full-access" if self.allow_dangerous else "workspace-write",
             "threadSource": "user",
         }
         if reasoning_effort:
@@ -242,6 +246,7 @@ class CodexAppServerClient:
         })
 
     def turn_start(self, thread_id: str, text: str, reasoning_effort: str | None = None) -> dict:
+        reasoning_effort = codex_app_server_reasoning_effort(reasoning_effort)
         params = {
             "threadId": thread_id,
             "input": [self.text_input(text)],
@@ -412,6 +417,9 @@ class DisabledPushNotifier:
     def send_turn_completion(self, devices, notification):
         return
 
+    def send_live_activity(self, registrations, content_state):
+        return []
+
 
 class APNsCertificatePushNotifier:
     def __init__(self, cert_path: Path, key_path: Path, default_topic: str = DEFAULT_APNS_TOPIC):
@@ -422,6 +430,40 @@ class APNsCertificatePushNotifier:
     def send_turn_completion(self, devices, notification):
         for device in devices:
             self.send_to_device(device, notification)
+
+    def send_live_activity(self, registrations, content_state):
+        invalid = []
+        for registration in registrations:
+            status = self.send_live_activity_to_device(registration, content_state)
+            if status in {400, 410}:
+                invalid.append(str(registration.get("activityId") or ""))
+        return [activity_id for activity_id in invalid if activity_id]
+
+    def send_live_activity_to_device(self, registration: dict, content_state: dict) -> int:
+        token = str(registration.get("pushToken") or "").strip()
+        if not token:
+            return 0
+        environment = str(registration.get("environment") or "production").strip().lower()
+        host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
+        bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
+        payload = live_activity_payload(content_state)
+        process = subprocess.run(
+            [
+                "curl", "--http2", "-sS", "-X", "POST",
+                "--cert", str(self.cert_path), "--key", str(self.key_path),
+                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "-H", "apns-push-type: liveactivity",
+                "-H", "apns-priority: 10",
+                "--write-out", "\n%{http_code}",
+                "--data-binary", "@-",
+                f"https://{host}/3/device/{token}",
+            ],
+            input=payload,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        return apns_http_status(process.stdout)
 
     def send_to_device(self, device: dict, notification: dict):
         token = str(device.get("token") or "").strip()
@@ -514,6 +556,39 @@ class APNsPushNotifier:
         for device in devices:
             self.send_to_device(device, notification)
 
+    def send_live_activity(self, registrations, content_state):
+        invalid = []
+        for registration in registrations:
+            status = self.send_live_activity_to_device(registration, content_state)
+            if status in {400, 410}:
+                invalid.append(str(registration.get("activityId") or ""))
+        return [activity_id for activity_id in invalid if activity_id]
+
+    def send_live_activity_to_device(self, registration: dict, content_state: dict) -> int:
+        token = str(registration.get("pushToken") or "").strip()
+        if not token:
+            return 0
+        environment = str(registration.get("environment") or "production").strip().lower()
+        host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
+        bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
+        process = subprocess.run(
+            [
+                "curl", "--http2", "-sS", "-X", "POST",
+                "-H", f"authorization: bearer {self.jwt()}",
+                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "-H", "apns-push-type: liveactivity",
+                "-H", "apns-priority: 10",
+                "--write-out", "\n%{http_code}",
+                "--data-binary", "@-",
+                f"https://{host}/3/device/{token}",
+            ],
+            input=live_activity_payload(content_state),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+        return apns_http_status(process.stdout)
+
     def send_to_device(self, device: dict, notification: dict):
         token = str(device.get("token") or "").strip()
         if not token:
@@ -550,6 +625,23 @@ class APNsPushNotifier:
             stderr=subprocess.DEVNULL,
             check=False,
         )
+
+
+def live_activity_payload(content_state: dict) -> bytes:
+    return json.dumps({
+        "aps": {
+            "timestamp": int(time.time()),
+            "event": "update",
+            "content-state": content_state,
+        }
+    }, separators=(",", ":")).encode("utf-8")
+
+
+def apns_http_status(output: bytes) -> int:
+    try:
+        return int((output or b"").rsplit(b"\n", 1)[-1])
+    except (TypeError, ValueError):
+        return 0
 
 
 def read_marker(path: Path, fallback: str = "") -> str:
@@ -1750,6 +1842,12 @@ def normalized_reasoning_effort(value) -> str | None:
     return effort
 
 
+def codex_app_server_reasoning_effort(value: str | None) -> str | None:
+    if value is not None:
+        normalized_reasoning_effort(value)
+    return "medium"
+
+
 def read_pinned_thread_ids(global_state_path: Path) -> list[str]:
     try:
         payload = read_json_object(global_state_path)
@@ -1769,6 +1867,48 @@ def apply_pinned_state(thread: dict, pinned_rank_by_id: dict[str, int]) -> dict:
     copied["pinned"] = pinned_rank is not None
     copied["pinnedRank"] = pinned_rank
     return copied
+
+
+def curl_config_value(value: str) -> str:
+    return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\r", "").replace("\n", "")
+
+
+def consume_codex_rate_limit_reset_credit(access_token: str, idempotency_key: str) -> dict:
+    token = str(access_token or "").strip()
+    if not token:
+        raise RuntimeError("Account auth has no access token")
+
+    body = json.dumps({
+        "creditType": "usage_limit",
+        "idempotencyKey": idempotency_key,
+    }, separators=(",", ":"))
+    config = "\n".join([
+        'url = "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits/consume"',
+        'request = "POST"',
+        'header = "Accept: application/json"',
+        'header = "Content-Type: application/json"',
+        f'header = "Authorization: Bearer {curl_config_value(token)}"',
+        f'data = "{curl_config_value(body)}"',
+        "",
+    ])
+    completed = subprocess.run(
+        ["/usr/bin/curl", "-fsS", "--max-time", "20", "--config", "-"],
+        input=config,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+    )
+    if completed.returncode != 0:
+        message = completed.stderr.strip() or completed.stdout.strip() or f"curl exited {completed.returncode}"
+        raise RuntimeError(f"Rate limit reset request failed: {truncate_text(message, 500)}")
+    if not completed.stdout.strip():
+        return {}
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Rate limit reset response was not JSON: {exc}") from exc
+    return payload if isinstance(payload, dict) else {"response": payload}
 
 
 class GatewayState:
@@ -1848,6 +1988,10 @@ class GatewayState:
     @property
     def notification_devices_path(self) -> Path:
         return DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
+
+    @property
+    def live_activities_path(self) -> Path:
+        return DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
 
     def codex_executable(self) -> Path:
         if self.codex_path.exists():
@@ -1967,6 +2111,7 @@ class GatewayState:
                     id_factory=self.app_server_id_factory,
                     notification_handler=self.handle_app_server_notification,
                     env=env,
+                    allow_dangerous=self.allow_dangerous,
                 )
                 self._app_server_auth_fingerprint = auth_fingerprint
             return self._app_server_client
@@ -2407,7 +2552,7 @@ class GatewayState:
             usage_entry = self.usage_entry_for_account(name, usage)
             accounts.append(self.account_status(name, usage_entry, active_account))
 
-        return {
+        snapshot = {
             "generatedAt": int(time.time()),
             "activeAccount": active_account,
             "appServerAuth": self.app_server_auth_status(),
@@ -2416,6 +2561,155 @@ class GatewayState:
             "pluginSync": plugin_sync,
             "accounts": accounts,
         }
+        try:
+            self.publish_live_activity_state(snapshot)
+        except Exception:
+            pass
+        return snapshot
+
+    def consume_rate_limit_reset_credit(self, raw_name: str = "") -> dict:
+        requested_name = str(raw_name or "").strip()
+        if requested_name:
+            account_name = self.resolve_account_profile_name(requested_name)
+            result = self.consume_rate_limit_reset_credit_for_account(account_name)
+            self.record_rate_limit_reset_credit_consumed(account_name)
+            snapshot = self.account_status_snapshot()
+            snapshot["rateLimitReset"] = {
+                "accountName": account_name,
+                "result": result,
+            }
+            return snapshot
+
+        client = self.app_server_client()
+        client.start()
+        result = client.request("account/rateLimitResetCredit/consume", {
+            "creditType": "usage_limit",
+            "idempotencyKey": f"codepilot-rate-limit-reset-{uuid.uuid4()}",
+        })
+        snapshot = self.account_status_snapshot()
+        snapshot["rateLimitReset"] = result
+        return snapshot
+
+    def consume_rate_limit_reset_credit_for_account(self, account_name: str) -> dict:
+        target_auth = self.accounts_dir / account_name / "auth.json"
+        if not target_auth.is_file():
+            raise LookupError(f"No auth profile named {account_name}")
+
+        previous_marker = None
+        previous_auth = None
+        if self.active_account_marker.is_file():
+            previous_marker = self.active_account_marker.read_text(encoding="utf-8")
+        if self.active_auth_path.is_file():
+            previous_auth = self.active_auth_path.read_bytes()
+
+        previous_account = self.active_account_name()
+        needs_restore = account_name != previous_account or target_auth.read_bytes() != (previous_auth or b"")
+        idempotency_key = f"codepilot-rate-limit-reset-{account_name}-{uuid.uuid4()}"
+
+        with RUN_LOCK:
+            if needs_restore and self.has_running_jobs():
+                raise RuntimeError("Cannot reset a different account while a Codex turn is running")
+
+            try:
+                if needs_restore:
+                    self.install_account_for_app_server_context(account_name, target_auth)
+                return self.consume_active_app_server_rate_limit_reset_credit(idempotency_key)
+            finally:
+                if needs_restore:
+                    self.restore_app_server_account_context(previous_auth, previous_marker)
+
+    def consume_active_app_server_rate_limit_reset_credit(self, idempotency_key: str) -> dict:
+        client = self.app_server_client()
+        client.start()
+        return client.request("account/rateLimitResetCredit/consume", {
+            "creditType": "usage_limit",
+            "idempotencyKey": idempotency_key,
+        })
+
+    def install_account_for_app_server_context(self, account_name: str, profile_auth: Path):
+        with self._app_server_lock:
+            self._close_app_server_client_locked()
+            with self.auth_file_lock():
+                self.sync_active_auth_to_active_profile()
+                self.install_auth_file(profile_auth, self.active_auth_path)
+            self.active_account_marker.parent.mkdir(parents=True, exist_ok=True)
+            self.active_account_marker.write_text(account_name + "\n", encoding="utf-8")
+
+    def restore_app_server_account_context(self, previous_auth: bytes | None, previous_marker: str | None):
+        with self._app_server_lock:
+            self._close_app_server_client_locked()
+            with self.auth_file_lock():
+                if previous_auth is None:
+                    try:
+                        self.active_auth_path.unlink()
+                    except FileNotFoundError:
+                        pass
+                else:
+                    self.write_active_auth_bytes(previous_auth)
+
+            if previous_marker is None:
+                try:
+                    self.active_account_marker.unlink()
+                except FileNotFoundError:
+                    pass
+            else:
+                self.active_account_marker.parent.mkdir(parents=True, exist_ok=True)
+                self.active_account_marker.write_text(previous_marker, encoding="utf-8")
+
+    def write_active_auth_bytes(self, payload: bytes):
+        self.active_auth_path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=".auth.json.codex-phone-restore.",
+            suffix=".tmp",
+            dir=str(self.active_auth_path.parent),
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(payload)
+            os.chmod(tmp_path, 0o600)
+            tmp_path.replace(self.active_auth_path)
+            os.chmod(self.active_auth_path, 0o600)
+        except Exception:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+            raise
+
+    def access_token_from_auth_file(self, auth_path: Path) -> str:
+        try:
+            payload = json.loads(auth_path.read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise LookupError("Account auth profile is missing") from exc
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("Account auth profile is not valid JSON") from exc
+
+        if not isinstance(payload, dict):
+            raise RuntimeError("Account auth profile is not valid")
+        tokens = payload.get("tokens")
+        if not isinstance(tokens, dict):
+            raise RuntimeError("Account auth profile has no tokens")
+        access_token = str(tokens.get("access_token") or "").strip()
+        if not access_token:
+            raise RuntimeError("Account auth profile has no access token")
+        return access_token
+
+    def record_rate_limit_reset_credit_consumed(self, account_name: str):
+        usage = self.read_usage()
+        usage_key = account_name
+        for existing_key in usage:
+            if str(existing_key).casefold() == account_name.casefold():
+                usage_key = existing_key
+                break
+        entry = usage.get(usage_key, {})
+        if not isinstance(entry, dict):
+            entry = {}
+        remaining = optional_int(entry.get("rateLimitResetCreditsRemaining"))
+        if remaining is not None:
+            entry["rateLimitResetCreditsRemaining"] = max(0, remaining - 1)
+        usage[usage_key] = entry
+        write_json_object_atomic(self.usage_path, usage)
 
     def ensure_plugin_connectivity(self) -> dict:
         status = {
@@ -2721,6 +3015,205 @@ class GatewayState:
         devices.insert(0, device)
         self.write_notification_devices(devices[:20])
         return {"ok": True, "deviceCount": len(devices[:20])}
+
+    def register_live_activity(self, payload: dict) -> dict:
+        activity_id = str(payload.get("activityId") or "").strip()
+        if not activity_id:
+            raise ValueError("Live Activity identifier is required")
+        token = re.sub(r"[^0-9a-fA-F]", "", str(payload.get("pushToken") or "")).lower()
+        if not token:
+            raise ValueError("Live Activity push token is required")
+        environment = str(payload.get("environment") or "production").strip().lower()
+        if environment not in {"development", "production"}:
+            raise ValueError("Live Activity environment must be development or production")
+        bundle_id = str(payload.get("bundleId") or DEFAULT_APNS_TOPIC).strip() or DEFAULT_APNS_TOPIC
+        existing = next(
+            (item for item in self.read_live_activities() if item.get("activityId") == activity_id),
+            None,
+        )
+        registration = {
+            "activityId": activity_id,
+            "pushToken": token,
+            "environment": environment,
+            "bundleId": bundle_id,
+            "updatedAt": int(time.time()),
+        }
+        if existing and existing.get("pushToken") == token:
+            registration["lastFingerprint"] = str(existing.get("lastFingerprint") or "")
+        registrations = [
+            item for item in self.read_live_activities()
+            if item.get("activityId") != activity_id
+        ]
+        registrations.insert(0, registration)
+        self.write_live_activities(registrations[:20])
+        return {"ok": True, "activityCount": len(registrations[:20])}
+
+    def unregister_live_activity(self, activity_id: str) -> dict:
+        activity_id = str(activity_id or "").strip()
+        registrations = [
+            item for item in self.read_live_activities()
+            if item.get("activityId") != activity_id
+        ]
+        self.write_live_activities(registrations)
+        return {"ok": True, "activityCount": len(registrations)}
+
+    def read_live_activities(self) -> list[dict]:
+        try:
+            data = json.loads(self.live_activities_path.read_text(encoding="utf-8"))
+        except (FileNotFoundError, json.JSONDecodeError):
+            return []
+        if not isinstance(data, list):
+            return []
+        return [item for item in data if isinstance(item, dict)]
+
+    def write_live_activities(self, registrations: list[dict]):
+        self.live_activities_path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=".phone-live-activities.",
+            suffix=".tmp",
+            dir=str(self.live_activities_path.parent),
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                json.dump(registrations, handle, ensure_ascii=False, indent=2, sort_keys=True)
+                handle.write("\n")
+            tmp_path.replace(self.live_activities_path)
+        except Exception:
+            with contextlib.suppress(OSError):
+                tmp_path.unlink()
+            raise
+
+    def live_activity_content_state(self, snapshot: dict) -> dict:
+        generated_at = int(snapshot.get("generatedAt") or time.time())
+        accounts = [item for item in snapshot.get("accounts", []) if isinstance(item, dict)]
+        buckets = []
+        for account in accounts:
+            bucket = self.account_credit_bucket(account)
+            if bucket is not None:
+                buckets.append(bucket)
+        available = [item for item in buckets if not item["authStale"]]
+        reported = [item for item in available if item["remaining"] is not None]
+        remaining = [max(0, min(100, int(item["remaining"]))) for item in reported]
+        if remaining and sum(remaining) > 0:
+            progress = sum(remaining) / (len(remaining) * 100)
+            return {
+                "kind": "available",
+                "percent": round(progress * 100),
+                "progress": progress,
+                "usableAccountCount": sum(1 for value in remaining if value > 0),
+                "reportedAccountCount": len(reported),
+                "nextRefreshAt": None,
+                "refreshLabel": None,
+                "generatedAt": generated_at,
+            }
+        future = [item for item in available if int(item.get("resetAt") or 0) > generated_at]
+        if future:
+            next_refresh = min(future, key=lambda item: int(item["resetAt"]))
+            remaining_seconds = max(0, int(next_refresh["resetAt"]) - generated_at)
+            window_seconds = max(60, int(next_refresh.get("windowMins") or 0) * 60)
+            return {
+                "kind": "refilling",
+                "percent": None,
+                "progress": max(0, min(1, 1 - remaining_seconds / window_seconds)),
+                "usableAccountCount": 0,
+                "reportedAccountCount": len(reported),
+                "nextRefreshAt": int(next_refresh["resetAt"]),
+                "refreshLabel": next_refresh["label"],
+                "generatedAt": generated_at,
+            }
+        kind = "authenticationRequired" if accounts and all(bool(item.get("authStale")) for item in accounts) else "unavailable"
+        return {
+            "kind": kind,
+            "percent": None,
+            "progress": 0,
+            "usableAccountCount": 0,
+            "reportedAccountCount": len(reported),
+            "nextRefreshAt": None,
+            "refreshLabel": None,
+            "generatedAt": generated_at,
+        }
+
+    def account_credit_bucket(self, account: dict) -> dict | None:
+        windows = []
+        if account.get("fiveHourRemainingPercent") is not None or account.get("fiveHourResetsAt") is not None:
+            windows.append({
+                "remaining": account.get("fiveHourRemainingPercent"),
+                "resetAt": account.get("fiveHourResetsAt"),
+                "windowMins": account.get("fiveHourWindowMins"),
+                "label": "5h",
+            })
+        if account.get("weeklyRemainingPercent") is not None or account.get("weeklyResetsAt") is not None:
+            windows.append({
+                "remaining": account.get("weeklyRemainingPercent"),
+                "resetAt": account.get("weeklyResetsAt"),
+                "windowMins": account.get("weeklyWindowMins"),
+                "label": "weekly",
+            })
+        if not windows:
+            return None
+
+        known_remaining = [
+            max(0, min(100, int(window["remaining"])))
+            for window in windows
+            if window.get("remaining") is not None
+        ]
+        effective_remaining = min(known_remaining) if known_remaining else None
+        label = str(windows[0].get("label") or "credit")
+        reset_at = None
+        window_mins = windows[0].get("windowMins")
+
+        if effective_remaining is not None and effective_remaining > 0:
+            for window in windows:
+                if window.get("remaining") is not None and max(0, min(100, int(window["remaining"]))) == effective_remaining:
+                    label = str(window.get("label") or label)
+                    window_mins = window.get("windowMins")
+                    break
+        else:
+            depleted = [
+                window for window in windows
+                if window.get("remaining") is not None
+                and int(window.get("remaining") or 0) <= 0
+                and window.get("resetAt") is not None
+            ]
+            limiting = max(depleted, key=lambda item: int(item.get("resetAt") or 0), default=windows[0])
+            label = str(limiting.get("label") or label)
+            reset_at = limiting.get("resetAt")
+            window_mins = limiting.get("windowMins")
+
+        return {
+            "remaining": effective_remaining,
+            "resetAt": reset_at,
+            "windowMins": window_mins,
+            "label": label,
+            "authStale": bool(account.get("authStale")),
+        }
+
+    def publish_live_activity_state(self, snapshot: dict):
+        registrations = self.read_live_activities()
+        if not registrations:
+            return
+        content_state = self.live_activity_content_state(snapshot)
+        fingerprint_payload = dict(content_state)
+        fingerprint_payload.pop("generatedAt", None)
+        fingerprint = hashlib.sha256(
+            json.dumps(fingerprint_payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        pending = [item for item in registrations if item.get("lastFingerprint") != fingerprint]
+        if not pending:
+            return
+        invalid_activity_ids = set(self.push_notifier.send_live_activity(pending, content_state) or [])
+        pending_ids = {item.get("activityId") for item in pending}
+        next_registrations = []
+        for item in registrations:
+            activity_id = item.get("activityId")
+            if activity_id in invalid_activity_ids:
+                continue
+            copied = dict(item)
+            if activity_id in pending_ids:
+                copied["lastFingerprint"] = fingerprint
+            next_registrations.append(copied)
+        self.write_live_activities(next_registrations)
 
     def read_notification_devices(self) -> list[dict]:
         try:
@@ -3566,6 +4059,7 @@ class GatewayState:
             "weeklyUsedPercent": optional_int(usage.get("weeklyLimitUsedPercent")),
             "weeklyWindowMins": optional_int(usage.get("weeklyLimitWindowMins")),
             "weeklyResetsAt": epoch_seconds(usage.get("weeklyLimitResetsAt")),
+            "rateLimitResetCreditsRemaining": optional_int(usage.get("rateLimitResetCreditsRemaining")),
             "lastRefreshAt": epoch_seconds(usage.get("lastRateLimitRefreshAt")),
             "lastUsedAt": epoch_seconds(usage.get("lastUsedAt")),
             "lastLimitAt": epoch_seconds(usage.get("lastLimitAt")),
@@ -3589,7 +4083,7 @@ class GatewayState:
     ) -> dict:
         prompt = prompt.strip()
         attachments = raw_attachments if isinstance(raw_attachments, list) else []
-        reasoning_effort = normalized_reasoning_effort(reasoning_effort)
+        reasoning_effort = codex_app_server_reasoning_effort(reasoning_effort)
         if not prompt and not attachments:
             raise ValueError("Prompt is empty")
 
@@ -4037,7 +4531,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(204)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "authorization, content-type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
         self.end_headers()
 
     def end_headers(self):
@@ -4234,6 +4728,12 @@ class Handler(BaseHTTPRequestHandler):
                 json_response(self, 200, snapshot)
                 return
 
+            if len(parts) == 3 and parts[0] == "api" and parts[1] == "accounts" and parts[2] == "rate-limit-reset":
+                body = decode_body(self)
+                snapshot = self.state().consume_rate_limit_reset_credit(str(body.get("name", "")))
+                json_response(self, 200, snapshot)
+                return
+
             if len(parts) == 4 and parts[0] == "api" and parts[1] == "accounts" and parts[2] == "auth" and parts[3] == "refresh":
                 body = decode_body(self)
                 snapshot = self.state().refresh_account_auth_with_access_token(
@@ -4288,6 +4788,11 @@ class Handler(BaseHTTPRequestHandler):
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "notifications" and parts[2] == "device":
                 body = decode_body(self)
                 json_response(self, 200, self.state().register_notification_device(body))
+                return
+
+            if len(parts) == 2 and parts[0] == "api" and parts[1] == "live-activities":
+                body = decode_body(self)
+                json_response(self, 200, self.state().register_live_activity(body))
                 return
 
             if len(parts) == 3 and parts[0] == "api" and parts[1] == "local-web" and parts[2] == "sessions":
@@ -4372,6 +4877,19 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
+    def do_DELETE(self):
+        if not self.authenticate():
+            return
+        parsed = urllib.parse.urlparse(self.path)
+        parts = [part for part in parsed.path.split("/") if part]
+        try:
+            if len(parts) == 3 and parts[0] == "api" and parts[1] == "live-activities":
+                json_response(self, 200, self.state().unregister_live_activity(urllib.parse.unquote(parts[2])))
+                return
+            json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
+        except Exception as exc:
+            json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
+
     def log_message(self, format, *args):
         print(f"{self.address_string()} - {format % args}", flush=True)
 
@@ -4391,7 +4909,7 @@ def main():
     parser.add_argument("--codex-home", default=str(DEFAULT_CODEX_HOME))
     parser.add_argument("--codex-path", default=str(DEFAULT_CODEX))
     parser.add_argument("--token-file", default=str(DEFAULT_TOKEN_FILE))
-    parser.add_argument("--allow-dangerous", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--allow-dangerous", action=argparse.BooleanOptionalAction, default=False)
     args = parser.parse_args()
 
     token = read_or_create_token(Path(args.token_file))
