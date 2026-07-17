@@ -39,3 +39,11 @@ Remote write policy: public GitHub writes are allowed only after the privacy aud
 - No new outage, security finding, credential need, or product decision requires escalation.
 - Maintainer cleanup is still needed to merge or close existing issues and draft PRs because this unattended policy authorizes creation of issues and draft PRs, but not closure or merging.
 - Any merged iOS change still requires the separate OTA workflow; this run cannot mutate non-GitHub distribution systems.
+
+## Follow-up Sweep
+
+- Rechecked the complete open issue queue on 2026-07-17; it still contains only #2, #3, and #8, with no issue or comment updates since 2026-07-03.
+- Confirmed the proposed component and severity labels remain applied to all three issues.
+- Confirmed issue-linked draft PR #19 remains mergeable with passing CI and draft PR #16 remains mergeable with passing CI.
+- Draft PR #23 is new since the earlier sweep, but it is release-readiness scope, merge-conflicted, and does not respond to a new issue-triage report.
+- No reproduction, product-code change, public issue comment, or escalation was warranted in this follow-up.
