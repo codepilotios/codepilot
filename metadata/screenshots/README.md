@@ -10,7 +10,9 @@ Prepare approved screenshots for:
 - Gateway health or setup status after a successful connection.
 - Thread list or active turn view.
 - File preview from a local Mac path.
-- Remote desktop pairing or connected session state.
+- Local Mac web page opened through the gateway.
 - Error recovery state with non-sensitive copy.
+
+Do not include Remote Desktop in the 0.1 screenshot set while its paired-device and session-authorization protections remain release-blocked.
 
 All screenshots must avoid real tokens, private hostnames, private account names, private file paths, private emails, and personal identifiers.
