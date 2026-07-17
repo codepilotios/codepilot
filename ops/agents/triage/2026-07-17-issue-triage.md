@@ -45,5 +45,13 @@ Remote write policy: public GitHub writes are allowed only after the privacy aud
 - Rechecked the complete open issue queue on 2026-07-17; it still contains only #2, #3, and #8, with no issue or comment updates since 2026-07-03.
 - Confirmed the proposed component and severity labels remain applied to all three issues.
 - Confirmed issue-linked draft PR #19 remains mergeable with passing CI and draft PR #16 remains mergeable with passing CI.
-- Draft PR #23 is new since the earlier sweep, but it is release-readiness scope, merge-conflicted, and does not respond to a new issue-triage report.
+- Draft PR #23 is new since the earlier sweep and is release-readiness scope. It is now mergeable with a passing `Test and Audit` check, but it does not respond to a new issue-triage report.
 - No reproduction, product-code change, public issue comment, or escalation was warranted in this follow-up.
+
+## Latest Sweep
+
+- Rechecked the complete open issue queue; it still contains only #2, #3, and #8, with no issue or comment updates since 2026-07-03.
+- Confirmed the proposed component and severity labels remain applied to all three issues.
+- Confirmed issue-linked draft PR #19 remains mergeable with passing CI and draft PR #16 remains mergeable with passing CI.
+- No new actionable bug was reported, so no reproduction run or product-code change was warranted.
+- No public GitHub issue, comment, label, branch, or PR mutation was made while collecting this evidence.
