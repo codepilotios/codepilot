@@ -632,11 +632,11 @@ Verify pairing approval, Face ID session start, Wi-Fi direct path, cellular TURN
 Run:
 
 ```bash
-cd /Users/homeserver/Developer/de-kleine-eekhoorn/ios
+cd /path/to/ios-release-worktree
 python3 scripts/dke_ota_build.py build --app codexphone --branch release
 ```
 
-Expected: status reaches `complete`; output reports bundle ID `com.tony.codexphone`; both public manifest and IPA return HTTP 200; the OTA install updates the configured CodePilot app rather than creating another instance.
+Expected: status reaches `complete`; output reports the canonical CodePilot iOS bundle ID; both public manifest and IPA return HTTP 200; the OTA install updates the configured CodePilot app rather than creating another instance.
 
 - [ ] **Step 7: Commit**
 

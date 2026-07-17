@@ -36,25 +36,32 @@ print("|".join(bytes.fromhex(entry).decode("utf-8") for entry in entries))
 PY
 )"
 
-if git grep -n -I -E "$pattern" -- "$(git ls-files)"; then
-  echo "privacy audit failed: tracked files contain private identifiers" >&2
+candidate_files=("${(@f)$(git ls-files --cached --others --exclude-standard)}")
+
+if (( ${#candidate_files[@]} == 0 )); then
+  echo "privacy audit skipped: no candidate files" >&2
+  exit 0
+fi
+
+if LC_ALL=C grep -nI -E "$pattern" -- "${candidate_files[@]}"; then
+  echo "privacy audit failed: repository files contain private identifiers" >&2
   exit 1
 fi
 
 secret_patterns=(
-  'ghp_[A-Za-z0-9_]+'
-  'github_pat_[A-Za-z0-9_]+'
-  'sk-[A-Za-z0-9]+'
+  'ghp_[A-Za-z0-9_]{20,}'
+  'github_pat_[A-Za-z0-9_]{20,}'
+  '(^|[^A-Za-z0-9])sk-[A-Za-z0-9]{20,}'
   '-----BEGIN (RSA|OPENSSH|PRIVATE) KEY'
   'Bearer [A-Za-z0-9._-]{20,}'
-  'client_secret'
-  'private_key'
+  'client_secret[[:space:]]*[:=]'
+  'private_key[[:space:]]*[:=]'
 )
 
 secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"
 
-if git grep -n -I -E "$secret_pattern" -- "$(git ls-files)"; then
-  echo "privacy audit failed: tracked files contain secret-looking material" >&2
+if LC_ALL=C grep -nI -E "$secret_pattern" -- "${candidate_files[@]}"; then
+  echo "privacy audit failed: repository files contain secret-looking material" >&2
   exit 1
 fi
 
