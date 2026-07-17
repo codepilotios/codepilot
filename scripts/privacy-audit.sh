@@ -34,6 +34,7 @@ users_dir_pattern="/$(printf %s Users)/[^[:space:]\"']+"
 generic_private_patterns=(
   "$users_dir_pattern"
   '[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}'
+  '(com|io)\.[A-Za-z0-9_-]+\.codexphone'
 )
 
 audit_files=()

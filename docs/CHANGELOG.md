@@ -14,6 +14,7 @@
 - Documented the Mac, gateway, iPhone, Cloudflare, and troubleshooting paths from a public user perspective.
 - Added a local TestFlight/App Store metadata draft for maintainer review before any App Store submission.
 - Added guidance for keeping screenshots, logs, support requests, and public issues free of private names, hosts, tokens, and local paths.
+- Removed a legacy personal bundle namespace from a tracked implementation plan and added an audit guard against reintroducing that identifier pattern.
 - Kept iOS beta installation docs focused on user setup and moved App Store Connect maintainer checks to the release checklist.
 - Aligned public-beta iPhone connection copy around Cloudflare Tunnel while LAN setup remains unsupported.
 - Tightened beta issue templates and screenshot guidance so public reports ask for recovery context without broad log dumps or private desktop content.
