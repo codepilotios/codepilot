@@ -20,6 +20,13 @@ Before committing public content, check for:
 
 Use demo data such as `Work`, `Personal`, `Demo`, `codepilot.example.com`, and generic sample files.
 
+For screenshot, metadata, issue-template, or support-copy changes, also verify:
+
+- The copy asks for the failing step and visible recovery text instead of broad log dumps.
+- Screenshots use a controlled demo desktop or permission/status screen for remote desktop flows.
+- Examples avoid real prompts, private repositories, customer names, local usernames, and machine-specific paths.
+- Public wording still says the current iPhone beta path uses Cloudflare Tunnel, not unsupported LAN access.
+
 ## Support Copy
 
 Public support and feedback copy should ask for:
