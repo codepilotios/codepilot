@@ -20,7 +20,8 @@ if [[ -d "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" ]]; t
 fi
 cp "$ROOT/scripts/"*.sh "$RESOURCES/scripts/"
 cp "$ROOT/scripts/"*.py "$RESOURCES/scripts/" 2>/dev/null || true
-cp "$ROOT/gateway/"*.py "$RESOURCES/gateway/"
+cp "$ROOT/gateway/codex_phone_gateway.py" "$RESOURCES/gateway/"
+cp "$ROOT/gateway/remote_desktop_gateway.py" "$RESOURCES/gateway/"
 chmod +x "$RESOURCES/scripts/"*.sh
 
 cat > "$CONTENTS/Info.plist" <<'PLIST'

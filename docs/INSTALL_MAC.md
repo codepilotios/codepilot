@@ -66,7 +66,9 @@ Profiles are stored under:
 
 ## Gateway
 
-For iPhone access, install the local gateway:
+For iPhone access, open **Setup CodePilot...** and choose **Restart Gateway When Idle**. The Mac app includes the gateway service and installs its LaunchAgent.
+
+When running directly from a source checkout, the equivalent helper is:
 
 ```sh
 scripts/install-phone-gateway-agent.sh
