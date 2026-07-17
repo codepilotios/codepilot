@@ -40,11 +40,22 @@ write_fixture $'Test iPhone\nhttps://ota.example.com/codexphone/manifest.plist\n
 CODEPILOT_PRIVACY_PATTERNS_FILE="$TEST_ROOT/patterns" zsh scripts/privacy-audit.sh >/dev/null || fail "safe placeholders were rejected"
 
 assert_rejected_without_echo "absolute user path" "/Users/example/private-file"
+assert_rejected_without_echo "absolute Linux home path" "/home/example/private-file"
+assert_rejected_without_echo "absolute Windows user path" 'C:\Users\example\private-file'
 assert_rejected_without_echo "email address" "person@example.net"
 assert_rejected_without_echo "personal device label" "Alice's iPhone"
 assert_rejected_without_echo "private bundle namespace" "com.person.codexphone"
 assert_rejected_without_echo "non-placeholder OTA host" "https://ota.internal.invalid/build"
 assert_rejected_without_echo "secret-looking value" "Bearer AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+assert_rejected_without_echo "RSA private key" "-----BEGIN RSA PRIVATE KEY-----"
+assert_rejected_without_echo "EC private key" "-----BEGIN EC PRIVATE KEY-----"
+assert_rejected_without_echo "cloud access key" "AKIAABCDEFGHIJKLMNOP"
+assert_rejected_without_echo "Google API key" "AIza01234567890123456789012345678901234"
+assert_rejected_without_echo "Slack token" "xox""b-1234567890-abcdefghijklmnop"
+assert_rejected_without_echo "live payment key" "s""k_live_0123456789abcdefghijklmnop"
+assert_rejected_without_echo "GitLab token" "glpat-0123456789abcdefghijklmnop"
+assert_rejected_without_echo "npm token" "npm_0123456789abcdefghijklmnopqrstuv"
+assert_rejected_without_echo "JWT" "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlIn0.abcdefghijklmnopqrstuvwxyz012345"
 
 print -r -- 'internal-marker-[0-9]+' > "$TEST_ROOT/patterns"
 assert_rejected_without_echo "user-configured pattern" "internal-marker-1234"

@@ -26,6 +26,16 @@ docs/superpowers/
 *.env
 .env.*
 !.env.example
+auth.json
+credentials.json
+*.p8
+*.key
+*.sqlite
+*.sqlite3
+*.db
+.netrc
+.npmrc
+.pypirc
 phone-gateway-token
 phone-gateway.env
 AuthKey_*.p8

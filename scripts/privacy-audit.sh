@@ -31,8 +31,12 @@ if [[ -f "$private_patterns_file" ]]; then
 fi
 
 users_dir_pattern="/$(printf %s Users)/[^[:space:]\"']+"
+unix_home_pattern="/$(printf %s home)/[^[:space:]\"']+"
+windows_users_pattern="[A-Za-z]:[\\\\/]Users[\\\\/][^[:space:]\\\"']+"
 generic_private_patterns=(
   "$users_dir_pattern"
+  "$unix_home_pattern"
+  "$windows_users_pattern"
   '[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}'
   "[A-Z][a-z]+'s (iPhone|iPad|Mac)"
   '(Ping|ping) [A-Z][a-z]+( only)? for:'
@@ -81,13 +85,21 @@ if contains_disallowed_bundle_namespace; then
 fi
 
 secret_patterns=(
-  "g""hp_[A-Za-z0-9_]{20,}"
-  "github_""pat_[A-Za-z0-9_]{20,}"
-  "(^|[^A-Za-z0-9])s""k-[A-Za-z0-9]{20,}"
-  "-----BEGIN (RSA|OPENSSH|PRIVATE) ""KEY"
+  "g""hp_[A-Za-z0-9_]+"
+  "github_""pat_[A-Za-z0-9_]+"
+  "s""k-[A-Za-z0-9]{20,}"
+  "-----BEGIN ((RSA|OPENSSH|EC|DSA) )?PRIVATE ""KEY-----"
+  "-----BEGIN PGP PRIVATE KEY ""BLOCK-----"
   'Bearer [A-Za-z0-9._-]{20,}'
-  "client_""secret[[:space:]]*[:=]"
-  "private_""key[[:space:]]*[:=]"
+  '(AKIA|ASIA)[A-Z0-9]{16}'
+  'AIza[A-Za-z0-9_-]{30,}'
+  'xox[baprs]-[A-Za-z0-9-]{10,}'
+  '(s|r)k_live_[A-Za-z0-9]{16,}'
+  'glpat-[A-Za-z0-9_-]{16,}'
+  'npm_[A-Za-z0-9]{20,}'
+  'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+  "client_""secret"
+  "private_""key"
 )
 
 secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"

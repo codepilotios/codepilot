@@ -1,5 +1,7 @@
 # CodePilot Security Maintenance Notice
 
+Status reviewed: 2026-07-17. Public launch remains blocked on the maintainer-only items below; keep the documented fail-closed controls enabled.
+
 Detailed security findings are intentionally not stored in the public repository. Send vulnerability details, private identifiers, logs, and credential-related evidence through the maintainers' private security channel.
 
 Before public launch, maintainer coordination is still required for:
