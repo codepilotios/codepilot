@@ -54,6 +54,7 @@ Operational rules for this queue:
 | `r/OpenAI` | Medium-low | Search-visible rule text says self-promotion should stay under a 1/10 guideline, direct self-promotional project links are not allowed, and promotional project posts need context in text posts. Other current rule snippets show stricter enforcement language against solicitation/self-promotion. Sources: <https://www.reddit.com/r/OpenAI/> and <https://www.reddit.com/r/OpenAI/about/> | Approval required. Avoid direct link posts. Consider only a non-link discussion post after moderator approval. |
 | `r/MacOS` | Medium | The March 2026 Developer Saturday policy permits one self-promotional post per user each Saturday from 00:00 through 23:59 UTC. It explicitly welcomes accessible GitHub repositories, which are scanned by GitHub-Guard, and requires affiliation disclosure, useful context, and more than a low-effort link drop. Source: <https://www.reddit.com/r/MacOS/comments/1rsxzup/new_policy_introducing_developer_saturday/> | Candidate Saturday placement after maintainer approval. Use a transparent, context-rich beta-feedback post and link only to an approved, accessible, security-ready repository or distribution page. |
 | `r/selfhosted` | Low-medium later | Mobile apps are allowed only as companions to a self-hosted backend. Promoted apps must be production-ready and documented. Projects under 3 months old may be posted only in the current New Project Megathread; Wednesday has a separate exception for dashboards and tools that help self-hosters. Source: <https://www.reddit.com/r/selfhosted/about/> | Hold for now. CodePilot has a local gateway and user-owned tunnel, but this is not primarily a general self-hosted server product; ask moderators only after public docs and production readiness are stronger. |
+| `r/github` self-promotion megathread | Medium | The designated recurring self-promotion thread accepts tools, libraries, and side projects hosted on GitHub. Comments should include a short project description, a GitHub repository link, and optionally the stack, main features, or contribution context. Source: <https://www.reddit.com/r/github/comments/1jy8rea/promote_your_projects_here_selfpromotion/> | Candidate only after the public repository URL is approved, accessible, and privacy-audited. Use the megathread rather than a standalone promotional post, disclose the maker relationship, and ask for repository/setup feedback rather than votes. |
 | `r/ClaudeAI` | Low | Project showcases must be built with Claude/Claude Code or specifically for Claude by the poster, be free to try, explain how Claude helped, use minimal promotional language, and come from an account with more than 50 karma. Source: <https://www.reddit.com/r/ClaudeAI/about/> | Do not post CodePilot promotion because this Codex-focused beta does not meet the stated Claude-project relevance gate. Only answer organically if directly relevant and approved by a maintainer. |
 | Hacker News / Show HN | Medium | Show HN is for something people can try; HN asks submitters not to use it primarily for promotion and not to post generated or AI-edited comments. Sources: <https://news.ycombinator.com/showhn.html> and <https://news.ycombinator.com/newsguidelines.html> | Human rewrite required. Prepare outline only; do not paste AI-generated text. |
 | Product Hunt | Medium later | Product Hunt recommends clear product pages, maker first comment, feedback requests rather than upvote requests, and warns against spamming communities where you have not been active. Sources: <https://www.producthunt.com/launch/preparing-for-launch> and <https://www.producthunt.com/launch/sharing-your-launch> | Not a first beta move. Requires account, launch assets, and pricing/status decisions, so hold for human approval. |
@@ -76,6 +77,7 @@ Operational rules for this queue:
 - `r/OpenAI`: direct self-promotional project links are not allowed; ask mods before any non-link discussion that mentions CodePilot.
 - `r/MacOS`: Saturday-only from 00:00 through 23:59 UTC, one promotional post per user per week, explicit developer/affiliate disclosure, useful context, and no low-effort link drop. GitHub repositories are allowed but will be scanned, so any linked repository must be approved, accessible, and security-ready.
 - `r/selfhosted`: hold until CodePilot has public docs and production-ready positioning that fits the community; projects under 3 months old belong only in the current New Project Megathread, and any maker-authored mention still needs moderator and maintainer approval.
+- `r/github`: use only the designated self-promotion megathread and only after a maintainer approves an accessible, privacy-audited public repository URL. The comment must include that GitHub link, so a no-link placeholder must not be posted.
 - `r/ClaudeAI`: do not promote this Codex-focused beta because it does not meet the community's Claude-built/Claude-focused showcase gate; eligible showcases also require more than 50 account karma.
 - Hacker News: a maintainer should write the actual comment manually because HN asks users not to post generated or AI-edited comments.
 - Product Hunt: hold until account, maker identity, screenshots, launch URL, and current beta/pricing status are approved.
@@ -509,6 +511,31 @@ I am trying to learn whether this solves a real generative-AI workflow problem o
 - what trust or setup concern would stop you from trying the beta
 
 This is a feedback request, not an upvote request. Please do not share credentials, gateway tokens, private hostnames, private logs, or project files in comments or messages. I will add an approved beta link only when public distribution is ready.
+```
+
+## Draft 12: `r/github` Self-Promotion Megathread Comment
+
+Posting target: the current designated `r/github` self-promotion megathread.
+
+Approval status: hold until a maintainer approves final posting and an
+accessible public GitHub repository URL has passed the privacy audit. The
+placeholder below must never be posted.
+
+Rule notes:
+- Use the designated self-promotion megathread, not a standalone feed post.
+- Include a short description and direct GitHub repository link.
+- Add useful stack, feature, or contribution context.
+- Disclose the maker relationship and do not request stars or upvotes.
+- Re-check that the thread remains the current promotion route before posting.
+
+```text
+Hi, I am the maker of CodePilot, a beta Mac + iPhone companion for people who run Codex from a Mac they control.
+
+The project has three parts: a Mac menu bar app for local account and usage state, a token-protected local gateway, and a SwiftUI iPhone client for session status, file uploads, notifications, and controls to steer or stop an active turn. The Mac remains the source of truth for Codex credentials, project files, and active sessions. For the current public-beta remote path, testers connect through a Cloudflare Tunnel they control.
+
+I am sharing the repository for technical and setup feedback, not asking for stars or votes. The feedback I would value most is whether the trust boundary is understandable, whether the setup documentation makes the gateway and tunnel responsibilities clear, and which parts of the repository should be easier to audit or contribute to.
+
+GitHub: [APPROVED_PUBLIC_GITHUB_REPOSITORY_URL]
 ```
 
 ## Hacker News / Show HN Outline

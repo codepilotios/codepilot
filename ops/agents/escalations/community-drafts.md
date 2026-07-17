@@ -21,6 +21,9 @@ Status: maintainer action required before any public posting.
 - Hold `r/vibecoding`: its developer-tool approval flow requires a public X
   community post and moderator DM. That external account action is outside this
   agent's authority and should not be performed solely for promotion.
+- For `r/github`, approve an accessible, privacy-audited public repository URL
+  before using the prepared self-promotion megathread comment. Do not post the
+  placeholder or use a standalone feed post.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 
