@@ -2619,17 +2619,17 @@ struct CodePilotSetupStatus {
             CodePilotSetupRow(
                 title: "Codex CLI",
                 requirement: codexCLI == nil ? .codexCLIMissing : .codexCLIInstalled,
-                detail: codexCLI ?? "Install Codex before using CodePilot."
+                detail: codexCLIDetail(installed: codexCLI != nil)
             ),
             CodePilotSetupRow(
                 title: "Codex Login",
                 requirement: FileManager.default.fileExists(atPath: codexAuth) ? .codexSignedIn : .codexSignedOut,
-                detail: FileManager.default.fileExists(atPath: codexAuth) ? "Signed in" : "Missing auth.json"
+                detail: codexLoginDetail(signedIn: FileManager.default.fileExists(atPath: codexAuth))
             ),
             CodePilotSetupRow(
                 title: "Account Profiles",
                 requirement: accountCount > 0 ? .profilesCreated : .profilesMissing,
-                detail: accountCount == 1 ? "1 profile" : "\(accountCount) profiles"
+                detail: accountProfilesDetail(count: accountCount)
             ),
             CodePilotSetupRow(
                 title: "iOS Connection Token",
@@ -2706,6 +2706,25 @@ struct CodePilotSetupStatus {
         requirement == .gatewayRunning
             ? "Reachable on 127.0.0.1:18790"
             : "Start or restart the gateway from the setup window"
+    }
+
+    static func codexCLIDetail(installed: Bool) -> String {
+        installed ? "Installed" : "Install Codex, then refresh status"
+    }
+
+    static func codexLoginDetail(signedIn: Bool) -> String {
+        signedIn ? "Signed in" : "Sign in to Codex, then refresh status"
+    }
+
+    static func accountProfilesDetail(count: Int) -> String {
+        switch count {
+        case 0:
+            return "Create an account profile from the CodePilot menu"
+        case 1:
+            return "1 profile"
+        default:
+            return "\(count) profiles"
+        }
     }
 
     private static func cloudflareMetadataExists() -> Bool {

@@ -30,3 +30,7 @@ Turn setup rows into structured row views with:
 - Optional advanced details disclosure.
 
 Keep advanced paths and commands available, but keep the default row copy focused on the recovery action.
+
+## Local Audit Progress
+
+The `agent/setup-audit` branch removes the Codex executable path and `auth.json` wording from the primary checklist. Missing CLI, login, and profile rows now name the next action. Attaching buttons and advanced-detail disclosures to individual rows remains follow-up work.

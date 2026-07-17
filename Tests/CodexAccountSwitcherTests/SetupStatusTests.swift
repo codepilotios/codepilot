@@ -53,4 +53,14 @@ final class SetupStatusTests: XCTestCase {
             "Reachable on 127.0.0.1:18790"
         )
     }
+
+    func testPrimaryAccountSetupCopyUsesRecoveryActionsInsteadOfPaths() {
+        XCTAssertEqual(CodePilotSetupStatus.codexCLIDetail(installed: true), "Installed")
+        XCTAssertEqual(CodePilotSetupStatus.codexCLIDetail(installed: false), "Install Codex, then refresh status")
+        XCTAssertEqual(CodePilotSetupStatus.codexLoginDetail(signedIn: true), "Signed in")
+        XCTAssertEqual(CodePilotSetupStatus.codexLoginDetail(signedIn: false), "Sign in to Codex, then refresh status")
+        XCTAssertEqual(CodePilotSetupStatus.accountProfilesDetail(count: 0), "Create an account profile from the CodePilot menu")
+        XCTAssertEqual(CodePilotSetupStatus.accountProfilesDetail(count: 1), "1 profile")
+        XCTAssertEqual(CodePilotSetupStatus.accountProfilesDetail(count: 2), "2 profiles")
+    }
 }
