@@ -79,7 +79,7 @@ See:
 
 ## Screenshots
 
-Screenshots will be added before the first public release.
+No public screenshots are committed yet. The beta screenshot checklist is tracked in [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) so public images use demo data and avoid tokens, hostnames, local paths, private prompts, account names, or live desktop content.
 
 ## Public Release Status
 

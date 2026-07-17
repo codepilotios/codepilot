@@ -15,6 +15,8 @@ Check:
 
 ## Helpful Issue Details
 
+Use the repository bug report template when available.
+
 Include:
 
 - Mac app, gateway, or iOS app area affected.
@@ -37,4 +39,4 @@ Do not include:
 
 ## Security Reports
 
-For issues involving exposed credentials, unsafe gateway access, remote desktop bypass, or uploaded private files, avoid public details. Open a minimal issue that says a security report is available and coordinate disclosure with the maintainers.
+For issues involving exposed credentials, unsafe gateway access, remote desktop bypass, or uploaded private files, avoid public details. Review [Security](SECURITY.md) first, then open only a minimal issue that says a security report is available if maintainer coordination is needed.

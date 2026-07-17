@@ -36,11 +36,11 @@ Please report whether Cloudflare Tunnel setup, gateway connection, or token entr
 
 ## Support URL
 
-Use the public repository support documentation and issue tracker once the repository is public.
+Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination: the public support documentation and issue tracker once the repository is public.
 
 ## Privacy URL
 
-Use `docs/PRIVACY.md` until a public website URL is approved.
+Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination: the public website privacy page generated from [Privacy](PRIVACY.md).
 
 ## Screenshot Requirements
 
