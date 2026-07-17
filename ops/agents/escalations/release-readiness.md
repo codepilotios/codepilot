@@ -25,11 +25,12 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
 - App Store Connect credentials and the Apple developer team setting are unavailable. The launch guard also blocks `asc`, including read-only discovery, so the app record, processed builds, availability, version attachment, and strict validation could not be checked.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
+- Public Git history contains legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
 - A Fastlane lockfile is committed, but the system Ruby cannot start it because the lockfile-required Bundler 4.0.11 is unavailable. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
 - `metadata/version/0.1/en-US.json` still needs approved support and privacy-policy URLs plus App Review notes/contact and gateway access instructions.
 - App Privacy, privacy labels, age rating, content rights, export compliance, category, availability, and any pricing/legal settings require maintainer confirmation in App Store Connect.
-- No `PrivacyInfo.xcprivacy` is present despite required-reason API use. Gateway-token Keychain hardening is being tracked separately and must be merged and verified before release.
+- No app-owned `PrivacyInfo.xcprivacy` is present despite required-reason API use. Draft PR #22 prepares gateway-token Keychain migration, file-access scoping, localhost-capability constraints, and additional gateway hardening; it is green but unmerged and must be reconciled and verified before release.
 - The published privacy, support, and screenshot URLs currently return HTTP 404, and the corresponding pages are absent on this branch. Draft PR #17 prepares those pages and must be reconciled before the links can be treated as release-ready.
 - App Store-ready screenshots are absent. All future captures need synthetic accounts, hosts, paths, and tokens.
 - All nine App icon files include alpha channels, including the marketing icon; flatten and validate them before archive upload.
@@ -49,3 +50,4 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 3. Provide an authorized release environment for a signed archive and read-only App Store Connect validation.
 4. Approve the support/privacy URLs, review contact and gateway-access instructions, privacy answers, age rating, content-rights answer, and export-compliance answer.
 5. Supply a sanitized 6.9-inch iPhone screenshot set and approve remediation of the token-storage/privacy-manifest issues.
+6. Review the redacted legacy Git author metadata and confirm whether it may remain in public history.
