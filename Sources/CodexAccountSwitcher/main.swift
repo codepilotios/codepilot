@@ -2836,6 +2836,8 @@ struct CodePilotCloudflareMetadata: Codable, Equatable {
 enum CodePilotCloudflareErrorMapper {
     static func message(forExitCode code: Int32) -> String {
         switch code {
+        case 2:
+            return "Check the hostname and tunnel name. Use a DNS hostname such as codepilot.example.com without https:// or a path, then retry."
         case 20:
             return "Homebrew is missing. Install Homebrew or use Cloudflare's manual cloudflared installer, then retry."
         case 21:

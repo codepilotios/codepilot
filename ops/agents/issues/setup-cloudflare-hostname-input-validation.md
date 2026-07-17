@@ -22,3 +22,5 @@ Before this audit fix, the script did not validate the hostname or tunnel name f
 ## Local Fix
 
 The `agent/setup-audit` branch now validates that `--hostname` is a DNS hostname without schemes, paths, spaces, or underscores, validates simple tunnel names, adds shell regression tests, and documents the expected manual fallback format.
+
+The Mac wizard now also maps invalid setup arguments to that recovery guidance instead of showing the generic Cloudflare setup failure message.

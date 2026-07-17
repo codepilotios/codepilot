@@ -68,6 +68,10 @@ final class CloudflareSetupTests: XCTestCase {
 
     func testCloudflareScriptErrorMapsToRecoveryCopy() {
         XCTAssertEqual(
+            CodePilotCloudflareErrorMapper.message(forExitCode: 2),
+            "Check the hostname and tunnel name. Use a DNS hostname such as codepilot.example.com without https:// or a path, then retry."
+        )
+        XCTAssertEqual(
             CodePilotCloudflareErrorMapper.message(forExitCode: 20),
             "Homebrew is missing. Install Homebrew or use Cloudflare's manual cloudflared installer, then retry."
         )
