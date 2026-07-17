@@ -89,11 +89,23 @@ final class RemoteDesktopTests: XCTestCase {
         )
     }
 
+    func testGatewaySetupValidationRejectsIPAddressesForCloudflare() {
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://192.0.2.10:18790", token: "token", connectionKind: .cloudflare),
+            "Cloudflare needs a public tunnel hostname, not an IP address."
+        )
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://[2001:db8::1]:18790", token: "token", connectionKind: .cloudflare),
+            "Cloudflare needs a public tunnel hostname, not an IP address."
+        )
+    }
+
     func testGatewaySetupCompletenessRequiresValidURLAndToken() {
         XCTAssertFalse(isGatewaySetupComplete(url: "", token: "token", connectionKind: .cloudflare, verifiedConfiguration: ""))
         XCTAssertFalse(isGatewaySetupComplete(url: "https://codepilot.example.com", token: "", connectionKind: .cloudflare, verifiedConfiguration: ""))
         XCTAssertFalse(isGatewaySetupComplete(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local, verifiedConfiguration: ""))
         XCTAssertFalse(isGatewaySetupComplete(url: "https://127.0.0.1:18790", token: "token", connectionKind: .cloudflare, verifiedConfiguration: ""))
+        XCTAssertFalse(isGatewaySetupComplete(url: "https://192.0.2.10:18790", token: "token", connectionKind: .cloudflare, verifiedConfiguration: ""))
     }
 
     func testGatewaySetupCompletenessRequiresCurrentVerifiedConfiguration() throws {

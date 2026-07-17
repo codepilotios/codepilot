@@ -29,7 +29,7 @@ The app stores these values locally on the device. Do not share the token in iss
 
 The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. This makes Cloudflare required for the standard iPhone setup. **Same Network (Advanced)** is not supported by the standard installer; use it only after deliberately configuring and securing the gateway on a Mac LAN address.
 
-The gateway URL must include `http://` or `https://`.
+The gateway URL must include `http://` or `https://`. Cloudflare mode requires an `https://` tunnel hostname, not a local or public IP address.
 
 ## App Store Connect
 

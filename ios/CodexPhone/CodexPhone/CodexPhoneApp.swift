@@ -1894,6 +1894,8 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
         return "Same Network needs the Mac's LAN address, not localhost or 127.0.0.1."
     case .cloudflare where host == "localhost" || host == "127.0.0.1" || host == "::1":
         return "Cloudflare needs the public tunnel URL from the Mac setup screen, not localhost or 127.0.0.1."
+    case .cloudflare where IPv4Address(host) != nil || IPv6Address(host) != nil:
+        return "Cloudflare needs a public tunnel hostname, not an IP address."
     case .cloudflare where scheme != "https":
         return "Cloudflare connections should use an https:// tunnel URL."
     default:
