@@ -23,6 +23,8 @@ Recommended:
 - Rotate the token if a device is lost.
 - Restrict Cloudflare access where practical.
 
+The iOS client refuses non-HTTPS gateway URLs except for explicit loopback development addresses. It also rejects gateway URLs containing user information, query strings, or fragments, and credential-bearing requests do not follow cross-origin redirects.
+
 The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
 
 Localhost web sessions use short-lived capability URLs so WebView subresources can load without exposing the gateway bearer token to page content. Do not share those URLs. Sessions are restricted to the selected loopback origin, expire after ten minutes, and have bounded request counts.

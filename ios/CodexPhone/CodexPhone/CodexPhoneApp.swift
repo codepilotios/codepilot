@@ -73,7 +73,7 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
         let gatewayURL = UserDefaults.standard.string(forKey: "gatewayURL") ?? ""
         let gatewayToken = SecureGatewayTokenStore.read()
         guard !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let root = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let root = GatewayEndpoint.baseURL(from: gatewayURL),
               let url = URL(string: "/api/notifications/device", relativeTo: root)?.absoluteURL else {
             return
         }
@@ -93,7 +93,7 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
         request.setValue("Bearer \(gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONEncoder().encode(body)
-        URLSession.shared.dataTask(with: request).resume()
+        GatewayURLSession.shared.dataTask(with: request).resume()
     }
 
     private func apnsEnvironment() -> String {
@@ -1818,7 +1818,7 @@ func isMacLocalWebURL(_ url: URL) -> Bool {
 }
 
 func localWebSessionURL(path: String, baseURL: String) -> URL? {
-    guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+    guard let root = GatewayEndpoint.baseURL(from: baseURL),
           var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
         return nil
     }
@@ -4841,7 +4841,7 @@ struct CodexGatewayClient {
     }
 
     func downloadRemoteFile(path: String, baseURL: String, token: String) async throws -> URL {
-        guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
             throw GatewayError.invalidURL
         }
         guard var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
@@ -4858,7 +4858,7 @@ struct CodexGatewayClient {
         request.timeoutInterval = 120
         request.setValue("Bearer \(token.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
 
-        let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+        let (temporaryURL, response) = try await GatewayURLSession.shared.download(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw GatewayError.invalidResponse
         }
@@ -4904,7 +4904,7 @@ struct CodexGatewayClient {
         baseURL: String,
         token: String
     ) async throws -> T {
-        guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
             throw GatewayError.invalidURL
         }
         guard let url = URL(string: path, relativeTo: root)?.absoluteURL else {
@@ -4922,7 +4922,7 @@ struct CodexGatewayClient {
         var attempt = 0
         while true {
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await GatewayURLSession.shared.data(for: request)
                 guard let http = response as? HTTPURLResponse else {
                     throw GatewayError.invalidResponse
                 }

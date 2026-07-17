@@ -2,6 +2,85 @@ import Foundation
 import Security
 import SwiftUI
 
+enum GatewayEndpoint {
+    static func baseURL(from rawValue: String) -> URL? {
+        let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty,
+              var components = URLComponents(string: value),
+              components.user == nil,
+              components.password == nil,
+              components.query == nil,
+              components.fragment == nil,
+              let scheme = components.scheme?.lowercased(),
+              let host = components.host?.lowercased(),
+              !host.isEmpty,
+              scheme == "https" || (scheme == "http" && isLoopbackHost(host)) else {
+            return nil
+        }
+
+        components.scheme = scheme
+        components.host = host
+        return components.url
+    }
+
+    static func hasSameOrigin(_ first: URL?, _ second: URL?) -> Bool {
+        guard let first,
+              let second,
+              let firstComponents = URLComponents(url: first, resolvingAgainstBaseURL: false),
+              let secondComponents = URLComponents(url: second, resolvingAgainstBaseURL: false),
+              let firstScheme = firstComponents.scheme?.lowercased(),
+              let secondScheme = secondComponents.scheme?.lowercased(),
+              let firstHost = firstComponents.host?.lowercased(),
+              let secondHost = secondComponents.host?.lowercased() else {
+            return false
+        }
+        return firstScheme == secondScheme
+            && firstHost == secondHost
+            && effectivePort(firstComponents) == effectivePort(secondComponents)
+    }
+
+    private static func effectivePort(_ components: URLComponents) -> Int? {
+        if let port = components.port {
+            return port
+        }
+        switch components.scheme?.lowercased() {
+        case "http": return 80
+        case "https": return 443
+        default: return nil
+        }
+    }
+
+    private static func isLoopbackHost(_ host: String) -> Bool {
+        host == "localhost" || host == "::1" || host.hasPrefix("127.")
+    }
+}
+
+private final class GatewayRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        guard GatewayEndpoint.hasSameOrigin(task.currentRequest?.url, request.url) else {
+            completionHandler(nil)
+            return
+        }
+        completionHandler(request)
+    }
+}
+
+enum GatewayURLSession {
+    static let shared: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration, delegate: GatewayRedirectDelegate(), delegateQueue: nil)
+    }()
+}
+
 enum SecureGatewayTokenStore {
     private static let service = "io.codepilot.gateway"
     private static let account = "gatewayToken"

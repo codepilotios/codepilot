@@ -45,6 +45,37 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertTrue(GatewayConnectionKind.cloudflare.helpText.contains("Cloudflare Tunnel"))
     }
 
+    func testGatewayEndpointRequiresHTTPSExceptForLoopbackDevelopment() throws {
+        XCTAssertEqual(
+            GatewayEndpoint.baseURL(from: "https://gateway.example")?.absoluteString,
+            "https://gateway.example"
+        )
+        XCTAssertNotNil(GatewayEndpoint.baseURL(from: "http://localhost:18790"))
+        XCTAssertNotNil(GatewayEndpoint.baseURL(from: "http://127.0.0.2:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://gateway.example"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "ftp://gateway.example"))
+    }
+
+    func testGatewayEndpointRejectsCredentialAndFragmentAmbiguity() {
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "https://user:password@gateway"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "https://gateway.example?target=elsewhere"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "https://gateway.example/#token"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "//gateway.example"))
+    }
+
+    func testGatewayOriginsIncludeSchemeHostAndEffectivePort() throws {
+        let standardHTTPS = try XCTUnwrap(URL(string: "https://gateway.example/api/health"))
+        let explicitHTTPS = try XCTUnwrap(URL(string: "https://gateway.example:443/redirect"))
+        let otherHost = try XCTUnwrap(URL(string: "https://other.example/redirect"))
+        let downgrade = try XCTUnwrap(URL(string: "http://gateway.example/redirect"))
+        let otherPort = try XCTUnwrap(URL(string: "https://gateway.example:8443/redirect"))
+
+        XCTAssertTrue(GatewayEndpoint.hasSameOrigin(standardHTTPS, explicitHTTPS))
+        XCTAssertFalse(GatewayEndpoint.hasSameOrigin(standardHTTPS, otherHost))
+        XCTAssertFalse(GatewayEndpoint.hasSameOrigin(standardHTTPS, downgrade))
+        XCTAssertFalse(GatewayEndpoint.hasSameOrigin(standardHTTPS, otherPort))
+    }
+
     func testRemotePairingApprovalStatusRoundTrips() throws {
         let status = RemotePairingApprovalStatus(
             status: "pending_mac_approval",

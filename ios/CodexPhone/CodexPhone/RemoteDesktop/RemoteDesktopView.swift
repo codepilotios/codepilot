@@ -208,7 +208,7 @@ struct RemoteDesktopView: View {
 
     private func startFrameLoop() {
         stopFrameLoop()
-        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             frameError = "Gateway is not configured."
             return
@@ -255,7 +255,7 @@ struct RemoteDesktopView: View {
 
     private func startWebRTC() {
         stopWebRTC()
-        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
         webRTCTask = Task {
@@ -291,7 +291,7 @@ struct RemoteDesktopView: View {
         if peer.sendInput(event) {
             return
         }
-        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
         let previous = inputTask

@@ -113,7 +113,7 @@ struct RemotePairingView: View {
     }
 
     private func api() -> RemoteDesktopAPI? {
-        guard let url = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let url = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return nil
         }
