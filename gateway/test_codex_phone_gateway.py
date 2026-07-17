@@ -2434,6 +2434,81 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                     state.cancel_remote_account_login(started["sessionId"])
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
+    def test_expired_remote_login_session_terminates_process_and_removes_temp_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_home = Path(tmp) / "remote-login"
+            temp_home.mkdir()
+            process = FakeRemoteLoginProcess(temp_home, "https://auth.openai.com/oauth/authorize?state=test")
+            state = GatewayState(Path(tmp), "token", Path("/missing-codex"), False)
+            state._remote_login_sessions["expired"] = {
+                "id": "expired",
+                "createdAt": 100,
+                "tempCodexHome": temp_home,
+                "process": process,
+            }
+
+            removed = state.cleanup_expired_remote_login_sessions(
+                now=100 + gateway.REMOTE_LOGIN_SESSION_TIMEOUT_SECONDS,
+            )
+
+            self.assertEqual(removed, 1)
+            self.assertTrue(process.terminated)
+            self.assertFalse(temp_home.exists())
+            self.assertEqual(state._remote_login_sessions, {})
+
+    def test_remote_login_capacity_is_bounded(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        state._remote_login_sessions = {
+            f"session-{index}": {"createdAt": int(gateway.time.time())}
+            for index in range(gateway.REMOTE_LOGIN_MAX_ACTIVE_SESSIONS)
+        }
+
+        with self.assertRaisesRegex(ValueError, "Too many remote login sessions"):
+            state.ensure_remote_login_capacity()
+
+    def test_remote_login_callback_failure_cleans_up_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            switcher_home = tmp_path / "switcher"
+            codex_home = tmp_path / "codex"
+            codex_home.mkdir()
+            (switcher_home / "accounts" / "Main").mkdir(parents=True)
+            (switcher_home / "accounts" / "Main" / "auth.json").write_text("{}", encoding="utf-8")
+            auth_url = (
+                "https://auth.openai.com/oauth/authorize?"
+                "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&"
+                "state=expected-state"
+            )
+            processes = []
+
+            def fake_login_process_factory(args, **kwargs):
+                process = FakeRemoteLoginProcess(Path(kwargs["env"]["CODEX_HOME"]), auth_url)
+                processes.append(process)
+                return process
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            try:
+                state = GatewayState(
+                    codex_home,
+                    "token",
+                    Path("/missing-codex"),
+                    False,
+                    login_process_factory=fake_login_process_factory,
+                )
+                started = state.start_remote_account_login("Main")
+
+                with self.assertRaisesRegex(ValueError, "state"):
+                    state.complete_remote_account_login(
+                        started["sessionId"],
+                        "http://localhost:1455/auth/callback?code=abc&state=wrong-state",
+                    )
+
+                self.assertTrue(processes[0].terminated)
+                self.assertEqual(state._remote_login_sessions, {})
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
     def test_remote_new_account_login_saves_profile_without_switching(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)

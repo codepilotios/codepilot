@@ -75,6 +75,8 @@ REMOTE_LOGIN_AUTH_URL_RE = re.compile(r"https://auth\.openai\.com/oauth/authoriz
 REMOTE_LOGIN_URL_RE = re.compile(r"https?://\S+")
 REMOTE_LOGIN_URL_TIMEOUT_SECONDS = 15
 REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS = 30
+REMOTE_LOGIN_SESSION_TIMEOUT_SECONDS = 10 * 60
+REMOTE_LOGIN_MAX_ACTIVE_SESSIONS = 4
 LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 10 * 60
 LOCAL_WEB_MAX_ACTIVE_SESSIONS = 8
 LOCAL_WEB_MAX_REQUESTS_PER_SESSION = 256
@@ -2087,6 +2089,7 @@ class GatewayState:
         self._local_web_lock = threading.Lock()
         self._remote_login_sessions = {}
         self._remote_login_lock = threading.Lock()
+        self._remote_login_start_lock = threading.Lock()
 
     @property
     def db_path(self) -> Path:
@@ -3627,6 +3630,11 @@ class GatewayState:
         return self.start_remote_login_session(account_name, mode="add")
 
     def start_remote_login_session(self, account_name: str, mode: str) -> dict:
+        with self._remote_login_start_lock:
+            self.ensure_remote_login_capacity()
+            return self._start_remote_login_session(account_name, mode)
+
+    def _start_remote_login_session(self, account_name: str, mode: str) -> dict:
         DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
         session_id = secrets.token_urlsafe(16)
         temp_codex_home = Path(tempfile.mkdtemp(prefix="codex-remote-login-", dir=str(DEFAULT_SWITCHER_HOME)))
@@ -3691,6 +3699,11 @@ class GatewayState:
         raise RuntimeError(f"Codex login did not provide a browser login URL. {truncate_text(output, 500)}")
 
     def start_remote_mcp_login(self, raw_name: str) -> dict:
+        with self._remote_login_start_lock:
+            self.ensure_remote_login_capacity()
+            return self._start_remote_mcp_login(raw_name)
+
+    def _start_remote_mcp_login(self, raw_name: str) -> dict:
         server_name = str(raw_name or "").strip()
         if not server_name:
             raise ValueError("MCP server name is required")
@@ -3779,6 +3792,7 @@ class GatewayState:
         }
 
     def remote_account_login_status(self, session_id: str) -> dict:
+        self.cleanup_expired_remote_login_sessions()
         with self._remote_login_lock:
             session = self._remote_login_sessions.get(str(session_id or "").strip())
             if not session:
@@ -3786,6 +3800,7 @@ class GatewayState:
             return self.public_remote_login_session(session)
 
     def complete_remote_account_login(self, session_id: str, callback_url: str) -> dict:
+        self.cleanup_expired_remote_login_sessions()
         session_id = str(session_id or "").strip()
         with self._remote_login_lock:
             session = self._remote_login_sessions.get(session_id)
@@ -3795,30 +3810,35 @@ class GatewayState:
                 raise ValueError("Remote login session is not an account login")
             session["status"] = "completing"
 
-        local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
-        self.relay_remote_login_callback(local_callback_url)
-
-        process = session["process"]
         try:
+            local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
+            self.relay_remote_login_callback(local_callback_url)
+
+            process = session["process"]
             returncode = process.wait(timeout=REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS)
+            if returncode != 0:
+                output = str(session.get("output") or "").strip()
+                raise RuntimeError(f"Codex login failed: {truncate_text(output or f'exit {returncode}', 500)}")
+
+            generated_auth = Path(session["tempCodexHome"]) / "auth.json"
+            if not generated_auth.is_file():
+                raise RuntimeError("Codex login did not produce auth.json")
+
+            if str(session.get("mode") or "") == "add":
+                self.install_new_account_auth(str(session["accountName"]), generated_auth)
+            else:
+                self.install_refreshed_account_auth(str(session["accountName"]), generated_auth)
         except subprocess.TimeoutExpired as exc:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
             raise RuntimeError("Timed out waiting for Codex login to finish") from exc
-        if returncode != 0:
-            output = str(session.get("output") or "").strip()
-            raise RuntimeError(f"Codex login failed: {truncate_text(output or f'exit {returncode}', 500)}")
-
-        generated_auth = Path(session["tempCodexHome"]) / "auth.json"
-        if not generated_auth.is_file():
-            raise RuntimeError("Codex login did not produce auth.json")
-
-        if str(session.get("mode") or "") == "add":
-            self.install_new_account_auth(str(session["accountName"]), generated_auth)
-        else:
-            self.install_refreshed_account_auth(str(session["accountName"]), generated_auth)
+        except Exception:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+            raise
         self.cleanup_remote_account_login_session(session_id, terminate=False)
         return self.account_status_snapshot()
 
     def complete_remote_mcp_login(self, session_id: str, callback_url: str) -> dict:
+        self.cleanup_expired_remote_login_sessions()
         session_id = str(session_id or "").strip()
         with self._remote_login_lock:
             session = self._remote_login_sessions.get(session_id)
@@ -3828,19 +3848,23 @@ class GatewayState:
                 raise ValueError("Remote login session is not an MCP login")
             session["status"] = "completing"
 
-        local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
-        self.relay_remote_login_callback(local_callback_url)
-
-        process = session["process"]
         try:
-            returncode = process.wait(timeout=REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("Timed out waiting for Codex MCP login to finish") from exc
-        if returncode != 0:
-            output = str(session.get("output") or "").strip()
-            raise RuntimeError(f"Codex MCP login failed: {truncate_text(output or f'exit {returncode}', 500)}")
+            local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
+            self.relay_remote_login_callback(local_callback_url)
 
-        self.clear_connector_auth_warning(str(session.get("accountName") or ""))
+            process = session["process"]
+            returncode = process.wait(timeout=REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS)
+            if returncode != 0:
+                output = str(session.get("output") or "").strip()
+                raise RuntimeError(f"Codex MCP login failed: {truncate_text(output or f'exit {returncode}', 500)}")
+
+            self.clear_connector_auth_warning(str(session.get("accountName") or ""))
+        except subprocess.TimeoutExpired as exc:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+            raise RuntimeError("Timed out waiting for Codex MCP login to finish") from exc
+        except Exception:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+            raise
         self.cleanup_remote_account_login_session(session_id, terminate=False)
         return self.account_status_snapshot()
 
@@ -3884,6 +3908,24 @@ class GatewayState:
         session_id = str(session_id or "").strip()
         self.cleanup_remote_account_login_session(session_id, terminate=True)
         return {"ok": True}
+
+    def ensure_remote_login_capacity(self):
+        self.cleanup_expired_remote_login_sessions()
+        with self._remote_login_lock:
+            if len(self._remote_login_sessions) >= REMOTE_LOGIN_MAX_ACTIVE_SESSIONS:
+                raise ValueError("Too many remote login sessions are active; cancel one and try again")
+
+    def cleanup_expired_remote_login_sessions(self, now: int | None = None) -> int:
+        current_time = int(time.time()) if now is None else int(now)
+        with self._remote_login_lock:
+            expired_ids = [
+                session_id
+                for session_id, session in self._remote_login_sessions.items()
+                if int(session.get("createdAt") or 0) + REMOTE_LOGIN_SESSION_TIMEOUT_SECONDS <= current_time
+            ]
+        for session_id in expired_ids:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+        return len(expired_ids)
 
     def cleanup_remote_account_login_session(self, session_id: str, terminate: bool):
         with self._remote_login_lock:

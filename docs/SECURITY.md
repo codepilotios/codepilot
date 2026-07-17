@@ -27,11 +27,15 @@ The iOS client refuses non-HTTPS gateway URLs except for `localhost`, `::1`, and
 
 The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
 
+Cloudflare remote verification sends the gateway token only to the HTTPS origin stored by the permanent-tunnel setup. It rejects alternate hosts, URL credentials, nonstandard ports, and URL extras. Reconfigure the permanent tunnel instead of overriding verification with another URL.
+
 Localhost web sessions use short-lived capability URLs so WebView subresources can load without exposing the gateway bearer token to page content. Do not share those URLs. Sessions are restricted to the selected loopback origin, expire after ten minutes, and have bounded request counts.
 
 Remote file previews are restricted to files uploaded through CodePilot by default. Advanced local setups can add explicit roots with the `CODEPILOT_FILE_DOWNLOAD_ROOTS` environment variable, using the platform path separator between roots. Never add a credential, SSH, cloud configuration, or account-auth directory.
 
 Uploaded attachment batches are retained for seven days. The gateway removes expired batches at startup and before saving another upload. Storage and cleanup stay within a private CodePilot upload directory and refuse symbolic links.
+
+Remote account-login sessions expire after ten minutes, are limited to four at a time, and terminate their temporary login process when they expire or fail.
 
 The native remote-desktop host is disabled while screen capture, input injection, and signaling still lack end-to-end lease authorization. CodePilot does not request Screen Recording permission at launch. Do not re-enable the host until the documented trusted-device and active-lease checks are enforced on every privileged operation.
 

@@ -24,8 +24,16 @@ AGENTS.md
 docs/superpowers/
 .env
 *.env
+.env.*
+!.env.example
 phone-gateway-token
 phone-gateway.env
+AuthKey_*.p8
+*.pem
+*.p12
+*.mobileprovision
+*.provisionprofile
+.cloudflared/*.json
 *.log
 logs/
 uploads/

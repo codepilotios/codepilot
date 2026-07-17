@@ -40,6 +40,10 @@ write_stub brew 'echo "brew $*"'
 write_stub launchctl 'echo "launchctl $*"'
 write_stub curl '
 [[ "$*" == *"--config -"* ]] || exit 90
+[[ "$*" == *"--proto =https"* ]] || exit 92
+[[ "$*" == *"--proto-redir =https"* ]] || exit 93
+[[ "$*" == *"--max-redirs 0"* ]] || exit 94
+[[ "$*" == *"https://codepilot.example.com/api/health"* ]] || exit 95
 config="$(cat)"
 [[ "$config" == '\''header = "Authorization: Bearer test-gateway-token"'\'' ]] || exit 91
 echo "{\"ok\":true}"
@@ -74,6 +78,16 @@ fi
 
 "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-verify.out
 grep -q "verified" /tmp/codepilot-verify.out || fail "verify output should say verified"
+for unsafe_url in \
+  http://codepilot.example.com \
+  https://other.example.com \
+  https://codepilot.example.com.evil.test \
+  https://user:@codepilot.example.com \
+  'https://codepilot.example.com/?next=https://evil.test'; do
+  if "$SCRIPT" verify --url "$unsafe_url" >/dev/null 2>&1; then
+    fail "unsafe verification URL was accepted"
+  fi
+done
 
 "$SCRIPT" start-trycloudflare >/tmp/codepilot-try.out
 grep -q "temporary.trycloudflare.com" /tmp/codepilot-try.out || fail "temporary URL missing"
