@@ -86,3 +86,5 @@ No public screenshots are committed yet. The beta screenshot checklist is tracke
 ## Public Beta Status
 
 CodePilot is being prepared for broader publishing through beta-first docs, sanitized screenshots, and maintainer-reviewed App Store metadata. Expect some internal names, bundle identifiers, LaunchAgent labels, and local state paths to still contain legacy Codex-specific names during the first migration phase.
+
+Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable or promote it in beta builds yet.

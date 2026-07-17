@@ -11,8 +11,8 @@ Use this checklist before adding screenshots to the repository, GitHub Pages, Te
 - Hide local file paths unless the path is a generic example.
 - Hide private thread names, prompts, uploads, and repository names.
 - Hide Apple IDs, team IDs, bundle signing details, and TestFlight account details.
-- For remote desktop screenshots, show only a controlled demo desktop or permission/status screen. Do not show an active personal desktop, browser session, terminal, chat, or repository.
-- Prefer clean beta flows: setup checklist, gateway status, iPhone connection, thread list, file upload, and remote desktop permission state.
+- Do not capture or publish Remote Desktop screens while that feature remains outside the supported public beta.
+- Prefer clean beta flows: setup checklist, gateway status, iPhone connection, thread list, usage status, connector/plugin status, and file upload.
 
 Recommended beta screenshot set:
 
@@ -23,6 +23,5 @@ Recommended beta screenshot set:
 - iPhone thread list with demo thread names.
 - iPhone usage and connector/plugin status with demo account names.
 - File upload confirmation using non-private sample files.
-- Remote desktop permission screen without a live private desktop.
 
 Create real screenshots only from sanitized demo data. Run the public presence privacy review before committing screenshots or metadata that references screenshots.

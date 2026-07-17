@@ -18,14 +18,15 @@
 - Kept iOS beta installation docs focused on user setup and moved App Store Connect maintainer checks to the release checklist.
 - Aligned public-beta iPhone connection copy around Cloudflare Tunnel while LAN setup remains unsupported.
 - Tightened beta issue templates and screenshot guidance so public reports ask for recovery context without broad log dumps or private desktop content.
-- Aligned beta support and bug-report categories with promoted file upload, notification, turn-control, and remote desktop workflows.
+- Aligned beta support and bug-report categories with promoted file upload, notification, and turn-control workflows, plus reporting for the gated Remote Desktop work.
 - Clarified the current security-reporting limitation so beta users are not directed to share sensitive evidence publicly.
 - Added launch checks for the live Pages URL, repository website field, and a private security-reporting channel.
 - Clarified that Codex credentials remain on the Mac while Cloudflare processes gateway traffic and connection metadata for the user-owned tunnel.
 - Aligned support, beta feedback, issue-template, and screenshot guidance with the promoted usage and connector/plugin status workflows.
+- Removed Remote Desktop from public-beta promotion while its pairing and session-authorization enforcement remains a release blocker.
 
 ### Recent Product Work
 
 - Added Cloudflare setup wizard docs and automation.
 - Added gateway health, setup, and recovery guidance.
-- Added remote desktop, localhost URL opening, file preview, and gateway-backed iPhone control improvements.
+- Added Remote Desktop foundations, localhost URL opening, file preview, and gateway-backed iPhone control improvements. Remote Desktop remains gated from the supported public beta pending security verification.

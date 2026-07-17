@@ -21,7 +21,7 @@ Do not commit these files, include them in public issues, or show them in screen
 
 ## Mac Gateway
 
-The CodePilot gateway runs on your Mac and requires a bearer token. It exposes CodePilot features to trusted clients, including account status, usage status, thread access, file upload, notification registration, turn controls where supported, and remote desktop features after pairing and macOS permission checks.
+The CodePilot gateway runs on your Mac and requires a bearer token. It exposes CodePilot features to trusted clients, including account status, usage status, thread access, file upload, notification registration, and turn controls where supported.
 
 The gateway token, gateway URL, hostnames, thread names, uploaded files, prompts, and local paths should be treated as private.
 
@@ -39,7 +39,9 @@ CodePilot still requires the gateway bearer token when using Cloudflare Tunnel. 
 
 ## Remote Desktop
 
-Remote desktop features require pairing and macOS Screen Recording and Accessibility permissions. Do not share screenshots or recordings that show private desktops, files, prompts, credentials, account names, hostnames, or local paths.
+Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable it in beta builds yet.
+
+Any future Remote Desktop beta must require explicit device pairing plus macOS Screen Recording and Accessibility permissions. Screenshots or recordings must never expose private desktops, files, prompts, credentials, account names, hostnames, or local paths.
 
 ## Support And Issues
 

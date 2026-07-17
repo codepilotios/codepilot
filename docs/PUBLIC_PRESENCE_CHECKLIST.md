@@ -8,6 +8,7 @@ Use this checklist before updating GitHub Pages, README copy, public docs, scree
 - Target AI coding users and existing Codex CLI users.
 - Avoid promising production-team readiness, hosted CodePilot accounts, LAN setup, non-Codex providers, pricing, subscriptions, App Store availability, or release dates unless those items have maintainer approval.
 - Describe Cloudflare Tunnel as the supported public-beta iPhone access path.
+- Do not promote features with unresolved security or release blockers. Remote Desktop remains outside the supported public beta until its pairing and session-authorization enforcement is verified.
 
 ## Privacy Review
 
@@ -23,7 +24,7 @@ Use demo data such as `Work`, `Personal`, `Demo`, `codepilot.example.com`, and g
 For screenshot, metadata, issue-template, or support-copy changes, also verify:
 
 - The copy asks for the failing step and visible recovery text instead of broad log dumps.
-- Screenshots use a controlled demo desktop or permission/status screen for remote desktop flows.
+- Remote Desktop screenshots are excluded while the feature remains outside the supported public beta.
 - Examples avoid real prompts, private repositories, customer names, local usernames, and machine-specific paths.
 - Public wording still says the current iPhone beta path uses Cloudflare Tunnel, not unsupported LAN access.
 

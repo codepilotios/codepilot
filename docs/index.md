@@ -10,7 +10,6 @@ The beta is focused on practical workflows for AI coding users:
 - Switch saved Codex account profiles after active turns finish.
 - Connect the iPhone app to the Mac gateway through a user-owned Cloudflare Tunnel during the public beta.
 - Upload files, inspect threads, steer or stop turns where supported, and receive turn-finished notifications.
-- Use remote desktop features only after pairing and macOS permission checks.
 
 CodePilot is source-available for noncommercial use. It is not OSI open source. See the repository license files before redistributing or using it commercially.
 
@@ -39,6 +38,8 @@ CodePilot is source-available for noncommercial use. It is not OSI open source. 
 CodePilot currently targets Codex CLI. Future provider support is not part of the first beta promise.
 
 The public-beta iPhone setup uses Cloudflare Tunnel. Same-network iPhone access is not part of the supported beta path until CodePilot ships explicit LAN-binding, firewall, and trust guidance.
+
+Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable it in beta builds yet.
 
 Do not share screenshots, logs, gateway URLs, tokens, account names, hostnames, or local file paths in public issues unless they have been sanitized.
 

@@ -29,6 +29,10 @@ The gateway health response is intentionally public-safe, but it is still operat
 
 CodePilot swaps local provider auth files. It waits for active turns to finish before automatic switching, but users should still avoid manually editing auth files while turns are running.
 
+## Remote Desktop
+
+Remote Desktop is not part of the supported public beta while device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable it in beta builds or expose its routes through a tunnel.
+
 ## Reporting Issues
 
 Do not include auth files, bearer tokens, logs containing tokens, or uploaded private files in issue reports.

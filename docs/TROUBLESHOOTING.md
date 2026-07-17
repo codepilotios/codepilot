@@ -36,9 +36,9 @@ Use **Force Restart Gateway...** only when the gateway is stuck and interrupting
 
 Pull to refresh the thread list. If a live stream was interrupted, open the thread again after the turn finishes so saved messages can reload from the Mac gateway.
 
-## Remote Desktop Controls Do Not Work
+## Remote Desktop Is Unavailable
 
-Open the CodePilot setup window on the Mac and confirm Screen Recording and Accessibility permissions are granted. Restart CodePilot after changing macOS privacy permissions.
+Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not work around this restriction or enable the feature in beta builds.
 
 ## Localhost Link Does Not Open
 
