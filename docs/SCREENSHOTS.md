@@ -24,4 +24,27 @@ Recommended beta screenshot set:
 - iPhone usage and connector/plugin status with demo account names.
 - File upload confirmation using non-private sample files.
 
+## Demo Capture Brief
+
+Use one consistent fictional workspace across the set so the screens tell a coherent beta story:
+
+- Account names: `Work`, `Personal`, and `Demo`.
+- Gateway hostname: `codepilot.example.com`.
+- Thread names: `Review parser tests`, `Improve setup copy`, and `Triage upload error`.
+- Sample files: `sample-diff.txt` and `wireframe.png`, created only for the capture session.
+- Connector/plugin names: use built-in product labels or clearly fictional demo labels; do not show connected personal services.
+
+Capture only the app or simulator window. Exclude the desktop, menu bar extras outside CodePilot, browser history, notifications from other apps, device names, and unrelated windows. Keep the same appearance mode and demo state across related Mac and iPhone images.
+
+## Acceptance Checklist
+
+Before committing or attaching an image:
+
+- Inspect the full-resolution image, including status bars, window chrome, menus, background edges, and reflections or overlays.
+- Confirm every visible account, hostname, thread, file, repository, prompt, connector, and notification matches the fictional capture brief.
+- Confirm no bearer token, auth value, QR payload, local path, Apple identifier, device name, personal service, or private desktop content is visible.
+- Confirm Remote Desktop is absent from the entire set while it remains outside the supported public beta.
+- Write concise alt text that explains the beta workflow without repeating private or hidden values.
+- Run `scripts/privacy-audit.sh` after adding the image files and their surrounding copy.
+
 Create real screenshots only from sanitized demo data. Run the public presence privacy review before committing screenshots or metadata that references screenshots.
