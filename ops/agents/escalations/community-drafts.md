@@ -12,6 +12,9 @@ Status: maintainer action required before any public posting.
   TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed for
   this AI-first beta; its monthly App Shelf requires approved pricing/status
   language and a direct App Store link before a compliant draft can be posted.
+- `r/GenAiApps` is a text-first alternative whose rules allow contextual,
+  valuable self-promotion. Approve the prepared copy and `iOS` flair before a
+  human posts it; do not add a beta link until that URL is verified and approved.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 

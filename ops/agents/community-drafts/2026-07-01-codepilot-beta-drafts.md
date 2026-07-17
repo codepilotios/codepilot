@@ -42,6 +42,7 @@ Operational rules for this queue:
 | `r/TestFlight` | High once the public beta link is live | Live rules require posts to concern a TestFlight app, allow only TestFlight links, require an app-name title without tags such as `[Tester]` or `[Recruiting]`, require platform flair, and ask developers not to flood the feed with repeat posts. Source: <https://www.reddit.com/r/TestFlight/> | Best direct tester-recruitment target after the public TestFlight link is verified and approved. Use `iOS` flair, keep the title to the app name plus a short message, and put later updates in comments rather than reposting. |
 | `r/appledevelopers` | Medium for technical discussion, low for beta recruitment | Posts must concern Apple-platform development. Promotional content must be limited and disclose the developer relationship; the sidebar explicitly directs TestFlight apps to `r/TestFlight`. Source: <https://www.reddit.com/r/appledevelopers/about/> | Do not cross-post the tester request here. Use `r/TestFlight` for recruitment. Consider this community later only for a substantive Apple-development discussion with maintainer approval and explicit maker disclosure. |
 | `r/iosapps` | Low / hold for approved metadata | Requires 10 local karma for main-feed eligibility, official App Store or TestFlight distribution, infrequent promotion, disclosure, and either trust/transparency qualification or the monthly megathread. The July 2026 policy excludes AI-first apps from the main feed and routes generative-AI/AI-wrapper promotion to the App Shelf, whose required ABC format includes pricing and a direct App Store link. Sources: <https://www.reddit.com/r/iosapps/comments/1u9aw0f/riosapps_moderation_update_phase_2_trust/> and <https://www.reddit.com/r/iosapps/comments/1ukpe7t/megathread_the_app_shelf_july_2026/> | Do not use the main feed. Hold the megathread placement until a maintainer approves distribution eligibility, exact pricing/status language, and the direct store link; this run may not invent or imply those details. |
+| `r/GenAiApps` | Medium-high | The community is specifically for generative-AI apps. Current rules allow self-promotion when it provides value and context, require an appropriate flair, prohibit spam/duplicate or low-effort posts, require context for links, and prohibit unsafe links or personal information. Source: <https://www.reddit.com/r/GenAiApps/about/> | Good text-first beta-feedback candidate after maintainer approval. Use the `iOS` flair, disclose the maker relationship, explain the Codex-specific workflow, and include no link until the public beta URL is approved. Re-check recent posts and flair options immediately before posting. |
 | `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Current rules require posts to be directly related to Codex, use the right flair, avoid low-effort rants, and not use bots. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/about/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. A maintainer must post manually; use text-only feedback framing unless mods approve a beta link. |
 | `r/SideProject` | Medium-high | Community is for sharing and receiving constructive feedback on side projects. Current posts show beta/product feedback asks are common, and recent discussion warns that burying links in comments may be a rule-sensitive pattern. Sources: <https://www.reddit.com/r/SideProject/> and <https://www.reddit.com/r/SideProject/comments/1t7yd6x/post_your_project_looking_for_beta_testers_for_an/> | Good standalone beta feedback post after maintainer approval. Keep it story/feedback-first, avoid engagement manipulation, and use only approved links if links are allowed. |
 | `r/iOSProgramming` | Medium | App posts are Saturday-only and limited to one post per app per year. The live App Saturday guide requires `Tech Stack Used`, `Development Challenge + How You Solved It`, and `AI Disclosure` content. The live rule also asks authors not to post without previous community activity but does not state a numeric karma threshold. Sources: <https://www.reddit.com/r/iOSProgramming/about/> and <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/> | Approval required. Hold until Saturday and do not use a new/inactive `codepilotios` account. |
@@ -62,6 +63,7 @@ Operational rules for this queue:
 - `r/TestFlight`: hold until there is a verified, approved public TestFlight link. Use only that link, select `iOS` flair, keep the title free of recruitment tags, and avoid repeat posts; later updates belong in the original post's comments.
 - `r/appledevelopers`: do not duplicate the beta-recruitment post; its rules direct TestFlight apps to `r/TestFlight`. Any later technical post must be substantive, limited, transparent, and maintainer-approved.
 - `r/iosapps`: do not use the main feed for this AI-first beta. The monthly App Shelf is the apparent promotion route, but its ABC format requires pricing and a direct App Store link; hold until a maintainer approves those fields and confirms current distribution eligibility.
+- `r/GenAiApps`: general rules allow valuable self-promotion, but a maintainer must still approve the final post. Use the `iOS` flair, provide useful context, avoid repeat or low-effort promotion, and include no link until the public beta URL is approved.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply, and the explicit no-bots rule means a maintainer must post manually.
 - `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, and mandatory App Saturday content sections. The live rules do not currently state a numeric karma threshold, but eligibility must still be re-checked before posting.
 - `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit; self-promotional content must also remain below 5% of the account's posts and comments there.
@@ -466,6 +468,43 @@ I am especially looking for feedback on:
 Please do not send gateway tokens, credentials, private hostnames, private logs, or project files in Reddit messages or comments. Use only sanitized reproduction steps in feedback.
 
 TestFlight: [APPROVED_PUBLIC_TESTFLIGHT_LINK]
+```
+
+## Draft 11: `r/GenAiApps` Text-First Beta Feedback Post
+
+Posting target: `r/GenAiApps`
+
+Approval status: needs maintainer approval before posting. Use the `iOS` flair
+and do not add a link until the public beta URL is verified and approved.
+
+Rule notes:
+- Keep the post focused on a generative-AI app or workflow.
+- Self-promotion must provide useful context rather than a low-effort link drop.
+- Avoid duplicate promotion and use an appropriate flair.
+- If a link is approved later, explain its relevance and verify that it is safe.
+- Do not include personal information, private logs, tokens, or credentials.
+
+Title:
+
+```text
+I built an iPhone companion for Codex sessions running on your Mac - looking for beta workflow feedback
+```
+
+Body:
+
+```text
+I am the maker of CodePilot. It is a beta Mac + iPhone companion for people who already run Codex on a Mac they control.
+
+The idea is to leave the coding-agent session, credentials, and project files on the Mac while giving the iPhone a focused view of session status, threads, file uploads, notifications, and controls to steer or stop an active turn. The Mac runs a token-protected local gateway; remote access in the current beta uses a Cloudflare Tunnel controlled by the tester.
+
+I am trying to learn whether this solves a real generative-AI workflow problem or just moves a terminal-shaped problem onto a smaller screen. The feedback I would value most is:
+
+- when you would actually check or control a coding-agent session from your phone
+- which remote actions feel useful versus risky
+- whether the Mac gateway and iPhone connection model is understandable
+- what trust or setup concern would stop you from trying the beta
+
+This is a feedback request, not an upvote request. Please do not share credentials, gateway tokens, private hostnames, private logs, or project files in comments or messages. I will add an approved beta link only when public distribution is ready.
 ```
 
 ## Hacker News / Show HN Outline
