@@ -6,16 +6,16 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 
 ## Verified Locally
 
-- `scripts/privacy-audit.sh`: passed after moving the optional private-identifier denylist to ignored local configuration.
+- `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
 - `swift test`: passed; 57 tests, 0 failures.
 - Gateway unit tests: passed with the default Python toolchain; 112 tests, 0 failures.
 - macOS Swift release build: passed.
 - iOS simulator Debug and clean Release builds: passed with code signing disabled.
 - Unsigned generic-device iOS Release archive compile: passed.
-- iOS simulator tests: passed with 0 failures.
+- iOS simulator tests: passed; 37 tests, 0 failures.
 - Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
-- The current install-linked OTA manifest and IPA both returned HTTP 200 in a read-only check. The manifest still identifies the legacy bundle ID, while the public OTA install page returned HTTP 403 even with a normal browser user agent; no OTA build or external-state mutation was performed in this run.
+- The latest OTA status still points to a July 8 build with no recorded source commit. Its install-linked manifest and IPA both returned HTTP 200 in a read-only check, but the manifest does not match the current bundle ID and the public OTA install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
 
 ## Release Blockers
 
@@ -24,7 +24,8 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The latest OTA build is stale relative to current source and has no recorded source commit. No OTA build was triggered because this run is not authorized to mutate external distribution systems.
 - The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
 - App Store Connect credentials and the Apple developer team setting are unavailable. The launch guard also blocks `asc`, including read-only discovery, so the app record, processed builds, availability, version attachment, and strict validation could not be checked.
-- A Fastlane lockfile is now committed, but the locked bundle is not installed in this release environment. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
+- The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
+- A Fastlane lockfile is committed, but the system Ruby cannot start it because the lockfile-required Bundler 4.0.11 is unavailable. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
 - `metadata/version/0.1/en-US.json` still needs approved support and privacy-policy URLs plus App Review notes/contact and gateway access instructions.
 - App Privacy, privacy labels, age rating, content rights, export compliance, category, availability, and any pricing/legal settings require maintainer confirmation in App Store Connect.
@@ -32,7 +33,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The published privacy, support, and screenshot URLs currently return HTTP 404, and the corresponding pages are absent on this branch. Draft PR #17 prepares those pages and must be reconciled before the links can be treated as release-ready.
 - App Store-ready screenshots are absent. All future captures need synthetic accounts, hosts, paths, and tokens.
 - All nine App icon files include alpha channels, including the marketing icon; flatten and validate them before archive upload.
-- Draft metadata is not connected to the Fastlane lanes, which otherwise use a generic changelog. External TestFlight metadata still lacks an approved beta description, feedback email, and review contact. There is no local App Store metadata staging/validation path.
+- Fastlane now uses the prepared 0.1 What-to-Test notes by default, excludes Remote Desktop from its default beta description, and requires an approved privacy-policy URL for external distribution. The App Store JSON is still not connected to a staging/validation lane, and external TestFlight metadata still lacks an approved feedback email and review contact.
 - The locally built Mac app is arm64-only; Intel/universal distribution has not been verified.
 
 ## Prepared Artifacts
