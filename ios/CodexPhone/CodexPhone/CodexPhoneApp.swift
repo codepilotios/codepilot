@@ -700,7 +700,11 @@ struct ThreadListView: View {
             }
             .overlay {
                 if model.threads.isEmpty && !model.isLoading {
-                    ContentUnavailableView("No Threads", systemImage: "tray")
+                    ContentUnavailableView(
+                        "No Threads",
+                        systemImage: "tray",
+                        description: Text("Start a new thread on this iPhone, or create one with Codex on the connected Mac, then refresh.")
+                    )
                 }
             }
         }
@@ -880,7 +884,11 @@ struct NewThreadView: View {
                                 }
                             }
                         } else {
-                            ContentUnavailableView("No Projects", systemImage: "folder")
+                            ContentUnavailableView(
+                                "No Projects",
+                                systemImage: "folder",
+                                description: Text("Enter a workspace path on the connected Mac, or choose New to create a project folder.")
+                            )
                         }
 
                         TextField("Workspace path", text: $selectedWorkspace)
@@ -2420,7 +2428,11 @@ struct AccountStatusView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else if model.accountStatuses.isEmpty {
-                        ContentUnavailableView("No Accounts", systemImage: "person.crop.circle.badge.questionmark")
+                        ContentUnavailableView(
+                            "No Accounts",
+                            systemImage: "person.crop.circle.badge.questionmark",
+                            description: Text("Add and save an account profile from the CodePilot menu on the connected Mac, then refresh.")
+                        )
                     } else {
                         ForEach(model.accountStatuses) { account in
                             AccountStatusRow(
@@ -2558,7 +2570,11 @@ struct AccountSwitcherView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else if model.accountStatuses.isEmpty {
-                        ContentUnavailableView("No Accounts", systemImage: "person.crop.circle.badge.questionmark")
+                        ContentUnavailableView(
+                            "No Accounts",
+                            systemImage: "person.crop.circle.badge.questionmark",
+                            description: Text("Add and save an account profile from the CodePilot menu on the connected Mac, then refresh.")
+                        )
                     } else {
                         ForEach(model.accountStatuses) { account in
                             AccountStatusRow(

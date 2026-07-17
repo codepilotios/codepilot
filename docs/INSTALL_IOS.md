@@ -25,6 +25,10 @@ On first launch:
 
 The first-run screen remains open until the authenticated connection test succeeds. Success means the app opens CodePilot and shows the active account from the Mac gateway.
 
+## First Thread
+
+After the connection test succeeds, tap the compose button to start a thread. Choose an existing project or enter its workspace path on the connected Mac. If CodePilot shows **No Accounts**, add and save an account profile from the CodePilot menu on the Mac, then refresh the iPhone app.
+
 The app stores these values locally on the device. Do not share the token in issue reports or screenshots.
 
 The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. This makes Cloudflare required for the standard iPhone setup. **Same Network (Advanced)** is not supported by the standard installer; use it only after deliberately configuring and securing the gateway on a Mac LAN address.
