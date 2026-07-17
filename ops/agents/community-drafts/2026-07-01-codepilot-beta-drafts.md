@@ -44,6 +44,7 @@ Operational rules for this queue:
 | `r/iosapps` | Low / hold for approved metadata | Requires 10 local karma for main-feed eligibility, official App Store or TestFlight distribution, infrequent promotion, disclosure, and either trust/transparency qualification or the monthly megathread. The July 2026 policy excludes AI-first apps from the main feed and routes generative-AI/AI-wrapper promotion to the App Shelf, whose required ABC format includes pricing and a direct App Store link. Sources: <https://www.reddit.com/r/iosapps/comments/1u9aw0f/riosapps_moderation_update_phase_2_trust/> and <https://www.reddit.com/r/iosapps/comments/1ukpe7t/megathread_the_app_shelf_july_2026/> | Do not use the main feed. Hold the megathread placement until a maintainer approves distribution eligibility, exact pricing/status language, and the direct store link; this run may not invent or imply those details. |
 | `r/iPhoneApps` | Low / hold until genuine participation | The live rules allow recommending your own iPhone app only when it is relevant to an existing discussion, clearly disclosed, and useful. Shared apps must be available on the Apple App Store and include details such as description and cost. A 2026-07-16 moderator announcement removed the Developer flair and says pure promotional drops will be removed; developers should participate and contribute before mentioning their app in context. Sources: <https://www.reddit.com/r/IPhoneApps/about/> and <https://www.reddit.com/r/IPhoneApps/comments/1uy20l2/an_update_on_selfpromotion/> | Do not prepare a standalone launch post or use a new promotion-only account. Revisit only after the approved identity has genuine community participation and CodePilot has an approved App Store listing and status language. Use modmail, not direct moderator contact, if eligibility remains unclear. |
 | `r/GenAiApps` | Medium-high | The community is specifically for generative-AI apps. Current rules allow self-promotion when it provides value and context, require an appropriate flair, prohibit spam/duplicate or low-effort posts, require context for links, and prohibit unsafe links or personal information. Source: <https://www.reddit.com/r/GenAiApps/about/> | Good text-first beta-feedback candidate after maintainer approval. Use the `iOS` flair, disclose the maker relationship, explain the Codex-specific workflow, and include no link until the public beta URL is approved. Re-check recent posts and flair options immediately before posting. |
+| `r/AI_Agents` | Medium-high | The live rules permit limited self-promotion at roughly one in ten posts/comments, prohibit promotion-only accounts and low-context posts, require links to be placed in comments, and route project showcases to the weekly Project Display thread. The current weekly thread explicitly welcomes AI agents and LLM apps. Sources: <https://www.reddit.com/r/AI_Agents/about/> and <https://www.reddit.com/r/AI_Agents/comments/1uehkln/weekly_thread_project_display/> | Good agent-workflow feedback target only after the approved identity has genuine non-promotional participation. Use the weekly Project Display thread, disclose the maker relationship, and keep the first draft link-free unless a direct public beta or repository URL is separately approved. |
 | `r/vibecoding` | Low / externally gated | CodePilot counts as a developer tool, and the live rules require developer-tool makers to obtain approval by joining the community on X, posting the tool there, and waiting for a moderator DM before making one introduction post. The subreddit also rejects fully generated low-effort content and requires educational detail for project posts. Sources: <https://www.reddit.com/r/vibecoding/about/> and <https://www.reddit.com/r/vibecoding/comments/1mp8oyw/important_new_rules_update_on_selfpromotion/> | Hold. This run may not create or mutate accounts or post on non-GitHub external systems, so it cannot complete the X approval gate. Do not disguise CodePilot promotion as general discussion or a project breakdown. |
 | `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Current rules require posts to be directly related to Codex, use the right flair, avoid low-effort rants, and not use bots. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/about/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. A maintainer must post manually; use text-only feedback framing unless mods approve a beta link. |
 | `r/SideProject` | Medium-high | The live About page currently shows no community-specific rules beyond Reddit-wide rules and says anyone may post. Project showcases and beta-feedback requests are common, and a current self-promotion thread explicitly invites projects and feedback. A recent high-engagement community discussion objects to promotion-only accounts and link drops. Sources: <https://www.reddit.com/r/SideProject/about/>, <https://www.reddit.com/r/SideProject/>, <https://www.reddit.com/r/SideProject/comments/1utus1n/whats_everyone_working_on_lets_self_promote/>, and <https://www.reddit.com/r/SideProject/comments/1u07rgx/the_selfish_promotion_epidemic_is_killing_this_sub/> | Prefer the current self-promotion thread over a standalone post. Use the no-link, feedback-specific comment draft after maintainer approval, and re-check the thread and live About page immediately before posting. |
@@ -68,6 +69,7 @@ Operational rules for this queue:
 - `r/iosapps`: do not use the main feed for this AI-first beta. The monthly App Shelf is the apparent promotion route, but its ABC format requires pricing and a direct App Store link; hold until a maintainer approves those fields and confirms current distribution eligibility.
 - `r/iPhoneApps`: do not make a standalone promotional post. The Developer flair was removed on 2026-07-16, self-mentions must arise from genuine participation and add value, and shared apps must be available on the Apple App Store with approved cost/status details. Use modmail rather than contacting moderators directly if a later contextual mention is uncertain.
 - `r/GenAiApps`: general rules allow valuable self-promotion, but a maintainer must still approve the final post. Use the `iOS` flair, provide useful context, avoid repeat or low-effort promotion, and include no link until the public beta URL is approved.
+- `r/AI_Agents`: use only the current weekly Project Display thread after the approved identity has genuine participation and its self-promotion ratio is safely below one in ten. Put any separately approved link in a reply rather than the project description, provide substantive workflow context, and have a maintainer post manually.
 - `r/vibecoding`: do not post or prepare a disguised discussion placement. Developer-tool promotion requires prior approval through an X community post and moderator DM; satisfying that gate requires a maintainer-controlled external account action that this agent is not authorized to perform.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply, and the explicit no-bots rule means a maintainer must post manually.
 - `r/SideProject`: the live About page currently lists no community-specific rules, but community sentiment strongly disfavors promotion-only participation. Prefer the current self-promotion thread, post manually only after maintainer approval, disclose the maker relationship, and use the no-link feedback draft rather than a standalone launch post.
@@ -572,6 +574,38 @@ I am looking for blunt feedback on the idea before broader distribution:
 - Which part would stop you from trying the beta: setup effort, token handling, remote access, or something else?
 
 This is a feedback request, not an upvote request. I have left out the beta link until public distribution is approved. Please do not share credentials, gateway tokens, private hostnames, logs, or project files in replies.
+```
+
+## Draft 14: `r/AI_Agents` Weekly Project Display Comment
+
+Posting target: the current `r/AI_Agents` weekly Project Display thread.
+
+Approval status: needs maintainer approval before posting. Hold until the
+approved identity has genuine non-promotional participation and its promotion
+ratio is safely below the community's one-in-ten guideline.
+
+Rule notes:
+- Use the weekly Project Display thread rather than a standalone project post.
+- Provide useful agent-workflow context; do not submit a low-effort link drop.
+- Disclose the maker relationship and do not ask for votes, follows, or messages.
+- Keep links out of the project description. If a direct beta or repository URL
+  is separately approved, place it in a reply as required by the live rules.
+- Re-check the live About page and current weekly thread immediately before a
+  maintainer posts manually.
+
+```text
+Hi, I am the maker of CodePilot. It is a beta Mac + iPhone companion for people who run Codex sessions on a Mac they control.
+
+The agent-workflow problem I am exploring is what should remain possible after you leave the terminal. CodePilot keeps the Codex session, credentials, and project files on the Mac. A token-protected local gateway gives the iPhone client narrow access to session status, threads, file uploads, notifications, and controls to steer or stop an active turn. The current public-beta remote path uses a Cloudflare Tunnel controlled by the tester.
+
+I would value feedback from people who run coding agents on longer tasks:
+
+- Which remote actions are genuinely useful: status, steering, stopping, file upload, or none of them?
+- Which actions should always require a fresh confirmation on the Mac or phone?
+- Does a user-owned gateway and tunnel make the trust boundary clearer, or just make setup harder?
+- What audit or recovery information would you expect before connecting a phone to an active agent session?
+
+This is a workflow and trust feedback request, not an upvote request. I have left out the beta link until public distribution is approved. Please do not share credentials, gateway tokens, private hostnames, logs, or project files in replies.
 ```
 
 ## Hacker News / Show HN Outline

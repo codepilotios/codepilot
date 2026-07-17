@@ -15,6 +15,10 @@ Status: maintainer action required before any public posting.
 - `r/GenAiApps` is a text-first alternative whose rules allow contextual,
   valuable self-promotion. Approve the prepared copy and `iOS` flair before a
   human posts it; do not add a beta link until that URL is verified and approved.
+- For `r/AI_Agents`, use only the current weekly Project Display thread after the
+  approved identity has genuine participation and remains safely below the
+  community's one-in-ten self-promotion guideline. Approve the no-link draft;
+  any later approved link belongs in a reply rather than the project description.
 - Do not use `r/iPhoneApps` for a standalone launch post. Its Developer flair was
   removed on 2026-07-16, and maker mentions now require genuine participation,
   contextual value, an App Store listing, and approved status/cost details.
