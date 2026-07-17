@@ -34,6 +34,7 @@
 - Expanded the beta privacy draft to disclose Cloudflare data transit, notification and Live Activity payload contents, and the lack of automatic upload cleanup.
 - Clarified that the local gateway does not make Codex workflows offline: prompts, conversation context, and selected attachments can still be processed by OpenAI, while Cloudflare and Apple process data only for the enabled tunnel and notification workflows.
 - Added a consistent fictional-data capture brief and full-resolution acceptance checklist for the approved public beta screenshot set.
+- Added a public beta data-flow map showing what stays on the Mac and what can be processed by Codex, OpenAI, Cloudflare, or Apple.
 
 ### Recent Product Work
 

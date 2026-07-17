@@ -6,6 +6,18 @@ This page describes the repository beta behavior. App Store privacy labels and a
 
 CodePilot is not an offline coding tool. When you start or continue a Codex turn, the gateway passes your prompt and selected attachments to Codex on the Mac. Codex can send that content, conversation context, and related service metadata to OpenAI according to your Codex account, configuration, and the policies that apply to that service. CodePilot does not replace or change those provider terms, retention rules, or account controls.
 
+## Beta Data Flow At A Glance
+
+| When you use | What stays on the Mac | What can leave the Mac |
+| --- | --- | --- |
+| Account and usage status | Codex login state, saved account profiles, and cached usage data | Codex and OpenAI can process account and usage requests made by the local Codex setup. |
+| A Codex turn | Gateway state, thread metadata, and local Codex state | Prompts, conversation context, selected attachments, and related service metadata can be sent to Codex and OpenAI. |
+| The iPhone companion | Gateway settings, uploaded files, and the gateway's copy of notification state | Gateway requests and responses pass through the user-owned Cloudflare Tunnel. |
+| File upload | The uploaded file is saved under the CodePilot state directory | The file passes through Cloudflare when uploaded from iPhone and can be sent to Codex and OpenAI when selected for a turn. |
+| Notifications or Live Activities | The gateway stores registered device and activity tokens | Apple can process device tokens and the notification or Live Activity payload described below. |
+
+CodePilot does not operate an account, analytics, or relay service for the current repository beta. This does not remove the data handling performed by Codex, OpenAI, Cloudflare, or Apple when you enable workflows that use those services.
+
 ## Local Data
 
 CodePilot works with local coding-agent state on your Mac, including Codex login state, saved account profiles, usage data, gateway settings, uploaded files, thread metadata, and notification state.
