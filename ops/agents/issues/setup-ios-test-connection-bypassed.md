@@ -21,6 +21,8 @@ First-run setup should remain visible until an authenticated gateway request suc
 
 The root view treats locally valid input as completed setup. The **Test Connection** button checks the real gateway, but successful testing is not part of the completion state.
 
-## Suggested Fix
+## Local Fix
 
 Store a connection-verified flag tied to the normalized URL, connection mode, and token. Clear it whenever those values change, and leave first-run setup visible until the current configuration passes an authenticated request.
+
+The `agent/setup-audit` branch now stores a SHA-256 fingerprint after **Test Connection** successfully loads authenticated account status. The first-run form remains visible until that fingerprint matches the current URL, connection mode, and token; changing any field invalidates the match without storing another copy of the token.

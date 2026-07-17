@@ -57,5 +57,5 @@ Use only the DNS hostname with `--hostname`, not the full `https://` URL and not
 - **Hostname not on Cloudflare**: add the domain to Cloudflare first or use TryCloudflare.
 - **Hostname rejected before setup starts**: enter a DNS name such as `codepilot.example.com`, without `https://`, slashes, spaces, or underscores.
 - **502 from Cloudflare**: start the CodePilot gateway and restart the Cloudflare tunnel.
-- **401/403**: copy the current gateway token from the Mac app into the iPhone app.
+- **401/403**: copy the current iOS connection token from the Mac app into the iPhone app.
 - **Works locally but not remotely**: check the Cloudflare LaunchAgent logs in `~/Library/Logs/`.

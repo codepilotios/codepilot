@@ -89,11 +89,39 @@ final class RemoteDesktopTests: XCTestCase {
     }
 
     func testGatewaySetupCompletenessRequiresValidURLAndToken() {
-        XCTAssertFalse(isGatewaySetupComplete(url: "", token: "token", connectionKind: .cloudflare))
-        XCTAssertFalse(isGatewaySetupComplete(url: "https://codepilot.example.com", token: "", connectionKind: .cloudflare))
-        XCTAssertFalse(isGatewaySetupComplete(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local))
-        XCTAssertFalse(isGatewaySetupComplete(url: "https://127.0.0.1:18790", token: "token", connectionKind: .cloudflare))
-        XCTAssertTrue(isGatewaySetupComplete(url: "https://codepilot.example.com", token: "token", connectionKind: .cloudflare))
+        XCTAssertFalse(isGatewaySetupComplete(url: "", token: "token", connectionKind: .cloudflare, verifiedConfiguration: ""))
+        XCTAssertFalse(isGatewaySetupComplete(url: "https://codepilot.example.com", token: "", connectionKind: .cloudflare, verifiedConfiguration: ""))
+        XCTAssertFalse(isGatewaySetupComplete(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local, verifiedConfiguration: ""))
+        XCTAssertFalse(isGatewaySetupComplete(url: "https://127.0.0.1:18790", token: "token", connectionKind: .cloudflare, verifiedConfiguration: ""))
+    }
+
+    func testGatewaySetupCompletenessRequiresCurrentVerifiedConfiguration() throws {
+        let url = "https://codepilot.example.com"
+        let token = "token"
+        let verifiedConfiguration = try XCTUnwrap(gatewaySetupVerificationKey(
+            url: url,
+            token: token,
+            connectionKind: .cloudflare
+        ))
+
+        XCTAssertTrue(isGatewaySetupComplete(
+            url: url,
+            token: token,
+            connectionKind: .cloudflare,
+            verifiedConfiguration: verifiedConfiguration
+        ))
+        XCTAssertFalse(isGatewaySetupComplete(
+            url: "https://other.example.com",
+            token: token,
+            connectionKind: .cloudflare,
+            verifiedConfiguration: verifiedConfiguration
+        ))
+        XCTAssertFalse(isGatewaySetupComplete(
+            url: url,
+            token: "other-token",
+            connectionKind: .cloudflare,
+            verifiedConfiguration: verifiedConfiguration
+        ))
     }
 
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {

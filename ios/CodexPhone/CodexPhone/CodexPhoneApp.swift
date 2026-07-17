@@ -1,5 +1,6 @@
 import ActivityKit
 import AuthenticationServices
+import CryptoKit
 import Foundation
 import Network
 import PhotosUI
@@ -116,6 +117,7 @@ struct RootView: View {
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
     @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
+    @AppStorage("verifiedGatewayConfiguration") private var verifiedGatewayConfiguration = ""
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
@@ -130,9 +132,14 @@ struct RootView: View {
                 if !isGatewaySetupComplete(
                     url: gatewayURL,
                     token: gatewayToken,
-                    connectionKind: selectedConnectionKind
+                    connectionKind: selectedConnectionKind,
+                    verifiedConfiguration: verifiedGatewayConfiguration
                 ) {
-                    EmptySettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken)
+                    EmptySettingsView(
+                        gatewayURL: $gatewayURL,
+                        gatewayToken: $gatewayToken,
+                        verifiedGatewayConfiguration: $verifiedGatewayConfiguration
+                    )
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
@@ -331,6 +338,7 @@ struct RootView: View {
 struct EmptySettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
+    @Binding var verifiedGatewayConfiguration: String
     @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
@@ -428,6 +436,11 @@ struct EmptySettingsView: View {
             let status = try await client.accountStatus(baseURL: gatewayURL, token: gatewayToken)
             let accountText = status.activeAccount.isEmpty ? "unknown account" : status.activeAccount
             connectionMessage = "Connected as \(accountText)."
+            verifiedGatewayConfiguration = gatewaySetupVerificationKey(
+                url: gatewayURL,
+                token: gatewayToken,
+                connectionKind: selectedConnectionKind
+            ) ?? ""
         } catch {
             connectionMessage = connectionFailureMessage(error)
         }
@@ -1886,8 +1899,39 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
     }
 }
 
-func isGatewaySetupComplete(url rawURL: String, token rawToken: String, connectionKind: GatewayConnectionKind) -> Bool {
-    gatewaySetupValidationMessage(url: rawURL, token: rawToken, connectionKind: connectionKind) == nil
+func gatewaySetupVerificationKey(
+    url rawURL: String,
+    token rawToken: String,
+    connectionKind: GatewayConnectionKind
+) -> String? {
+    guard gatewaySetupValidationMessage(
+        url: rawURL,
+        token: rawToken,
+        connectionKind: connectionKind
+    ) == nil,
+    let url = try? gatewayRootURL(from: rawURL) else {
+        return nil
+    }
+
+    let token = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    let value = [connectionKind.rawValue, url.absoluteString, token].joined(separator: "\u{0}")
+    return SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
+}
+
+func isGatewaySetupComplete(
+    url rawURL: String,
+    token rawToken: String,
+    connectionKind: GatewayConnectionKind,
+    verifiedConfiguration: String
+) -> Bool {
+    guard let expected = gatewaySetupVerificationKey(
+        url: rawURL,
+        token: rawToken,
+        connectionKind: connectionKind
+    ) else {
+        return false
+    }
+    return verifiedConfiguration == expected
 }
 
 func localWebSessionURL(path: String, baseURL: String) -> URL? {

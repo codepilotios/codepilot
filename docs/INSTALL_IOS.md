@@ -22,7 +22,7 @@ On first launch:
 3. Enter the iOS connection token from the Mac setup screen.
 4. Tap **Test Connection**.
 
-Success means the app shows the active account from the Mac gateway.
+The first-run screen remains open until the authenticated connection test succeeds. Success means the app opens CodePilot and shows the active account from the Mac gateway.
 
 The app stores these values locally on the device. Do not share the token in issue reports or screenshots.
 
