@@ -91,6 +91,31 @@ Operational rules for this queue:
 - Hacker News: a maintainer should write the actual comment manually because HN asks users not to post generated or AI-edited comments.
 - Product Hunt: hold until account, maker identity, screenshots, launch URL, and current beta/pricing status are approved.
 
+## Recommended Approval Queue
+
+Use a staged rollout rather than sending substantially similar beta requests to
+multiple communities at once. A maintainer should re-check the live target and
+approve the exact copy immediately before every manual post or comment.
+
+1. **First placement:** use Draft 1 in the current `r/ChatGPTCoding`
+   self-promotion thread. It is the strongest no-link fit for the first target
+   audience and has a designated promotion route. Promote CodePilot there only
+   once.
+2. **Text-first feedback:** if the first placement produces useful discussion,
+   consider Draft 11 in `r/GenAiApps`. Use `iOS` flair and keep it link-free
+   until the public beta URL is approved.
+3. **Tester recruitment:** after confirming identity eligibility, choose one of
+   Draft 15 for `r/BetaTests` or Draft 16 for `r/alphaandbetausers`; do not post
+   both at the same time. Wait for feedback before considering the other.
+4. **Direct installation:** once a verified public Apple TestFlight URL is
+   approved, use Draft 10 in `r/TestFlight` with `iOS` flair and only that link.
+   Put later beta updates in the original post's comments rather than reposting.
+5. **Participation-gated communities:** consider `r/AI_Agents`, `r/codex`,
+   `r/iOSProgramming`, `r/swift`, and `r/MacOS` only after their activity,
+   timing, moderator, and maintainer gates are satisfied. Keep all other held
+   targets out of the launch queue unless their rules or CodePilot's release
+   status materially change.
+
 ## Draft Reddit Profile
 
 Profile display name:
