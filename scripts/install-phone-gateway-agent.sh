@@ -89,6 +89,7 @@ plist = {
     ],
     "RunAtLoad": True,
     "KeepAlive": True,
+    "Umask": 0o077,
     "WorkingDirectory": str(root),
     "StandardOutPath": str(Path.home() / "Library" / "Logs" / "codex-phone-gateway.out.log"),
     "StandardErrorPath": str(Path.home() / "Library" / "Logs" / "codex-phone-gateway.err.log"),

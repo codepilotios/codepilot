@@ -219,6 +219,7 @@ enum CodePilotHostServicesManager {
             "Label": label,
             "ProgramArguments": programArguments,
             "RunAtLoad": true,
+            "Umask": 0o077,
             "WorkingDirectory": workingDirectory,
             "StandardOutPath": stdout,
             "StandardErrorPath": stderr,

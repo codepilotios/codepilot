@@ -78,6 +78,8 @@ write_scheduler_plist() {
     <key>CODEPILOT_AGENT_THREAD_ID</key>
     <string>$THREAD_ID</string>
   </dict>
+  <key>Umask</key>
+  <integer>63</integer>
   <key>StandardOutPath</key>
   <string>$HOME/Library/Logs/CodePilotAgents/scheduler.launchd.out.log</string>
   <key>StandardErrorPath</key>

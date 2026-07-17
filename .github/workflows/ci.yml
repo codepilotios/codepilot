@@ -30,6 +30,9 @@ jobs:
       - name: Gateway token process-argument guard
         run: scripts/tests/gateway-token-argv-test.sh
 
+      - name: LaunchAgent owner-only umask guard
+        run: scripts/tests/launch-agent-umask-test.sh
+
       - name: Cloudflare setup security tests
         run: scripts/test-cloudflare-setup.sh
 

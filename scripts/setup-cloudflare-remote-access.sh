@@ -265,6 +265,7 @@ plist = {
     ],
     "RunAtLoad": True,
     "KeepAlive": True,
+    "Umask": 0o077,
     "WorkingDirectory": str(root),
     "StandardOutPath": str(Path.home() / "Library" / "Logs" / "codepilot-cloudflared.out.log"),
     "StandardErrorPath": str(Path.home() / "Library" / "Logs" / "codepilot-cloudflared.err.log"),

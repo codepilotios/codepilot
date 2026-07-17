@@ -37,3 +37,4 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Centralized iOS gateway-origin validation, required HTTPS except for loopback development, rejected ambiguous credential/query/fragment URLs, and prevented credential-bearing requests from following cross-origin redirects.
 - Removed the public Mac app's embedded automation thread identifier and made background-agent installation depend on an explicit local opt-in file; owner-only permissions now protect that file and its LaunchAgent plist.
 - Made Cloudflare remote verification authenticate through curl standard-input configuration so the check works without exposing the gateway bearer token in process arguments.
+- Forced generated launchd services to create gateway, tunnel, switcher, and agent logs with an owner-only umask.
