@@ -13,9 +13,9 @@ Status: maintainer action required before any public posting.
   Reddit karma. The community currently permits product beta posts without
   moderator pre-approval, but final maintainer approval is still required.
 - Do not cross-post the beta recruitment to `r/appledevelopers`, which directs
-  TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed for
-  this AI-first beta; its monthly App Shelf requires approved pricing/status
-  language and a direct App Store link before a compliant draft can be posted.
+  TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed or
+  App Shelf: its current rules prohibit generative-AI and AI-wrapper apps and
+  direct them to `r/GenAiApps`.
 - `r/GenAiApps` is a text-first alternative whose rules allow contextual,
   valuable self-promotion. Approve the prepared copy and `iOS` flair before a
   human posts it; do not add a beta link until that URL is verified and approved.
