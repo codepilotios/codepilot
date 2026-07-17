@@ -2,10 +2,11 @@
 
 Status: draft only. Do not post publicly without explicit maintainer approval.
 
-Last rule review: 2026-07-14.
+Last rule review: 2026-07-17.
 
-Review method: checked public Reddit rule/sidebar/search-visible pages and recent
-promotion threads on 2026-07-14. Re-check each target immediately before any
+Review method: checked public Reddit rule/sidebar/search-visible pages, moderator
+announcements, removal notices, and recent promotion threads on 2026-07-17.
+Re-check each target immediately before any
 human-approved posting because subreddit rules and megathread formats change.
 
 Identity: `codepilotios`
@@ -37,15 +38,15 @@ Operational rules for this queue:
 
 | Community | Fit | Rule summary | Recommendation |
 | --- | --- | --- | --- |
-| `r/ChatGPTCoding` | High | Current sidebar rules require civility, post flair, prompt disclosure where possible, no selling model access, and route service-style promotion to the designated self-promotion thread unless sponsorship is approved by modmail. The active self-promotion thread permits project sharing, but still says one promotion per project and no selling model access. Sources: <https://www.reddit.com/r/ChatGPTCoding/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1rqo7nn/self_promotion_thread/> | Best first Reddit placement. Use the self-promotion thread only unless moderators approve main-feed placement. Human approval before posting. |
+| `r/ChatGPTCoding` | High | Sidebar/wiki guidance routes service-style promotion to the designated self-promotion thread unless sponsorship is approved by modmail. The latest search-visible official thread reviewed permits project sharing, says one promotion per project, and prohibits selling model access. Sources: <https://www.reddit.com/r/ChatGPTCoding/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/> | Best first Reddit placement once a current thread is confirmed. Use the self-promotion thread only unless moderators approve main-feed placement. Human approval before posting. |
 | `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Search-visible rules require posts to be directly related to Codex and avoid low-effort rants. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. Use text-only feedback framing unless mods approve a beta link. |
 | `r/SideProject` | Medium-high | Community is for sharing and receiving constructive feedback on side projects. Current posts show beta/product feedback asks are common, and recent discussion warns that burying links in comments may be a rule-sensitive pattern. Sources: <https://www.reddit.com/r/SideProject/> and <https://www.reddit.com/r/SideProject/comments/1t7yd6x/post_your_project_looking_for_beta_testers_for_an/> | Good standalone beta feedback post after maintainer approval. Keep it story/feedback-first, avoid engagement manipulation, and use only approved links if links are allowed. |
-| `r/iOSProgramming` | Medium | App posts are allowed only on Saturday, one app post per year, and should not come from accounts with no previous activity. Current rule text says App Saturday posts must follow the wiki content guideline; moderator reminders reinforce Saturday timing and one-app-per-year. A proposed stricter participation requirement has been discussed but is not treated here as active unless adopted in the sidebar/wiki. Sources: <https://www.reddit.com/r/iOSProgramming/> and <https://www.reddit.com/r/iOSProgramming/comments/1k4lasw/reminder_app_saturday/> | Approval required. Hold until Saturday and until `codepilotios` has prior participation; re-check the wiki immediately before use. |
-| `r/swift` | Medium | Self-promotion is tolerated only for active contributors; fewer than 5 posts/comments in the sub or account age under 2 months means no self-promotion. Source: <https://www.reddit.com/r/swift/> | Approval required. Do not post from a new `codepilotios` account. Use only after account age/activity threshold is met. |
+| `r/iOSProgramming` | Medium | App posts are Saturday-only and limited to one post per app per year. Current enforcement requires the sections `Tech Stack`, `Development Challenge`, and `AI Disclosure`; the community also proposed a 20-karma-in-six-months participation gate, which must be confirmed against the live rules before posting. Sources: <https://www.reddit.com/r/iOSProgramming/comments/1k4lasw/reminder_app_saturday/>, <https://www.reddit.com/r/iOSProgramming/comments/1pnivdy/proposed_update_to_app_saturday_feedback_requested/>, and <https://www.reddit.com/r/iOSProgramming/comments/1rasxir/removed/> | Approval required. Hold until Saturday, confirm the live karma gate, and do not use a new/inactive `codepilotios` account. |
+| `r/swift` | Medium | Self-promotion is limited to once per month and at most 20% of the account's posts to the subreddit; it is not allowed with fewer than 5 posts/comments in the sub or when the account is under 2 months old. Sources: <https://www.reddit.com/r/swift/> and <https://www.reddit.com/r/swift/comments/1jkc9yy/can_we_talk_about_the_moderation_or_rswift/> | Approval required. Do not post from a new `codepilotios` account. Use only after account age/activity thresholds are met. |
 | `r/macapps` | Medium | Current front page shows active app posts with pricing/flair labels and the July 2026 App Pile megathread. Rule/sidebar snippets require 10 local karma, megathread promotion unless the account qualifies through trust/transparency, post approval, and PCP-style promotion. Recent megathreads require pricing and link fields. Sources: <https://www.reddit.com/r/macapps/> and <https://www.reddit.com/r/macapps/comments/1uknpm8/megathread_the_app_pile_july_2026/> | Hold. Current pricing/link requirements conflict with the no-pricing/no-unapproved-link launch constraint unless moderators approve a beta-feedback exception. |
 | `r/OpenAI` | Medium-low | Search-visible rule text says self-promotion should stay under a 1/10 guideline, direct self-promotional project links are not allowed, and promotional project posts need context in text posts. Other current rule snippets show stricter enforcement language against solicitation/self-promotion. Sources: <https://www.reddit.com/r/OpenAI/> and <https://www.reddit.com/r/OpenAI/about/> | Approval required. Avoid direct link posts. Consider only a non-link discussion post after moderator approval. |
 | `r/MacOS` | Low for now | Current rule/sidebar snippets say promotional posts are Saturday-only UTC, no bots, and limited to apps available in the official Mac App Store or reputable established GitHub repositories. Earlier mod guidance pointed non-App-Store apps to `r/macapps`. Sources: <https://www.reddit.com/r/MacOS/> and <https://www.reddit.com/r/MacOS/comments/1ntopuw/new_rules_for_app_self_promotion/> | Do not post unless/until moderators confirm CodePilot's public GitHub repo qualifies as reputable/established, or the Mac app is in the macOS App Store. |
-| `r/selfhosted` | Low-medium later | Self-promotion is limited by Reddit self-promotion norms; promoted apps must be production-ready and have docs, and comments should add relevant value. Source: <https://www.reddit.com/r/selfhosted/> | Hold for now. CodePilot has a local gateway and optional user-owned tunnel, but this is not primarily a self-hosted server product and should not be promoted there until public docs and production readiness are stronger. |
+| `r/selfhosted` | Low-medium later | Mobile apps are allowed only as companions to a self-hosted backend. Promoted apps must be self-hostable, released and tryable, production-ready, documented, and described with features and user benefit. Projects under 3 months old may be posted only on New Project Friday. Sources: <https://www.reddit.com/r/selfhosted/> and <https://www.reddit.com/r/selfhosted/comments/1samb03/removed/> | Hold for now. CodePilot has a local gateway and user-owned tunnel, but this is not primarily a general self-hosted server product; ask moderators only after public docs and production readiness are stronger. |
 | `r/ClaudeAI` | Low | Search-visible rules and moderation comments indicate self-promotion, solicitation, and AI-created promotional content are not allowed. Source: <https://www.reddit.com/r/ClaudeAI/> | Do not post CodePilot promotion. Only answer organically if directly relevant and approved by a maintainer. |
 | Hacker News / Show HN | Medium | Show HN is for something people can try; HN asks submitters not to use it primarily for promotion and not to post generated or AI-edited comments. Sources: <https://news.ycombinator.com/showhn.html> and <https://news.ycombinator.com/newsguidelines.html> | Human rewrite required. Prepare outline only; do not paste AI-generated text. |
 | Product Hunt | Medium later | Product Hunt recommends clear product pages, maker first comment, feedback requests rather than upvote requests, and warns against spamming communities where you have not been active. Sources: <https://www.producthunt.com/launch/preparing-for-launch> and <https://www.producthunt.com/launch/sharing-your-launch> | Not a first beta move. Requires account, launch assets, and pricing/status decisions, so hold for human approval. |
@@ -55,12 +56,12 @@ Operational rules for this queue:
 - Any public Reddit post, comment, or account profile must be approved by a maintainer per the launch plan.
 - `r/ChatGPTCoding`: use the self-promotion thread for this run; main-feed promotion needs modmail/sponsorship approval.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply.
-- `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, mandatory App Saturday content sections; re-check the App Saturday wiki before posting.
-- `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit.
+- `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, and mandatory App Saturday content sections. Confirm whether the proposed 20 local karma in 6 months gate is present in the live rules before posting.
+- `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit; also respect the once-per-month and 20%-of-posts limits.
 - `r/macapps`: requires 10 local karma, trust/transparency qualification or monthly megathread use, and post approval. Current App Pile PCP format expects pricing and link fields, so posting needs moderator guidance while pricing/link status is intentionally withheld.
 - `r/OpenAI`: direct self-promotional project links are not allowed; ask mods before any non-link discussion that mentions CodePilot.
 - `r/MacOS`: Saturday-only UTC, no bots, and limited to Mac App Store apps or reputable established GitHub repositories. Hold unless moderators confirm CodePilot qualifies or the Mac app is in the macOS App Store.
-- `r/selfhosted`: hold until CodePilot has public docs and production-ready positioning that fits the community; ask mods before any maker-authored mention.
+- `r/selfhosted`: hold until CodePilot has public docs and production-ready positioning that fits the community; projects under 3 months old are Friday-only, and any maker-authored mention still needs moderator and maintainer approval.
 - `r/ClaudeAI`: avoid promotional posting because rules disallow self-promotion/solicitation and AI-created promotional content.
 - Hacker News: a maintainer should write the actual comment manually because HN asks users not to post generated or AI-edited comments.
 - Product Hunt: hold until account, maker identity, screenshots, launch URL, and current beta/pricing status are approved.
@@ -105,7 +106,7 @@ Rule notes:
 ```text
 Hi, I am the maker of CodePilot.
 
-It is a beta Mac + iPhone companion for people already running Codex on their own Mac. The Mac side watches local Codex account/usage state and runs a token-protected local gateway. The iPhone side connects to that gateway so you can check active account state, continue a session away from the desk, upload files, steer/stop an active turn, and optionally use a Cloudflare Tunnel for remote access.
+It is a beta Mac + iPhone companion for people already running Codex on their own Mac. The Mac side watches local Codex account/usage state and runs a token-protected local gateway. The iPhone side connects through a user-owned Cloudflare Tunnel to that gateway so you can check active account state, continue a session away from the desk, upload files, and steer or stop an active turn.
 
 I am looking for a small number of beta testers who already use Codex CLI on macOS and are willing to give blunt setup feedback. The areas I most want tested are:
 
@@ -114,7 +115,7 @@ I am looking for a small number of beta testers who already use Codex CLI on mac
 - whether remote session control from iPhone actually solves a real workflow problem
 - what errors or recovery steps are still confusing
 
-This is not a paid-subscription announcement and I am not asking for upvotes. If this matches your workflow, reply here with what setup you use for Codex today, and I will share the approved beta link once it is ready for public distribution.
+This is a beta feedback request, and I am not asking for upvotes. If this matches your workflow, reply here with what setup you use for Codex today, and I will share the approved beta link once it is ready for public distribution.
 ```
 
 Moderator note if main-feed placement is desired later:
@@ -154,7 +155,7 @@ I am the maker of CodePilot, and I am looking for feedback from people who use C
 
 The beta is built around a simple constraint: Codex stays on the Mac where the CLI session, auth files, account state, and project files already live. CodePilot adds a Mac menu bar app, a token-protected local gateway, and an iPhone client for status, files, notifications, and turn controls.
 
-Optional remote access can use a user-owned Cloudflare Tunnel, but the phone still has to authenticate to the Mac gateway. I am trying to keep the trust boundary explicit instead of turning this into a hosted Codex proxy.
+For the current public-beta iPhone path, a user-owned Cloudflare Tunnel reaches the loopback-only gateway, and the phone still has to authenticate to it. I am trying to keep the trust boundary explicit instead of turning this into a hosted Codex proxy.
 
 The feedback I am looking for:
 
@@ -163,7 +164,7 @@ The feedback I am looking for:
 - Which setup step would make you stop: gateway token, tunnel setup, iOS pairing, file upload, or remote turn control?
 - What documentation would you expect before trying a beta?
 
-No pricing announcement and no upvote request. I am trying to make the beta safer and clearer before broader distribution.
+This is a beta feedback request, not an upvote request. I am trying to make the beta safer and clearer before broader distribution.
 ```
 
 ## Draft 3: `r/SideProject` Standalone Feedback Post
@@ -200,9 +201,9 @@ So I built a beta with three pieces:
 - a local token-protected Python gateway on the Mac
 - an iPhone app that connects to the gateway for threads, files, status, and turn controls
 
-Remote access is optional through a user-owned Cloudflare Tunnel. The iOS app talks to the Mac gateway, not directly to provider services.
+The current public-beta iPhone setup uses a user-owned Cloudflare Tunnel because the Mac gateway listens on loopback by default. The iOS app talks to that gateway, not directly to provider services.
 
-I am not announcing pricing or asking for votes. I am trying to learn whether the setup is understandable and whether this solves a real problem for Codex users.
+I am asking for setup feedback, not votes. I am trying to learn whether the setup is understandable and whether this solves a real problem for Codex users.
 
 If you use Codex CLI on macOS: what would make you trust or reject a setup like this? What would you want to see before installing a beta that touches local coding-agent credentials?
 ```
@@ -212,7 +213,7 @@ No-link variant if link placement is unclear:
 ```text
 I am the maker of CodePilot, a beta Mac + iPhone companion for people who run Codex on a Mac.
 
-I am not dropping a launch link here. I am trying to pressure-test the idea before wider distribution: Codex stays on the Mac, a token-protected local gateway exposes narrow session/status/file endpoints, and an iPhone app connects to that gateway for status, file upload, and turn controls. Remote access can use a user-owned Cloudflare Tunnel, but the provider login stays on the Mac.
+I am not dropping a launch link here. I am trying to pressure-test the idea before wider distribution: Codex stays on the Mac, a token-protected loopback gateway exposes narrow session/status/file endpoints, and the current public-beta iPhone path reaches that gateway through a user-owned Cloudflare Tunnel for status, file upload, and turn controls. The provider login stays on the Mac.
 
 For people who build or use developer tools: would this solve a real workflow problem, or would the local gateway/auth-file aspect make you reject it? What would you need documented before trying a beta?
 ```
@@ -222,6 +223,10 @@ For people who build or use developer tools: would this solve a real workflow pr
 Posting target: `r/iOSProgramming`, Saturday only.
 
 Approval status: needs maintainer approval before posting; do not post from a new or inactive account.
+
+Posting gate: Saturday only, one post per app per year, and all three required
+sections below. Confirm the live participation threshold before approval; the
+announced threshold was 20 `r/iOSProgramming` karma earned in the prior 6 months.
 
 Title:
 
@@ -236,7 +241,7 @@ I am the maker of CodePilot, a TestFlight beta for people who run Codex on a Mac
 
 Tech Stack Used
 
-The iOS app is built with SwiftUI. It talks to a token-protected local Python gateway running on the user's Mac. The Mac app is a menu bar utility that watches local Codex account and usage state. Optional remote access uses a user-owned Cloudflare Tunnel, but the iOS app still authenticates to the Mac gateway with a bearer token.
+The iOS app is built with SwiftUI. It talks to a token-protected local Python gateway running on the user's Mac. The Mac app is a menu bar utility that watches local Codex account and usage state. For the current public-beta path, the iOS app reaches the loopback-only gateway through a user-owned Cloudflare Tunnel and still authenticates with a bearer token.
 
 The iPhone client currently focuses on connection setup, gateway health, thread/session status, file uploads, usage/account status, notifications, and controls for steering or stopping active turns.
 
@@ -259,7 +264,7 @@ I am looking for feedback from iOS/macOS developers who use coding agents: does 
 
 Posting target: `r/swift`
 
-Approval status: hold until `codepilotios` is at least 2 months old and has at least 5 posts/comments in `r/swift`, or moderators approve.
+Approval status: hold until `codepilotios` is at least 2 months old and has at least 5 posts/comments in `r/swift`, or moderators approve. If eligible, self-promotion is still limited to once per month and no more than 20% of the account's posts to the subreddit.
 
 Posting note: do not include a link in the first version unless mods approve. Frame as a Swift architecture question, not a launch.
 
@@ -319,9 +324,9 @@ I am the maker of CodePilot, currently in beta.
 
 It is a Mac menu bar app plus iPhone companion for people running Codex from a Mac they control. The Mac app tracks local account/usage state and coordinates safe account switching. The local gateway lets the iPhone companion check status, browse threads, upload files, and steer or stop active turns without moving the provider login to the phone.
 
-Remote access is optional through a user-owned Cloudflare Tunnel, and the phone still needs the gateway token. The main thing I am looking for right now is setup and trust feedback from Mac users who already work with CLI coding agents.
+The current public-beta iPhone path uses a user-owned Cloudflare Tunnel because the gateway listens on loopback, and the phone still needs the gateway token. The main thing I am looking for right now is setup and trust feedback from Mac users who already work with CLI coding agents.
 
-No pricing announcement here. I am trying to learn whether the beta setup is understandable and what security/setup explanation Mac users would expect before trying it.
+I am trying to learn whether the beta setup is understandable and what security/setup explanation Mac users would expect before trying it.
 ```
 
 ## Draft 7: `r/OpenAI` Moderator-Approval Discussion
@@ -343,7 +348,7 @@ Discussion body if approved:
 ```text
 I am the maker of CodePilot, a beta Mac + iPhone companion for people running Codex on their own Mac. I am not posting a link here; I am looking for product/security feedback from Codex users.
 
-The beta architecture is: Codex stays on the Mac, a local token-protected gateway exposes narrow session/status/file endpoints, and an iPhone app connects to that gateway for remote status, file upload, and turn controls. Optional remote access can use a user-owned Cloudflare Tunnel.
+The beta architecture is: Codex stays on the Mac, a local token-protected gateway exposes narrow session/status/file endpoints, and the current public-beta iPhone path connects through a user-owned Cloudflare Tunnel for remote status, file upload, and turn controls.
 
 For people who use Codex CLI seriously: what would you need to see before trusting a setup like this?
 
@@ -364,8 +369,9 @@ Posting target: `r/selfhosted`
 Approval status: hold. Moderator approval and maintainer approval required before any post or comment. Do not post until public docs are ready and the beta is production-ready enough for the community's self-promotion rule.
 
 Reason for hold:
-- CodePilot includes a local gateway and optional user-owned tunnel, but it is not primarily a general self-hosted server product.
+- CodePilot includes a local gateway and a user-owned tunnel for the current public-beta iPhone path, but it is not primarily a general self-hosted server product.
 - Community rules expect promoted apps to be production-ready and documented.
+- A project under 3 months old may be introduced only on New Project Friday; confirm project age and the live Friday rule before any later submission.
 - A beta feedback post could read as promotion unless moderators explicitly approve it.
 
 Moderator note draft:
@@ -373,7 +379,7 @@ Moderator note draft:
 ```text
 Hi mods, I am the maker of CodePilot, a beta Mac + iPhone companion for people running Codex from a Mac they control.
 
-It includes a token-protected local gateway and optional user-owned Cloudflare Tunnel, but I am not sure it is a good fit for r/selfhosted because the product is mainly for Codex workflow control rather than general self-hosting.
+It includes a token-protected local gateway and uses a user-owned Cloudflare Tunnel for the current public-beta iPhone path, but I am not sure it is a good fit for r/selfhosted because the product is mainly for Codex workflow control rather than general self-hosting.
 
 Would you prefer that I hold off until public docs and production readiness are stronger? If a text-only architecture/security feedback post would be acceptable later, I would disclose that I am the maker, avoid pricing language, and avoid posting a promotional link unless you approve it.
 ```
@@ -415,7 +421,7 @@ Show HN: CodePilot - an iPhone companion for running Codex sessions from your Ma
 Human rewrite outline:
 - One sentence: CodePilot is a Mac menu bar app, local gateway, and iPhone companion for Codex users.
 - Explain the personal problem: wanting to monitor/steer a long-running Codex session away from the desk without moving credentials to a hosted service.
-- Explain the architecture: Codex remains on the Mac; iPhone talks to a token-protected local gateway; optional Cloudflare Tunnel for remote access.
+- Explain the architecture: Codex remains on the Mac; the current public-beta iPhone path reaches the token-protected, loopback-only gateway through a user-owned Cloudflare Tunnel.
 - Be explicit that this is beta and feedback is requested on setup/security clarity.
 - Do not ask for upvotes.
 - Be present to answer technical questions.
@@ -447,7 +453,7 @@ First comment outline:
 - I am the maker.
 - Built because coding-agent sessions live on the Mac, but users sometimes need status/control away from the desk.
 - Explain the three pieces: Mac app, gateway, iPhone app.
-- Explain security posture briefly: token-protected local gateway, optional user-owned tunnel, do not share tokens/logs.
+- Explain security posture briefly: token-protected loopback gateway, user-owned tunnel for the current public-beta iPhone path, and no sharing of tokens or private logs.
 - Ask for feedback, not upvotes.
 - Avoid pricing and subscription language.
 
