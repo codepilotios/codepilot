@@ -125,11 +125,41 @@ fi
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "Setup issue" --body "Drafted by agent"
 grep -qx 'create' "$TMP_ROOT/capture"
 
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --repo example/other --title unsafe; then
+  echo "Launch autonomy allowed issue creation outside the CodePilot repository" >&2
+  exit 1
+fi
+
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" pr create --draft --title "Docs update" --body "Prepared by agent"
 grep -qx 'create' "$TMP_ROOT/capture"
 
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:agent/presence-maintenance
 grep -qx 'push' "$TMP_ROOT/capture"
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:agent/presence-maintenance HEAD:main; then
+  echo "Launch autonomy allowed a protected refspec beside an agent refspec" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push --all origin HEAD:agent/presence-maintenance; then
+  echo "Launch autonomy allowed a broad push mode" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push --follow-tags origin HEAD:agent/presence-maintenance; then
+  echo "Launch autonomy allowed an implicit tag push" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push upstream HEAD:agent/presence-maintenance; then
+  echo "Launch autonomy allowed a push outside the CodePilot origin" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin; then
+  echo "Launch autonomy allowed a push without an explicit agent refspec" >&2
+  exit 1
+fi
 
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin main; then
   echo "Launch autonomy allowed pushing main" >&2

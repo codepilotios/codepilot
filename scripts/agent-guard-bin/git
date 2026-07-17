@@ -31,16 +31,50 @@ esac
 
 if [[ "${1:-}" == "push" ]]; then
   if [[ "$AUTONOMY" == "launch" ]]; then
-    for arg in "$@"; do
+    push_args=("${@:2}")
+    remote_seen=0
+    allowed_remote=0
+    refspec_count=0
+    reject_push=0
+
+    for arg in "${push_args[@]}"; do
       case "$arg" in
-        agent/*|HEAD:agent/*|refs/heads/agent/*)
-          if [[ -x "$ROOT/scripts/privacy-audit.sh" ]]; then
-            (cd "$ROOT" && "$ROOT/scripts/privacy-audit.sh" >/dev/null)
+        --all|--mirror|--tags|--follow-tags|--delete|-d|--prune)
+          reject_push=1
+          ;;
+        -*)
+          ;;
+        *)
+          if (( remote_seen == 0 )); then
+            remote_seen=1
+            [[ "$arg" == "origin" ]] && allowed_remote=1
+            continue
           fi
-          exec "$REAL_GIT" "$@"
+
+          refspec_count=$((refspec_count + 1))
+          refspec="${arg#+}"
+          if [[ "$refspec" == *:* ]]; then
+            destination="${refspec##*:}"
+          else
+            destination="$refspec"
+          fi
+          case "$destination" in
+            agent/*|refs/heads/agent/*)
+              ;;
+            *)
+              reject_push=1
+              ;;
+          esac
           ;;
       esac
     done
+
+    if (( remote_seen == 1 && allowed_remote == 1 && refspec_count > 0 && reject_push == 0 )); then
+      if [[ -x "$ROOT/scripts/privacy-audit.sh" ]]; then
+        (cd "$ROOT" && "$ROOT/scripts/privacy-audit.sh" >/dev/null)
+      fi
+      exec "$REAL_GIT" "$@"
+    fi
   fi
 
   echo "CodePilot agent guard blocked git push." >&2

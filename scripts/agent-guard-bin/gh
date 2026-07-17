@@ -9,6 +9,7 @@ fi
 
 ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
 AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
+EXPECTED_REPO="${CODEPILOT_AGENT_GITHUB_REPO:-codepilotios/codepilot}"
 top="${1:-}"
 sub="${2:-}"
 
@@ -27,6 +28,31 @@ has_arg() {
   return 1
 }
 
+targets_expected_repo() {
+  local repo_target=""
+  local expect_repo_value=0
+  local arg
+  for arg in "$@"; do
+    if (( expect_repo_value == 1 )); then
+      repo_target="$arg"
+      expect_repo_value=0
+      continue
+    fi
+    case "$arg" in
+      --repo|-R)
+        expect_repo_value=1
+        ;;
+      --repo=*)
+        repo_target="${arg#--repo=}"
+        ;;
+      -R*)
+        repo_target="${arg#-R}"
+        ;;
+    esac
+  done
+  (( expect_repo_value == 0 )) && [[ -z "$repo_target" || "$repo_target" == "$EXPECTED_REPO" ]]
+}
+
 case "$top:$sub" in
   auth:status|repo:view|repo:list|issue:list|issue:view|issue:status|pr:list|pr:view|pr:status|pr:checks|pr:diff|run:list|run:view|run:watch|workflow:list|workflow:view|release:list|release:view|label:list|search:*)
     exec "$REAL_GH" "$@"
@@ -39,11 +65,13 @@ esac
 if [[ "$AUTONOMY" == "launch" ]]; then
   case "$top:$sub" in
     issue:create)
-      run_privacy_audit
-      exec "$REAL_GH" "$@"
+      if targets_expected_repo "$@"; then
+        run_privacy_audit
+        exec "$REAL_GH" "$@"
+      fi
       ;;
     pr:create)
-      if has_arg "--draft" "$@"; then
+      if has_arg "--draft" "$@" && targets_expected_repo "$@"; then
         run_privacy_audit
         exec "$REAL_GH" "$@"
       fi
