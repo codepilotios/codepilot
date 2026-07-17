@@ -8,12 +8,12 @@ Status: CodePilot is not ready for OTA/TestFlight/App Store release work without
 
 - `scripts/privacy-audit.sh`: passed.
 - `swift test`: passed; XCTest reported 56 executed tests and 0 failures.
-- Gateway unit tests: passed under Python 3.13; 102 tests ran with 0 failures. The system Python 3.9 is too old for the gateway's `tomllib` dependency.
+- Gateway unit tests: passed under Python 3.12; 102 tests ran with 0 failures. The system Python 3.9 is too old for the gateway's `tomllib` dependency.
 - `ruby -c ios/CodexPhone/fastlane/Fastfile`: passed.
 - `python3 -m json.tool metadata/version/0.1/en-US.json`: passed.
 - `scripts/build-app.sh`: passed and produced the local CodePilot Mac app bundle.
-- iOS simulator Debug tests: passed; XCTest reported 26 executed tests and 0 failures.
-- iOS simulator Release build: passed. The only warning was benign AppIntents metadata extraction being skipped because the app does not use AppIntents.
+- iOS simulator Debug tests passed with Xcode 26.5; XCTest reported 26 executed tests and 0 failures.
+- iOS simulator Release build passed with Xcode 26.5. The only build warning was benign AppIntents metadata extraction being skipped because the app does not use AppIntents.
 - The install-linked OTA manifest and IPA both return HTTP 200 and the IPA length matches the recorded build size. Untokenized direct asset paths return HTTP 403, as expected for the access-protected OTA host.
 
 ## Release Blockers
@@ -32,6 +32,7 @@ Status: CodePilot is not ready for OTA/TestFlight/App Store release work without
 - Draft TestFlight notes exist at `metadata/testflight/0.1/en-US.md`.
 - Draft App Store version metadata exists at `metadata/version/0.1/en-US.json`.
 - The App Store subtitle was shortened to fit Apple's 30-character limit.
+- App icon assets are present in the iOS asset catalog.
 - Screenshot requirements exist at `metadata/screenshots/README.md`.
 
 ## Maintainer Actions
