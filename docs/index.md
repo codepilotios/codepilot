@@ -11,6 +11,12 @@ The beta is focused on practical workflows for AI coding users:
 - Connect the iPhone app to the Mac gateway through a user-owned Cloudflare Tunnel during the public beta.
 - Upload files, inspect threads, steer or stop turns where supported, and receive turn-finished notifications.
 
+## Beta Access
+
+The Mac app currently builds from source. The iPhone companion requires access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
+
+Start with the [Mac installation guide](INSTALL_MAC.md). If you already have an approved iPhone beta build, continue with the [iOS installation guide](INSTALL_IOS.md).
+
 CodePilot is source-available for noncommercial use. It is not OSI open source. See the repository license files before redistributing or using it commercially.
 
 ## Start Here
@@ -25,6 +31,13 @@ CodePilot is source-available for noncommercial use. It is not OSI open source. 
 - [Security](SECURITY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)
+
+## Share Beta Feedback
+
+- [Report a beta bug](https://github.com/codepilotios/codepilot/issues/new?template=bug_report.md)
+- [Request a beta improvement](https://github.com/codepilotios/codepilot/issues/new?template=feature_request.md)
+
+Use the structured templates so reports include the failing step and visible recovery message. Remove private values before submitting, and follow the [security guidance](SECURITY.md) for sensitive findings.
 
 ## Before You Install
 

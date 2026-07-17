@@ -2,6 +2,9 @@
 
 CodePilot beta support is handled through public repository issues and pull requests.
 
+- [Report a beta bug](https://github.com/codepilotios/codepilot/issues/new?template=bug_report.md)
+- [Request a beta improvement](https://github.com/codepilotios/codepilot/issues/new?template=feature_request.md)
+
 ## Before Opening An Issue
 
 Check:

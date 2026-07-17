@@ -30,6 +30,8 @@ The public product name is provider-neutral, but the first implementation remain
 
 ## Quick Start
 
+The Mac app currently builds from source. The iPhone companion requires access to an approved beta build; this repository does not yet promise a public TestFlight invitation or App Store download.
+
 1. Install Codex on the Mac that will run CodePilot.
 2. Build the Mac app:
 
@@ -65,6 +67,13 @@ See:
 - [Architecture](docs/ARCHITECTURE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
 - [Release Checklist](docs/RELEASE_CHECKLIST.md)
+
+## Beta Feedback
+
+- [Report a beta bug](https://github.com/codepilotios/codepilot/issues/new?template=bug_report.md)
+- [Request a beta improvement](https://github.com/codepilotios/codepilot/issues/new?template=feature_request.md)
+
+Remove gateway URLs, tokens, hostnames, account names, local paths, private prompts, uploaded files, and unsanitized screenshots before submitting. For security-sensitive findings, read the [security reporting guidance](docs/SECURITY.md) first and do not post sensitive evidence publicly.
 
 ## Features
 

@@ -4,6 +4,10 @@
 
 CodePilot is for AI coding users who already run Codex CLI on a Mac and want an iPhone companion for visibility, file uploads, turn control, usage status, and account switching.
 
+## How do I access the beta?
+
+The Mac app currently builds from source using the repository installation guide. The iPhone companion requires access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
+
 ## Is CodePilot ready for production teams?
 
 No. The current release track is a public beta. Use it on a trusted Mac, expect rough edges, and review the security and privacy docs before exposing the gateway outside your local network.
@@ -31,6 +35,8 @@ No hosted CodePilot service is required for the current beta, and Codex credenti
 ## What should I avoid posting in issues?
 
 Do not post auth files, gateway tokens, private hostnames, personal account names, local file paths, private screenshots, Apple identifiers, or logs that contain any of those values.
+
+Use the repository templates to [report a beta bug](https://github.com/codepilotios/codepilot/issues/new?template=bug_report.md) or [request a beta improvement](https://github.com/codepilotios/codepilot/issues/new?template=feature_request.md). Read the [security guidance](SECURITY.md) before reporting a sensitive finding.
 
 ## Is commercial use allowed?
 

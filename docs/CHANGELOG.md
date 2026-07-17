@@ -26,6 +26,9 @@
 - Removed Remote Desktop from public-beta promotion while its pairing and session-authorization enforcement remains a release blocker.
 - Removed Remote Desktop from the default TestFlight beta description and aligned that metadata with the supported thread, usage, account, upload, turn-control, and notification workflows.
 - Shortened the App Store promotional text and keyword draft to fit their submission field limits while preserving the Codex CLI beta positioning.
+- Clarified that the Mac app builds from source while iPhone access still requires an approved beta build, without implying public TestFlight or App Store availability.
+- Added direct privacy-safe bug and feature-request paths to the README, Pages landing page, FAQ, and support copy.
+- Added concrete draft support and privacy URLs that remain gated on GitHub Pages enablement and maintainer verification.
 
 ### Recent Product Work
 

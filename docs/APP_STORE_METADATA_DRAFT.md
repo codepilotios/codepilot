@@ -40,11 +40,11 @@ Please report whether Cloudflare Tunnel setup, gateway connection, or token entr
 
 ## Support URL
 
-Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination: the public support documentation and issue tracker once the repository is public.
+Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination after GitHub Pages is enabled and verified: `https://codepilotios.github.io/codepilot/SUPPORT.html`.
 
 ## Privacy URL
 
-Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination: the public website privacy page generated from [Privacy](PRIVACY.md).
+Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination after GitHub Pages is enabled and verified: `https://codepilotios.github.io/codepilot/PRIVACY.html`, generated from [Privacy](PRIVACY.md).
 
 ## Screenshot Requirements
 
