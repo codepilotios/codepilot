@@ -41,6 +41,8 @@ Operational rules for this queue:
 | `r/ChatGPTCoding` | High | Sidebar/wiki guidance routes service-style promotion to the designated self-promotion thread unless sponsorship is approved by modmail. The latest search-visible official thread reviewed permits project sharing, says one promotion per project, and prohibits selling model access. Sources: <https://www.reddit.com/r/ChatGPTCoding/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/> | Best first Reddit placement once a current thread is confirmed. Use the self-promotion thread only unless moderators approve main-feed placement. Human approval before posting. |
 | `r/TestFlight` | High once the public beta link is live | Live rules require posts to concern a TestFlight app, allow only TestFlight links, require an app-name title without tags such as `[Tester]` or `[Recruiting]`, require platform flair, and ask developers not to flood the feed with repeat posts. Source: <https://www.reddit.com/r/TestFlight/> | Best direct tester-recruitment target after the public TestFlight link is verified and approved. Use `iOS` flair, keep the title to the app name plus a short message, and put later updates in comments rather than reposting. |
 | `r/BetaTests` | Medium | The community welcomes product beta-testing and feedback posts, but prohibits spam and low-effort submissions. Posting accounts must be at least 24 hours old and have at least 2 combined Reddit karma. The sidebar says product posts do not need moderator pre-approval. Sources: <https://www.reddit.com/r/betatests/about/> and <https://www.reddit.com/r/betatests/comments/1np8t46/from_today_everyone_can_post_in_rbetatests/> | Useful secondary tester-recruitment target after the identity is approved and eligible. Use the specific no-link feedback draft first, disclose the maker relationship, and add only a separately approved public beta URL. Re-check the live rules immediately before posting. |
+| `r/alphaandbetausers` | Medium | The live About page currently lists no community-specific rules beyond Reddit-wide policy, and recent posts include explicit iOS/TestFlight tester requests. Source: <https://www.reddit.com/r/alphaandbetausers/about/> and recent example: <https://www.reddit.com/r/alphaandbetausers/comments/1uwkucj/looking_for_ios_beta_testers_i_will_test_your_app/> | Useful secondary tester-recruitment target. Use the link-free, feedback-specific draft after maintainer approval; disclose the maker relationship and do not offer reciprocal testing or incentives that have not been approved. Re-check the live About page and recent moderation behavior immediately before posting. |
+| `r/BetaTestersNeeded` | Not eligible for this run | The community is restricted to approved contributors and requires a post flair, a tester perk in the title and body, and a signup or beta link. It permits repeat promotion only after seven days. Source: <https://www.reddit.com/r/BetaTestersNeeded/about/> | Hold. Do not request contributor approval, invent a perk, imply paid-tier value, or post an unapproved link. Reconsider only if a maintainer separately approves the identity, a concrete non-pricing perk, and a verified public beta URL. |
 | `r/appledevelopers` | Medium for technical discussion, low for beta recruitment | Posts must concern Apple-platform development. Promotional content must be limited and disclose the developer relationship; the sidebar explicitly directs TestFlight apps to `r/TestFlight`. Source: <https://www.reddit.com/r/appledevelopers/about/> | Do not cross-post the tester request here. Use `r/TestFlight` for recruitment. Consider this community later only for a substantive Apple-development discussion with maintainer approval and explicit maker disclosure. |
 | `r/iosapps` | Not eligible | Requires 10 local karma, official App Store or TestFlight distribution, infrequent disclosed promotion, and either trust/transparency qualification or monthly-megathread use. More importantly, the current rules prohibit generative-AI and AI-wrapper apps and explicitly direct them to `r/GenAiApps`; the July 2026 policy likewise says AI-first apps do not belong in `r/iosapps`. Sources: <https://www.reddit.com/r/iosapps/about/> and <https://www.reddit.com/r/iosapps/comments/1u9aw0f/riosapps_moderation_update_phase_2_trust/> | Do not use either the main feed or the App Shelf for CodePilot promotion while this exclusion remains. Use `r/GenAiApps` as the rules-directed alternative after maintainer approval. |
 | `r/iPhoneApps` | Low / hold until genuine participation | The live rules allow recommending your own iPhone app only when it is relevant to an existing discussion, clearly disclosed, and useful. Shared apps must be available on the Apple App Store and include details such as description and cost. A 2026-07-16 moderator announcement removed the Developer flair and says pure promotional drops will be removed; developers should participate and contribute before mentioning their app in context. Sources: <https://www.reddit.com/r/IPhoneApps/about/> and <https://www.reddit.com/r/IPhoneApps/comments/1uy20l2/an_update_on_selfpromotion/> | Do not prepare a standalone launch post or use a new promotion-only account. Revisit only after the approved identity has genuine community participation and CodePilot has an approved App Store listing and status language. Use modmail, not direct moderator contact, if eligibility remains unclear. |
@@ -67,6 +69,8 @@ Operational rules for this queue:
 - `r/ChatGPTCoding`: use the self-promotion thread for this run; main-feed promotion needs modmail/sponsorship approval.
 - `r/TestFlight`: hold until there is a verified, approved public TestFlight link. Use only that link, select `iOS` flair, keep the title free of recruitment tags, and avoid repeat posts; later updates belong in the original post's comments.
 - `r/BetaTests`: no moderator pre-approval is currently required, but launch-plan maintainer approval still is. Confirm that `codepilotios` is at least 24 hours old and has at least 2 combined Reddit karma. Keep the post specific to beta testing, constructive, and non-spammy; use the no-link draft unless a public beta URL is separately approved.
+- `r/alphaandbetausers`: no community-specific rules are currently shown, but launch-plan maintainer approval still applies. Use the link-free tester-feedback draft, disclose the maker relationship, avoid unapproved incentives or test-for-test promises, and re-check the live rules and recent removals before posting.
+- `r/BetaTestersNeeded`: hold. Posting requires approved-contributor status, a tester perk in the title and body, and a signup/test link. Those gates require maintainer decisions and external account action that this run must not infer or perform.
 - `r/appledevelopers`: do not duplicate the beta-recruitment post; its rules direct TestFlight apps to `r/TestFlight`. Any later technical post must be substantive, limited, transparent, and maintainer-approved.
 - `r/iosapps`: do not use either the main feed or the App Shelf. The current rules prohibit generative-AI and AI-wrapper apps and direct them to `r/GenAiApps`; re-check only if the rule changes.
 - `r/iPhoneApps`: do not make a standalone promotional post. The Developer flair was removed on 2026-07-16, self-mentions must arise from genuine participation and add value, and shared apps must be available on the Apple App Store with approved cost/status details. Use modmail rather than contacting moderators directly if a later contextual mention is uncertain.
@@ -649,6 +653,47 @@ The beta questions I most need answered are:
 This is a feedback request, not an upvote request. I have left out the beta link until public distribution is approved. Please do not share credentials, gateway tokens, private hostnames, private logs, screenshots containing private project data, or project files in replies.
 ```
 
+## Draft 16: `r/alphaandbetausers` Tester Feedback Post
+
+Posting target: `r/alphaandbetausers` main feed.
+
+Approval status: needs maintainer approval before posting. Use the link-free
+body unless a direct public beta URL is separately verified and approved.
+
+Rule and community notes:
+- The live About page currently lists no community-specific rules, so
+  Reddit-wide authenticity and spam rules still apply.
+- Recent posts show that explicit iOS and TestFlight tester requests fit the
+  community, but this is observed practice rather than guaranteed approval.
+- Disclose the maker relationship and ask for specific testing feedback.
+- Do not promise reciprocal testing, rewards, or other incentives without
+  separate maintainer approval.
+- Do not ask for upvotes or private project data, and do not repeat the post.
+- Re-check the live About page and recent removals before a maintainer posts.
+
+Title:
+
+```text
+Looking for Mac-based Codex users to test an iPhone companion setup
+```
+
+Body:
+
+```text
+I am the maker of CodePilot. I am looking for a small number of beta testers who already run Codex on macOS and can give specific feedback on a Mac-to-iPhone setup.
+
+CodePilot keeps the Codex session, credentials, and project files on the Mac. A token-protected local gateway gives the iPhone companion narrow access to session status, threads, file uploads, notifications, and controls to steer or stop an active turn. For remote access in the current beta, testers use a Cloudflare Tunnel they control.
+
+The questions I most need answered are:
+
+- Can you complete the Mac gateway and iPhone connection flow without live help?
+- Is it clear what the gateway token protects and how to recover from a rejected connection?
+- Does checking or steering a coding-agent turn from a phone solve a real workflow problem?
+- Which setup or trust concern would make you stop testing?
+
+This is a feedback request, not an upvote request. I have left out the beta link until public distribution is approved. Please do not share credentials, gateway tokens, private hostnames, private logs, screenshots containing private project data, or project files in replies.
+```
+
 ## Hacker News / Show HN Outline
 
 Do not paste this as-is. HN guidelines ask users not to post generated or AI-edited comments. A maintainer should rewrite manually if posting.
@@ -719,4 +764,8 @@ An escalation note was created at
 all public posting remains blocked on maintainer approval. The `r/TestFlight`
 draft additionally requires a verified public TestFlight link. The
 `r/BetaTests` draft requires an approved identity that meets the community's
-24-hour account-age and 2-karma eligibility gates.
+24-hour account-age and 2-karma eligibility gates. The `r/alphaandbetausers`
+draft has no visible community-specific eligibility threshold, but still needs
+maintainer approval and a live-rule re-check. `r/BetaTestersNeeded` remains held
+because its approved-contributor, mandatory-perk, and signup-link gates require
+decisions and external account actions outside this run.

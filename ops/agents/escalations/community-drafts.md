@@ -12,6 +12,15 @@ Status: maintainer action required before any public posting.
   the `codepilotios` identity is at least 24 hours old with at least 2 combined
   Reddit karma. The community currently permits product beta posts without
   moderator pre-approval, but final maintainer approval is still required.
+- For `r/alphaandbetausers`, approve the prepared link-free tester-feedback
+  draft before a human posts it. The live About page currently shows no
+  community-specific rules, but the rules and recent removals must be checked
+  again immediately before posting. Do not add reciprocal-testing promises,
+  rewards, or an unapproved beta link.
+- Hold `r/BetaTestersNeeded`. It is restricted to approved contributors and
+  requires a tester perk in the title and body plus a signup/test link. Do not
+  request approval, invent a perk, imply paid-tier value, or add an unverified
+  link for this placement.
 - Do not cross-post the beta recruitment to `r/appledevelopers`, which directs
   TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed or
   App Shelf: its current rules prohibit generative-AI and AI-wrapper apps and
