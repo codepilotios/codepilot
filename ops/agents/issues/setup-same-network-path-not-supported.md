@@ -23,3 +23,7 @@ The installed gateway is loopback-only, and iOS correctly rejects loopback addre
 ## Suggested Fix
 
 For public beta, default to Cloudflare and mark **Same Network** as advanced or unavailable. If LAN mode is retained, add an explicit Mac-side configuration and validate that authentication remains required on every non-health endpoint.
+
+## Local Audit Progress
+
+The `agent/setup-audit` branch now defaults fresh and invalid iOS setup state to Cloudflare, labels the LAN path **Same Network (Advanced)**, and documents that the standard installer does not support it. Implementing a secure Mac-side LAN listener or removing the advanced option remains follow-up work.

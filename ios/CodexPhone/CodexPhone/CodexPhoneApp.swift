@@ -116,7 +116,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @AppStorage("verifiedGatewayConfiguration") private var verifiedGatewayConfiguration = ""
     @State private var showingSettings = false
     @State private var showingStatus = false
@@ -331,7 +331,7 @@ struct RootView: View {
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
-        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
     }
 }
 
@@ -339,7 +339,7 @@ struct EmptySettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
     @Binding var verifiedGatewayConfiguration: String
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     private let client = CodexGatewayClient()
@@ -425,7 +425,7 @@ struct EmptySettingsView: View {
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
-        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
     }
 
     @MainActor
@@ -473,6 +473,8 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     case local
     case cloudflare
 
+    static let setupDefault = GatewayConnectionKind.cloudflare
+
     var id: String { rawValue }
 
     static var publicBetaCases: [GatewayConnectionKind] {
@@ -499,7 +501,7 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .local:
-            "Same Network"
+            "Same Network (Advanced)"
         case .cloudflare:
             "Cloudflare"
         }

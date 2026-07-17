@@ -82,7 +82,7 @@ The gateway listens on:
 http://127.0.0.1:18790
 ```
 
-That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly; use Cloudflare remote access for the default setup, or deliberately start the gateway on a LAN address before using the iOS **Same Network** option.
+That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly. Use Cloudflare remote access for the supported setup; **Same Network (Advanced)** is not supported by the standard installer.
 
 Use **Setup CodePilot... > iPhone Connection** to copy the remote access URL and iOS connection token into the iPhone app. Configure a permanent Cloudflare hostname before copying the remote access URL. For advanced troubleshooting, the token is stored at:
 
