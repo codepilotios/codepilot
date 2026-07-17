@@ -2,10 +2,16 @@
 
 Status: maintainer action required before any public posting.
 
-- Review and approve the proposed first community placement and final copy.
+- Review and approve the proposed first placement: the link-free `r/GenAiApps`
+  draft with `iOS` flair. The previously preferred `r/ChatGPTCoding` target is
+  currently restricted to approved contributors, so hold it unless
+  `codepilotios` already has contributor access.
 - Confirm that the `codepilotios` identity is approved and eligible under the
   target community's account-age, karma, and participation rules. Do not create
   an account solely to satisfy this request.
+- Do not request `r/ChatGPTCoding` contributor access or sponsorship solely for
+  this launch run. If `codepilotios` already has access, re-check the current
+  self-promotion thread and approve the exact comment before a human posts it.
 - For `r/TestFlight`, provide or approve a verified public Apple TestFlight link;
   the draft must contain no other link.
 - For `r/BetaTests`, approve the no-link tester-feedback draft and confirm that
