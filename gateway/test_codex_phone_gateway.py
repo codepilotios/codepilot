@@ -981,6 +981,21 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
         self.assertEqual(path.parent.parent.stat().st_mode & 0o777, 0o700)
 
+    def test_cached_thread_messages_are_private(self):
+        original_cache_dir = gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR
+        gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR = gateway.DEFAULT_SWITCHER_HOME / "message-cache"
+        gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR.mkdir(mode=0o755)
+        try:
+            gateway.cache_thread_message("thread", "message", "private response")
+            cache_path = gateway.message_cache_path("thread")
+            cached = gateway.read_cached_thread_messages("thread")
+        finally:
+            gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR = original_cache_dir
+
+        self.assertEqual(cache_path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(cache_path.parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(cached[0]["text"], "private response")
+
     def test_gateway_logs_redact_queries_and_local_web_capabilities(self):
         handler = object.__new__(gateway.Handler)
         handler.command = "GET"

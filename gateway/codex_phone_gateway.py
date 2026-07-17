@@ -1806,7 +1806,8 @@ def cache_thread_message(thread_id: str, message_id: str, text: str, timestamp: 
         return
 
     path = message_cache_path(thread_id)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path.parent, 0o700)
     try:
         payload = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     except (OSError, json.JSONDecodeError):
@@ -1823,9 +1824,8 @@ def cache_thread_message(thread_id: str, message_id: str, text: str, timestamp: 
         "timestamp": datetime.fromtimestamp(event_time, timezone.utc).isoformat(),
         "updatedAt": event_time,
     }
-    tmp_path = path.with_suffix(".tmp")
-    tmp_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    tmp_path.replace(path)
+    write_json_object_atomic(path, payload)
+    os.chmod(path, 0o600)
 
 
 def message_sort_timestamp(message: dict) -> float | None:

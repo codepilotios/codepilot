@@ -26,6 +26,7 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Restricted file previews to CodePilot uploads by default, with explicit opt-in download roots for advanced setups.
 - Migrated the iOS gateway bearer token from preferences to a device-only Keychain item and removed the legacy preference after a successful migration.
 - Forced gateway tokens, uploads, secret-bearing environment files, and generated LaunchAgent plists to owner-only permissions; gateway token symlinks and empty token files are rejected.
+- Made cached assistant thread messages and their cache directory owner-only, using exclusive temporary files and atomic replacement instead of a predictable default-permission temporary path.
 - Added remote-desktop tests to CI and made agent guard tests independent of inherited autonomy/model environment settings.
 - Removed remaining private identity strings from the current tracked source and aligned the APNs topic with the public bundle identifier.
 - Made fallback Codex output files owner-only and removed them immediately after ingestion instead of leaving private turn output in the shared temporary directory.
