@@ -7,7 +7,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 ## Verified Locally
 
 - `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
-- `swift test`: passed; 78 tests, 0 failures.
+- `swift test`: passed; 57 tests, 0 failures.
 - Gateway unit tests: passed with the default Python toolchain; 112 tests, 0 failures.
 - macOS Swift release build: passed.
 - iOS simulator Debug and clean Release builds: passed with code signing disabled.
