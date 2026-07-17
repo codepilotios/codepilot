@@ -23,3 +23,4 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Removed remaining private identity strings from the current tracked source and aligned the APNs topic with the public bundle identifier.
 - Made fallback Codex output files owner-only and removed them immediately after ingestion instead of leaving private turn output in the shared temporary directory.
 - Redacted query strings and localhost capability identifiers from gateway access logs, and escaped control characters to prevent forged log lines.
+- Removed APNs authorization JWTs and device push tokens from `curl` process arguments; private request data now travels through curl's standard-input configuration.

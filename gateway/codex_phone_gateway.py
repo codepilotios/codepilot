@@ -461,21 +461,17 @@ class APNsCertificatePushNotifier:
         host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
         bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
         payload = live_activity_payload(content_state)
-        process = subprocess.run(
+        process = run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl", "--http2", "-sS", "-X", "POST",
-                "--cert", str(self.cert_path), "--key", str(self.key_path),
-                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
-                "-H", "apns-push-type: liveactivity",
-                "-H", "apns-priority: 10",
-                "--write-out", "\n%{http_code}",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "apns-push-type: liveactivity",
+                "apns-priority: 10",
             ],
-            input=payload,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
+            payload,
+            cert_path=self.cert_path,
+            key_path=self.key_path,
+            include_status=True,
         )
         return apns_http_status(process.stdout)
 
@@ -497,24 +493,17 @@ class APNsCertificatePushNotifier:
             "threadId": notification.get("threadId", ""),
             "jobId": notification.get("jobId", ""),
         }, separators=(",", ":")).encode("utf-8")
-        subprocess.run(
+        run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl",
-                "--http2",
-                "-fsS",
-                "-X", "POST",
-                "--cert", str(self.cert_path),
-                "--key", str(self.key_path),
-                "-H", f"apns-topic: {topic}",
-                "-H", "apns-push-type: alert",
-                "-H", "apns-priority: 10",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"apns-topic: {topic}",
+                "apns-push-type: alert",
+                "apns-priority: 10",
             ],
-            input=payload,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
+            payload,
+            cert_path=self.cert_path,
+            key_path=self.key_path,
+            fail_on_http_error=True,
         )
 
 
@@ -585,21 +574,16 @@ class APNsPushNotifier:
         environment = str(registration.get("environment") or "production").strip().lower()
         host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
         bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
-        process = subprocess.run(
+        process = run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl", "--http2", "-sS", "-X", "POST",
-                "-H", f"authorization: bearer {self.jwt()}",
-                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
-                "-H", "apns-push-type: liveactivity",
-                "-H", "apns-priority: 10",
-                "--write-out", "\n%{http_code}",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"authorization: bearer {self.jwt()}",
+                f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "apns-push-type: liveactivity",
+                "apns-priority: 10",
             ],
-            input=live_activity_payload(content_state),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
+            live_activity_payload(content_state),
+            include_status=True,
         )
         return apns_http_status(process.stdout)
 
@@ -621,23 +605,16 @@ class APNsPushNotifier:
             "threadId": notification.get("threadId", ""),
             "jobId": notification.get("jobId", ""),
         }, separators=(",", ":")).encode("utf-8")
-        subprocess.run(
+        run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl",
-                "--http2",
-                "-fsS",
-                "-X", "POST",
-                "-H", f"authorization: bearer {self.jwt()}",
-                "-H", f"apns-topic: {topic}",
-                "-H", "apns-push-type: alert",
-                "-H", "apns-priority: 10",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"authorization: bearer {self.jwt()}",
+                f"apns-topic: {topic}",
+                "apns-push-type: alert",
+                "apns-priority: 10",
             ],
-            input=payload,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
+            payload,
+            fail_on_http_error=True,
         )
 
 
@@ -649,6 +626,42 @@ def live_activity_payload(content_state: dict) -> bytes:
             "content-state": content_state,
         }
     }, separators=(",", ":")).encode("utf-8")
+
+
+def run_apns_curl(
+    url: str,
+    headers: list[str],
+    payload: bytes,
+    *,
+    cert_path: Path | None = None,
+    key_path: Path | None = None,
+    include_status: bool = False,
+    fail_on_http_error: bool = False,
+):
+    config_lines = [
+        f'url = "{curl_config_value(url)}"',
+        'request = "POST"',
+    ]
+    if cert_path is not None:
+        config_lines.append(f'cert = "{curl_config_value(str(cert_path))}"')
+    if key_path is not None:
+        config_lines.append(f'key = "{curl_config_value(str(key_path))}"')
+    config_lines.extend(f'header = "{curl_config_value(header)}"' for header in headers)
+    if include_status:
+        config_lines.append('write-out = "\\n%{http_code}"')
+    config_lines.append(f'data-binary = "{curl_config_value(payload.decode("utf-8"))}"')
+    config = "\n".join([*config_lines, ""])
+    command = ["curl", "--http2", "-sS"]
+    if fail_on_http_error:
+        command.append("--fail")
+    command.extend(["--config", "-"])
+    return subprocess.run(
+        command,
+        input=config.encode("utf-8"),
+        stdout=subprocess.PIPE if include_status else subprocess.DEVNULL,
+        stderr=subprocess.PIPE if include_status else subprocess.DEVNULL,
+        check=False,
+    )
 
 
 def apns_http_status(output: bytes) -> int:

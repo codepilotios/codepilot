@@ -1847,9 +1847,15 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             })
 
         command = run.call_args.args[0]
-        payload = json.loads(run.call_args.kwargs["input"])
-        self.assertIn("apns-push-type: liveactivity", command)
-        self.assertIn("apns-topic: io.codepilot.iOS.push-type.liveactivity", command)
+        config = run.call_args.kwargs["input"].decode("utf-8")
+        self.assertNotIn("jwt-token", command)
+        self.assertNotIn("abc123", command)
+        self.assertIn('header = "authorization: bearer jwt-token"', config)
+        self.assertIn('header = "apns-push-type: liveactivity"', config)
+        self.assertIn('header = "apns-topic: io.codepilot.iOS.push-type.liveactivity"', config)
+        payload_line = next(line for line in config.splitlines() if line.startswith('data-binary = "'))
+        payload_text = payload_line.removeprefix('data-binary = "').removesuffix('"')
+        payload = json.loads(payload_text.replace('\\"', '"').replace('\\\\', '\\'))
         self.assertEqual(payload["aps"]["event"], "update")
         self.assertEqual(payload["aps"]["content-state"]["percent"], 68)
         self.assertEqual(invalid, [])
