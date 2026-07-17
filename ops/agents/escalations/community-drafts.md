@@ -15,6 +15,12 @@ Status: maintainer action required before any public posting.
 - `r/GenAiApps` is a text-first alternative whose rules allow contextual,
   valuable self-promotion. Approve the prepared copy and `iOS` flair before a
   human posts it; do not add a beta link until that URL is verified and approved.
+- Do not use `r/iPhoneApps` for a standalone launch post. Its Developer flair was
+  removed on 2026-07-16, and maker mentions now require genuine participation,
+  contextual value, an App Store listing, and approved status/cost details.
+- Hold `r/vibecoding`: its developer-tool approval flow requires a public X
+  community post and moderator DM. That external account action is outside this
+  agent's authority and should not be performed solely for promotion.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 
