@@ -31,6 +31,7 @@
 - Added concrete draft support and privacy URLs that remain gated on GitHub Pages enablement and maintainer verification.
 - Added the missing repository checkout step and documented the supported macOS 13 and iOS 17 minimums for beta setup.
 - Reframed Remote Desktop support categories as availability-guard reports so the gated feature is not presented as a supported beta workflow.
+- Expanded the beta privacy draft to disclose Cloudflare data transit, notification and Live Activity payload contents, and the lack of automatic upload cleanup.
 
 ### Recent Product Work
 

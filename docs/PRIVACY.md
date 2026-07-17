@@ -16,8 +16,12 @@ Sensitive local files include:
 - `~/.codex-account-switcher/phone-gateway-token`
 - `~/.codex-account-switcher/phone-gateway.env`
 - `~/.codex-account-switcher/phone-uploads/`
+- `~/.codex-account-switcher/phone-notification-devices.json`
+- `~/.codex-account-switcher/phone-live-activities.json`
 
 Do not commit these files, include them in public issues, or show them in screenshots.
+
+Uploaded files remain under the CodePilot state directory after a turn finishes. The current beta does not automatically remove them; delete uploads from the Mac when they are no longer needed.
 
 ## Mac Gateway
 
@@ -29,13 +33,15 @@ The gateway token, gateway URL, hostnames, thread names, uploaded files, prompts
 
 The iPhone app stores the gateway URL and token locally on the device so it can connect to your Mac gateway. Files selected in the iPhone app are uploaded to the Mac gateway and saved under the CodePilot state directory.
 
-If notifications are enabled, the app and gateway use Apple Push Notification service infrastructure for turn-finished notification delivery. Notification payloads should remain minimal and must not include auth files, bearer tokens, private prompts, or uploaded file contents.
+If notifications are enabled, the app registers a device token with the Mac gateway and the gateway stores that token locally. Turn-finished payloads sent through Apple Push Notification service can include a thread title, a short failure summary, and internal thread and job identifiers. Live Activity updates can include aggregate account-usage status, counts, and refresh timing. These values may be visible on the device according to its notification settings, so use non-sensitive thread titles and disable CodePilot notifications or Live Activities in iOS settings if that disclosure is not acceptable.
+
+Notification payloads do not intentionally include auth files, gateway bearer tokens, private prompt text, or uploaded file contents. A failure summary can still reproduce text from an underlying error, so treat notification previews as potentially sensitive during the beta.
 
 ## Cloudflare Tunnel
 
-During the public beta, remote iPhone access uses a user-owned Cloudflare Tunnel. Cloudflare may process connection metadata for tunnel operation according to your Cloudflare account configuration and Cloudflare's own terms and policies.
+During the public beta, remote iPhone access uses a user-owned Cloudflare Tunnel. Gateway requests and responses pass through Cloudflare, including thread data, prompts, turn output, usage and account status, and uploaded file contents when those features are used. Cloudflare also processes connection metadata for tunnel operation according to your Cloudflare account configuration and Cloudflare's own terms and policies.
 
-CodePilot still requires the gateway bearer token when using Cloudflare Tunnel. Treat temporary TryCloudflare URLs, permanent tunnel hostnames, and the gateway token as private support data.
+Use an HTTPS tunnel URL. CodePilot still requires the gateway bearer token when using Cloudflare Tunnel. Treat temporary TryCloudflare URLs, permanent tunnel hostnames, and the gateway token as private support data.
 
 ## Remote Desktop
 
