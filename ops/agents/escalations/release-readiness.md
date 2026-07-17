@@ -15,13 +15,14 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - iOS simulator tests: passed with 0 failures.
 - Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
-- The current install-linked OTA manifest and IPA both returned HTTP 200 in a read-only check. The manifest still identifies the legacy bundle ID; no OTA build or external-state mutation was performed in this run.
+- The current install-linked OTA manifest and IPA both returned HTTP 200 in a read-only check. The manifest still identifies the legacy bundle ID, while the public OTA install page returned HTTP 403 even with a normal browser user agent; no OTA build or external-state mutation was performed in this run.
 
 ## Release Blockers
 
 - **Remote Desktop pairing is not enforced on the active capture/control paths (issue #25).** The frame, input, and WebRTC signaling routes accept arbitrary session identifiers after the shared gateway bearer token check; they do not require a trusted device or validate an active signed lease. The iOS control view also bypasses the available session-start API. This can let any gateway-token holder view or control the Mac without the documented per-device pairing boundary. Block OTA, TestFlight, and App Store distribution until the native host, gateway routes, and iOS client enforce one lease end-to-end with regression tests for unpaired, expired, revoked, replayed, and mismatched sessions.
 - **Canonical bundle identity requires a maintainer decision.** The latest distributed OTA build uses a legacy identifier that differs from the current Xcode project and Fastlane default. Publishing without aligning OTA, signing, and App Store Connect could create a second installation.
 - The latest OTA build is stale relative to current source and has no recorded source commit. No OTA build was triggered because this run is not authorized to mutate external distribution systems.
+- The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
 - App Store Connect credentials and the Apple developer team setting are unavailable. The launch guard also blocks `asc`, including read-only discovery, so the app record, processed builds, availability, version attachment, and strict validation could not be checked.
 - A Fastlane lockfile is now committed, but the locked bundle is not installed in this release environment. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
