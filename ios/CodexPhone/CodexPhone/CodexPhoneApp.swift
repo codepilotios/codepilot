@@ -221,10 +221,10 @@ struct RootView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(
-                    gatewayURL: gatewayURLBinding,
-                    gatewayToken: gatewayTokenBinding,
-                    model: model,
-                    liveActivityError: $liveActivityError
+                    gatewayURL: $gatewayURL,
+                    gatewayToken: $gatewayToken,
+                    verifiedGatewayConfiguration: $verifiedGatewayConfiguration,
+                    model: model
                 )
                     .presentationDetents([.large])
             }
@@ -2226,10 +2226,11 @@ struct RespondingIndicator: View {
 struct SettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
+    @Binding var verifiedGatewayConfiguration: String
     @ObservedObject var model: CodexPhoneModel
     @Binding var liveActivityError: String
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
@@ -2342,7 +2343,7 @@ struct SettingsView: View {
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
-        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
     }
 
     @MainActor
@@ -2355,6 +2356,11 @@ struct SettingsView: View {
             lastConnectedAt = Date()
             let accountText = status.activeAccount.isEmpty ? "unknown account" : status.activeAccount
             connectionMessage = "Connected as \(accountText)."
+            verifiedGatewayConfiguration = gatewaySetupVerificationKey(
+                url: gatewayURL,
+                token: gatewayToken,
+                connectionKind: selectedConnectionKind
+            ) ?? ""
         } catch {
             connectionMessage = connectionFailureMessage(error)
         }
