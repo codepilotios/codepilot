@@ -27,6 +27,9 @@ jobs:
         working-directory: gateway
         run: python3 -m unittest test_codex_phone_gateway.py test_remote_desktop_gateway.py
 
+      - name: Gateway token process-argument guard
+        run: scripts/tests/gateway-token-argv-test.sh
+
       - name: Fastlane syntax
         run: ruby -c ios/CodexPhone/fastlane/Fastfile
 

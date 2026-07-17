@@ -112,11 +112,15 @@ gateway_jobs_state() {
     echo "unknown"
     return 0
   }
+  if [[ "$token" == *[^A-Za-z0-9_-]* ]]; then
+    echo "unknown"
+    return 0
+  fi
 
   local response
-  response="$(/usr/bin/curl -fsS --max-time 2 \
-    -H "Authorization: Bearer $token" \
-    "http://127.0.0.1:18790/api/jobs/active" 2>/dev/null || true)"
+  response="$(printf 'header = "Authorization: Bearer %s"\n' "$token" | \
+    /usr/bin/curl -fsS --max-time 2 --config - \
+      "http://127.0.0.1:18790/api/jobs/active" 2>/dev/null || true)"
   [[ -n "$response" ]] || {
     echo "unknown"
     return 0
