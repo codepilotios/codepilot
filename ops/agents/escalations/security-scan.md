@@ -15,7 +15,6 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Deliver the iOS Keychain migration through the authorized OTA/TestFlight process, then rotate gateway tokens used by beta devices that may have backed up the old preference value. This unattended scan did not publish a build because its public-write policy prohibits non-GitHub external mutations.
 - A redacted rescan covered every commit reachable from local refs at scan time and found private-identifier matches in many historical commit trees. Commit metadata includes non-public identity or email metadata on a small subset of commits. The current tree passes the privacy audit, and GitHub secret scanning reports no open alerts, but the repository history must still be treated as unsanitized. Coordinate a history-and-metadata rewrite plus clone migration before representing it as safe; never paste historical values into an issue or pull request.
 - Localhost proxy sessions remain bearerless capability URLs after creation. This branch removes wildcard CORS and adds no-referrer/nosniff response headers, but a leaked live capability URL can still reach the selected loopback port until its short expiry. Keep the capability private and consider a WebView-bound authentication design before broad launch.
-- Uploaded attachments and temporary previews need an explicit retention/cleanup policy; current restrictive permissions prevent other local users from reading them, but sensitive content can persist indefinitely.
 - GitHub Dependabot alerts are disabled for the public repository, leaving the pinned Swift and Ruby dependency graphs without repository-level vulnerability alerting. A maintainer with repository administration access should enable Dependabot alerts and review the initial results before launch.
 
 ## 2026-07-17 Hardening Completed Locally
@@ -35,6 +34,7 @@ Maintainer decision status: approved by maintainer on 2026-07-06.
 - Made fallback Codex output files owner-only and removed them immediately after ingestion instead of leaving private turn output in the shared temporary directory.
 - Redacted query strings and localhost capability identifiers from gateway access logs, and escaped control characters to prevent forged log lines.
 - Removed APNs authorization JWTs and device push tokens from `curl` process arguments; private request data now travels through curl's standard-input configuration.
+- Added a seven-day upload retention policy with startup/pre-upload cleanup, enforced owner-only upload directories, and refused symbolic-link storage or cleanup paths.
 - Removed the gateway bearer token from the installer idle check's `curl` process arguments and added a CI regression guard.
 - Centralized iOS gateway-origin validation, required HTTPS except for loopback development, rejected ambiguous credential/query/fragment URLs, and prevented credential-bearing requests from following cross-origin redirects.
 - Removed the public Mac app's embedded automation thread identifier and made background-agent installation depend on an explicit local opt-in file; owner-only permissions now protect that file and its LaunchAgent plist.

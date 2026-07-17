@@ -1,6 +1,7 @@
 import json
 import sqlite3
 import io
+import os
 import subprocess
 import tempfile
 import tomllib
@@ -980,6 +981,68 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
         self.assertEqual(path.parent.parent.stat().st_mode & 0o777, 0o700)
+
+    def test_expired_upload_batches_are_removed_without_following_symlinks(self):
+        uploads = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        expired = uploads / "thread-a" / "expired-job"
+        current = uploads / "thread-a" / "current-job"
+        outside = gateway.DEFAULT_SWITCHER_HOME / "outside"
+        expired.mkdir(parents=True)
+        current.mkdir(parents=True)
+        outside.mkdir()
+        (expired / "private.txt").write_text("expired", encoding="utf-8")
+        (current / "private.txt").write_text("current", encoding="utf-8")
+        (uploads / "thread-a" / "linked-job").symlink_to(outside, target_is_directory=True)
+        os.utime(expired, (100, 100))
+        os.utime(current, (900, 900))
+
+        removed = gateway.cleanup_expired_uploads(
+            uploads,
+            now=1_000,
+            retention_seconds=500,
+        )
+
+        self.assertEqual(removed, 1)
+        self.assertFalse(expired.exists())
+        self.assertTrue((current / "private.txt").exists())
+        self.assertTrue(outside.exists())
+        self.assertTrue((uploads / "thread-a" / "linked-job").is_symlink())
+
+    def test_upload_cleanup_refuses_symlinked_root(self):
+        outside = gateway.DEFAULT_SWITCHER_HOME / "outside"
+        outside.mkdir()
+        private_file = outside / "private.txt"
+        private_file.write_text("keep", encoding="utf-8")
+        uploads = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        uploads.symlink_to(outside, target_is_directory=True)
+
+        removed = gateway.cleanup_expired_uploads(
+            uploads,
+            now=1_000,
+            retention_seconds=1,
+        )
+
+        self.assertEqual(removed, 0)
+        self.assertTrue(private_file.exists())
+
+    def test_saved_attachments_reject_symlinked_upload_root(self):
+        original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
+        outside = gateway.DEFAULT_SWITCHER_HOME / "outside"
+        outside.mkdir()
+        gateway.DEFAULT_UPLOADS_DIR = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        gateway.DEFAULT_UPLOADS_DIR.symlink_to(outside, target_is_directory=True)
+        try:
+            state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+            with self.assertRaisesRegex(RuntimeError, "real directory"):
+                state.save_attachments("thread", "job", [{
+                    "filename": "notes.txt",
+                    "mimeType": "text/plain",
+                    "dataBase64": "c2VjcmV0",
+                }])
+        finally:
+            gateway.DEFAULT_UPLOADS_DIR = original_uploads_dir
+
+        self.assertEqual(list(outside.iterdir()), [])
 
     def test_cached_thread_messages_are_private(self):
         original_cache_dir = gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR

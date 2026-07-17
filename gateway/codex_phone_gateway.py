@@ -53,6 +53,7 @@ MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_ATTACHMENT_BYTES = 50 * 1024 * 1024
 MAX_JSON_BODY_BYTES = 1 * 1024 * 1024
 MAX_ATTACHMENT_REQUEST_BYTES = 72 * 1024 * 1024
+UPLOAD_RETENTION_SECONDS = 7 * 24 * 60 * 60
 VALID_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 PUBLIC_JOB_TEXT_LIMIT = 4_000
 PUBLIC_EVENT_BODY_LIMIT = 12_000
@@ -756,6 +757,66 @@ def is_image_attachment(path: Path, mime_type: str) -> bool:
     if mime_type.startswith("image/"):
         return True
     return path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"}
+
+
+def cleanup_expired_uploads(
+    root: Path | None = None,
+    *,
+    now: float | None = None,
+    retention_seconds: int = UPLOAD_RETENTION_SECONDS,
+) -> int:
+    """Remove expired upload batches without following links outside the upload root."""
+    if retention_seconds <= 0:
+        raise ValueError("Upload retention must be positive")
+    root = DEFAULT_UPLOADS_DIR if root is None else root
+
+    try:
+        root_stat = root.lstat()
+    except FileNotFoundError:
+        return 0
+    if stat.S_ISLNK(root_stat.st_mode) or not stat.S_ISDIR(root_stat.st_mode):
+        return 0
+
+    cutoff = (time.time() if now is None else now) - retention_seconds
+    removed = 0
+    for thread_dir in root.iterdir():
+        try:
+            thread_stat = thread_dir.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(thread_stat.st_mode) or not stat.S_ISDIR(thread_stat.st_mode):
+            continue
+
+        for upload_dir in thread_dir.iterdir():
+            try:
+                upload_stat = upload_dir.lstat()
+            except FileNotFoundError:
+                continue
+            if (
+                stat.S_ISLNK(upload_stat.st_mode)
+                or not stat.S_ISDIR(upload_stat.st_mode)
+                or upload_stat.st_mtime > cutoff
+            ):
+                continue
+            shutil.rmtree(upload_dir)
+            removed += 1
+
+        try:
+            thread_dir.rmdir()
+        except OSError:
+            pass
+    return removed
+
+
+def ensure_private_upload_directory(path: Path, *, parents: bool = False) -> None:
+    try:
+        path_stat = path.lstat()
+    except FileNotFoundError:
+        path.mkdir(mode=0o700, parents=parents)
+        path_stat = path.lstat()
+    if stat.S_ISLNK(path_stat.st_mode) or not stat.S_ISDIR(path_stat.st_mode):
+        raise RuntimeError("Upload path must be a real directory")
+    os.chmod(path, 0o700)
 
 
 def configured_download_roots() -> list[Path]:
@@ -4312,9 +4373,16 @@ class GatewayState:
         if len(raw_attachments) > MAX_ATTACHMENTS:
             raise ValueError(f"Too many attachments; maximum is {MAX_ATTACHMENTS}")
 
+        cleanup_expired_uploads()
+        if not raw_attachments:
+            return []
         saved = []
         total_size = 0
-        upload_dir = DEFAULT_UPLOADS_DIR / safe_filename(thread_id, "thread") / f"{int(time.time())}-{job_id}"
+        ensure_private_upload_directory(DEFAULT_UPLOADS_DIR, parents=True)
+        thread_upload_dir = DEFAULT_UPLOADS_DIR / safe_filename(thread_id, "thread")
+        ensure_private_upload_directory(thread_upload_dir)
+        upload_dir = thread_upload_dir / f"{int(time.time())}-{safe_filename(job_id, 'job')}"
+        ensure_private_upload_directory(upload_dir)
         for index, attachment in enumerate(raw_attachments, 1):
             if not isinstance(attachment, dict):
                 raise ValueError("Attachment is invalid")
@@ -4335,10 +4403,6 @@ class GatewayState:
             if total_size > MAX_TOTAL_ATTACHMENT_BYTES:
                 raise ValueError("Total attachment size is too large")
 
-            upload_dir.mkdir(parents=True, exist_ok=True)
-            os.chmod(upload_dir.parent.parent, 0o700)
-            os.chmod(upload_dir.parent, 0o700)
-            os.chmod(upload_dir, 0o700)
             filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
             path = upload_dir / filename
             if path.exists():
@@ -5032,6 +5096,7 @@ def main():
         parser.error("Refusing a non-loopback bind without --allow-non-loopback")
 
     token = read_or_create_token(Path(args.token_file))
+    cleanup_expired_uploads()
     state = GatewayState(
         codex_home=Path(args.codex_home),
         token=token,
