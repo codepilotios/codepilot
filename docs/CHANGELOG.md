@@ -10,6 +10,7 @@
 - Added a local TestFlight/App Store metadata draft for maintainer review before any App Store submission.
 - Added guidance for keeping screenshots, logs, support requests, and public issues free of private names, hosts, tokens, and local paths.
 - Kept iOS beta installation docs focused on user setup and moved App Store Connect maintainer checks to the release checklist.
+- Aligned public-beta iPhone connection copy around Cloudflare Tunnel while LAN setup remains unsupported.
 
 ### Recent Product Work
 

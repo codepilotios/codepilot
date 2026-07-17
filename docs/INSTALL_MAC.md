@@ -57,6 +57,8 @@ The gateway listens on:
 http://127.0.0.1:18790
 ```
 
+That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly. Use Cloudflare remote access for the public beta; LAN-bound gateway access is outside the supported beta path until CodePilot ships explicit firewall and trust guidance.
+
 The bearer token is stored at:
 
 ```text

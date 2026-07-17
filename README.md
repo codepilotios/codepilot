@@ -15,7 +15,7 @@ Commercial use requires a separate written license. See [LICENSE.md](LICENSE.md)
 - **CodePilot Mac**: a macOS menu bar app that tracks usage, manages account profiles, and coordinates automatic account switching.
 - **CodePilot Gateway**: a local Python gateway that exposes threads, jobs, files, usage, notifications, and account controls to trusted clients.
 - **CodePilot iOS**: an iPhone app that connects to the gateway for remote chat, file uploads, usage status, steering, stopping turns, and notifications.
-- **Cloudflare Tunnel support**: optional remote access to the gateway through a user-owned Cloudflare Tunnel.
+- **Cloudflare Tunnel support**: public-beta iPhone access to the gateway through a user-owned Cloudflare Tunnel.
 
 ## Current Provider Support
 
@@ -45,7 +45,7 @@ The public product name is provider-neutral, but the first implementation remain
    scripts/install-phone-gateway-agent.sh
    ```
 
-5. Optional: configure Cloudflare Tunnel for remote iPhone access.
+5. Configure Cloudflare Tunnel for public-beta iPhone access.
 6. Install the iOS app and enter the gateway URL plus bearer token.
 
 See:

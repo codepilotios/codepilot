@@ -32,7 +32,7 @@ Codex, coding agent, developer tools, Mac, iPhone, remote coding, AI coding, Tes
 
 Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, notifications, and setup recovery messages.
 
-Please include the connection and recovery flow you tested. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
+Please report whether Cloudflare Tunnel setup, gateway connection, or token entry was the step that failed. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
 
 ## Support URL
 
