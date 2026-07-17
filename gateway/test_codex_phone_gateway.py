@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import tomllib
 import unittest
+import urllib.request
 from unittest import mock
 from pathlib import Path
 
@@ -931,6 +932,32 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(payload["error"]["message"], "Only localhost URLs can be opened.")
         self.assertIn("localhost", payload["error"]["recovery"])
 
+    def test_decode_body_rejects_oversized_json_by_default(self):
+        class Handler:
+            headers = {"content-length": str(gateway.MAX_JSON_BODY_BYTES + 1)}
+            rfile = io.BytesIO(b"")
+
+        with self.assertRaises(gateway.RequestBodyTooLarge):
+            gateway.decode_body(Handler())
+
+    def test_decode_body_rejects_invalid_content_length(self):
+        class Handler:
+            headers = {"content-length": "invalid"}
+            rfile = io.BytesIO(b"")
+
+        with self.assertRaisesRegex(ValueError, "invalid_content_length"):
+            gateway.decode_body(Handler())
+
+    def test_decode_body_requires_json_object(self):
+        body = b"[]"
+
+        class Handler:
+            headers = {"content-length": str(len(body))}
+            rfile = io.BytesIO(body)
+
+        with self.assertRaisesRegex(ValueError, "request_body_must_be_an_object"):
+            gateway.decode_body(Handler())
+
     def test_resolve_requested_file_path_accepts_absolute_file_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             file_path = Path(tmp) / "created-by-codex.txt"
@@ -970,6 +997,45 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(session["targetOrigin"], "http://127.0.0.1:3000")
         self.assertRegex(session["path"], r"^/api/local-web/[^/]+/dashboard\?tab=logs$")
         self.assertGreater(session["expiresAt"], 0)
+        self.assertLessEqual(
+            session["expiresAt"] - int(gateway.time.time()),
+            gateway.LOCAL_WEB_SESSION_TIMEOUT_SECONDS,
+        )
+
+    def test_local_web_session_evicts_oldest_capability_at_limit(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+
+        sessions = [
+            state.start_local_web_session("http://localhost:3000/")
+            for _ in range(gateway.LOCAL_WEB_MAX_ACTIVE_SESSIONS + 1)
+        ]
+
+        with self.assertRaises(LookupError):
+            state.proxy_local_web_session(sessions[0]["sessionId"], [], "")
+        self.assertEqual(len(state._local_web_sessions), gateway.LOCAL_WEB_MAX_ACTIVE_SESSIONS)
+
+    def test_local_web_session_expires_after_request_limit(self):
+        fetcher = RecordingLocalWebFetcher()
+        state = GatewayState(
+            Path("/tmp/codex"),
+            "token",
+            Path("/missing-codex"),
+            False,
+            local_web_fetcher=fetcher,
+        )
+        session = state.start_local_web_session("http://localhost:3000/")
+        session_id = session["sessionId"]
+        state._local_web_sessions[session_id]["requestCount"] = gateway.LOCAL_WEB_MAX_REQUESTS_PER_SESSION
+
+        with self.assertRaises(LookupError):
+            state.proxy_local_web_session(session_id, [], "")
+
+    def test_local_web_redirect_cannot_leave_selected_loopback_origin(self):
+        handler = gateway.LoopbackOnlyRedirectHandler()
+        request = urllib.request.Request("http://127.0.0.1:3000/")
+
+        with self.assertRaisesRegex(RuntimeError, "selected loopback origin"):
+            handler.redirect_request(request, None, 302, "Found", {}, "https://example.com/")
 
     def test_local_web_session_proxies_localhost_content_and_rewrites_same_origin_links(self):
         fetcher = RecordingLocalWebFetcher()

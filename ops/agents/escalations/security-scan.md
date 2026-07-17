@@ -2,6 +2,19 @@
 
 Maintainer decision status: approved by maintainer on 2026-07-06.
 
+## 2026-07-17 Repository-History Finding
+
+- Reachable commits on the public mainline contain machine-specific absolute paths that were removed from the current tree.
+- The current tracked tree passes the privacy audit, but the old values remain recoverable from Git history.
+- Maintainer intervention is required to coordinate a history rewrite across affected public refs and collaborator clones. Do not paste the historical values into public issues or pull requests.
+- No private email address or recognized live-token pattern was found in the mainline history scan.
+
+## 2026-07-17 Pending Release Hardening
+
+- The current mainline iOS app stores the gateway bearer token in preferences rather than a device-only Keychain item. A Keychain migration exists on the older security branch, but that draft now conflicts with main and requires an iOS OTA verification that this unattended run is not authorized to publish.
+- The current mainline file-preview API still accepts arbitrary readable absolute paths from an authenticated client. The approved thread-workspace scoping change also exists on the older security branch, but it requires coordinated iOS request changes and the same maintainer-run OTA verification.
+- Before public release, rebase or reimplement those two changes on current main, run the iOS test suite and authorized OTA process, and rotate the gateway token for any beta device that may have backed up the preference value.
+
 Maintainer intervention was requested before public launch for these product-boundary decisions:
 
 1. Authenticated arbitrary file download remains enabled.
@@ -21,3 +34,5 @@ Local hardening already applied in this branch:
 - Removed public embedded private identifier patterns from the privacy audit and made local denylist patterns opt-in via `CODEPILOT_PRIVACY_PATTERNS_FILE`.
 - Removed machine-specific default repository paths from local agent scripts.
 - Changed gateway-created Codex app-server threads to use safe approval/sandbox settings unless dangerous mode is explicitly enabled.
+- Bounded ordinary JSON request bodies and attachment-bearing request envelopes.
+- Shortened localhost capabilities to ten minutes, capped active sessions and requests, and blocked redirects outside the selected loopback origin.

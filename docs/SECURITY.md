@@ -25,6 +25,8 @@ Recommended:
 
 The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
 
+Localhost web sessions use short-lived capability URLs so WebView subresources can load without exposing the gateway bearer token to page content. Do not share those URLs. Sessions are restricted to the selected loopback origin, expire after ten minutes, and have bounded request counts.
+
 ## Account Switching
 
 CodePilot swaps local provider auth files. It waits for active turns to finish before automatic switching, but users should still avoid manually editing auth files while turns are running.

@@ -49,6 +49,8 @@ CODEX_CHILD_PATH_PREFIXES = (
 MAX_ATTACHMENTS = 8
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_ATTACHMENT_BYTES = 50 * 1024 * 1024
+MAX_JSON_BODY_BYTES = 1 * 1024 * 1024
+MAX_ATTACHMENT_REQUEST_BYTES = 72 * 1024 * 1024
 VALID_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 PUBLIC_JOB_TEXT_LIMIT = 4_000
 PUBLIC_EVENT_BODY_LIMIT = 12_000
@@ -70,7 +72,9 @@ REMOTE_LOGIN_AUTH_URL_RE = re.compile(r"https://auth\.openai\.com/oauth/authoriz
 REMOTE_LOGIN_URL_RE = re.compile(r"https?://\S+")
 REMOTE_LOGIN_URL_TIMEOUT_SECONDS = 15
 REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS = 30
-LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 60 * 60
+LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 10 * 60
+LOCAL_WEB_MAX_ACTIVE_SESSIONS = 8
+LOCAL_WEB_MAX_REQUESTS_PER_SESSION = 256
 LOCAL_WEB_MAX_BYTES = 25 * 1024 * 1024
 
 JOBS = {}
@@ -687,14 +691,20 @@ def decode_body(handler, max_length: int | None = None) -> dict:
     raw_length = handler.headers.get("content-length", "0")
     try:
         length = int(raw_length)
-    except ValueError:
-        length = 0
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_content_length") from exc
+    if length < 0:
+        raise ValueError("invalid_content_length")
     if length <= 0:
         return {}
-    if max_length is not None and length > max_length:
+    effective_max_length = MAX_JSON_BODY_BYTES if max_length is None else max_length
+    if length > effective_max_length:
         raise RequestBodyTooLarge("request_too_large")
     body = handler.rfile.read(length)
-    return json.loads(body.decode("utf-8"))
+    decoded = json.loads(body.decode("utf-8"))
+    if not isinstance(decoded, dict):
+        raise ValueError("request_body_must_be_an_object")
+    return decoded
 
 
 def safe_filename(name: str, fallback: str) -> str:
@@ -804,6 +814,21 @@ def compact_json(value, limit: int = 900) -> str:
         return truncate_text(str(value), limit)
 
 
+class LoopbackOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        source = urllib.parse.urlparse(req.full_url)
+        target = urllib.parse.urlparse(urllib.parse.urljoin(req.full_url, newurl))
+        source_port = source.port or (443 if source.scheme == "https" else 80)
+        target_port = target.port or (443 if target.scheme == "https" else 80)
+        if (
+            target.scheme != source.scheme
+            or (target.hostname or "").casefold() not in {"localhost", "127.0.0.1", "::1"}
+            or target_port != source_port
+        ):
+            raise RuntimeError("Local web redirect left the selected loopback origin")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch_local_web_url(url: str) -> tuple[int, dict, bytes]:
     request = urllib.request.Request(
         url,
@@ -812,8 +837,9 @@ def fetch_local_web_url(url: str) -> tuple[int, dict, bytes]:
             "Accept": "*/*",
         },
     )
+    opener = urllib.request.build_opener(LoopbackOnlyRedirectHandler())
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with opener.open(request, timeout=30) as response:
             body = response.read(LOCAL_WEB_MAX_BYTES + 1)
             if len(body) > LOCAL_WEB_MAX_BYTES:
                 raise RuntimeError("Local web response is too large")
@@ -3796,10 +3822,17 @@ class GatewayState:
             "createdAt": now,
             "expiresAt": expires_at,
             "targetOrigin": target_origin,
+            "requestCount": 0,
         }
         with self._local_web_lock:
-            self._local_web_sessions[session_id] = session
             self.cleanup_expired_local_web_sessions_locked(now)
+            while len(self._local_web_sessions) >= LOCAL_WEB_MAX_ACTIVE_SESSIONS:
+                oldest_session_id = min(
+                    self._local_web_sessions,
+                    key=lambda candidate: int(self._local_web_sessions[candidate].get("createdAt") or 0),
+                )
+                self._local_web_sessions.pop(oldest_session_id, None)
+            self._local_web_sessions[session_id] = session
         path = self.local_web_gateway_path(session_id, parsed.path or "/", parsed.query)
         return {
             "sessionId": session_id,
@@ -3842,6 +3875,11 @@ class GatewayState:
         with self._local_web_lock:
             self.cleanup_expired_local_web_sessions_locked(now)
             session = self._local_web_sessions.get(str(session_id or ""))
+            if session:
+                session["requestCount"] = int(session.get("requestCount") or 0) + 1
+                if session["requestCount"] > LOCAL_WEB_MAX_REQUESTS_PER_SESSION:
+                    self._local_web_sessions.pop(str(session_id or ""), None)
+                    session = None
         if not session:
             raise LookupError("Local web session not found or expired")
 
@@ -4541,7 +4579,7 @@ class Handler(BaseHTTPRequestHandler):
     def authenticate(self) -> bool:
         expected = self.state().token
         header = self.headers.get("authorization", "")
-        if header == f"Bearer {expected}":
+        if secrets.compare_digest(header, f"Bearer {expected}"):
             return True
         json_error(
             self,
@@ -4710,7 +4748,7 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             if len(parts) == 2 and parts[0] == "api" and parts[1] == "threads":
-                body = decode_body(self)
+                body = decode_body(self, max_length=MAX_ATTACHMENT_REQUEST_BYTES)
                 attachments = body.get("attachments")
                 job = self.state().start_new_thread(
                     str(body.get("cwd", "")),
@@ -4812,7 +4850,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if len(parts) == 4 and parts[0] == "api" and parts[1] == "threads" and parts[3] == "turns":
-                body = decode_body(self)
+                body = decode_body(self, max_length=MAX_ATTACHMENT_REQUEST_BYTES)
                 attachments = body.get("attachments")
                 job = self.state().start_turn(
                     parts[2],
