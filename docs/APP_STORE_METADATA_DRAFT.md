@@ -50,7 +50,7 @@ Use only sanitized demo data:
 - Example hostnames such as `codepilot.example.com`.
 - No tokens, auth details, private prompts, local paths, Apple identifiers, personal account names, private screenshots, or live desktop contents.
 
-See [Screenshot Plan](SCREENSHOTS.md).
+See the [App Store screenshot checklist](../metadata/screenshots/README.md).
 
 ## Approval Gates
 

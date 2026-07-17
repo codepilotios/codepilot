@@ -7,7 +7,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 ## Verified Locally
 
 - `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
-- `swift test`: passed; 57 tests, 0 failures.
+- `swift test`: passed; 78 tests, 0 failures.
 - The public CI run for the current commit passed its privacy audit, SwiftPM tests, gateway tests, Fastlane syntax check, and iOS simulator build.
 - Gateway unit tests: passed with the release runner's default Python 3.9 toolchain; 112 tests, 0 failures.
 - macOS Swift release build: passed.
@@ -31,6 +31,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - A Fastlane lockfile is committed, but the system Ruby cannot start it because the lockfile-required Bundler 4.0.11 is unavailable. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
 - `metadata/version/0.1/en-US.json` still needs approved support and privacy-policy URLs plus App Review notes/contact and gateway access instructions.
+- The App Store draft and canonical JSON currently disagree on subtitle and promotional/keyword copy; reconcile one approved canonical metadata set before staging.
 - App Privacy, privacy labels, age rating, content rights, export compliance, category, availability, and any pricing/legal settings require maintainer confirmation in App Store Connect.
 - No app-owned `PrivacyInfo.xcprivacy` is present despite required-reason API use. Draft PR #22 prepares gateway-token Keychain migration, file-access scoping, localhost-capability constraints, and additional gateway hardening; it remains open, mergeable, and green but must be reconciled and verified before release.
 - The published privacy, support, and screenshot URLs currently return HTTP 404, and the corresponding pages are absent on this branch. Draft PR #17 prepares those pages; it remains open, mergeable, and green but must be reconciled before the links can be treated as release-ready.
