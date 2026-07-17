@@ -22,7 +22,7 @@ After permanent setup succeeds, return to **Setup CodePilot... > iPhone Connecti
 
 Choose this for regular use. You need a Cloudflare account and a domain managed by Cloudflare.
 
-The wizard creates or reuses a tunnel, writes:
+The wizard creates a new tunnel and does not reuse an existing tunnel yet. If the default `codepilot` name already exists, choose a new tunnel name. The wizard writes:
 
 ```text
 ~/.cloudflared/codepilot-config.yaml

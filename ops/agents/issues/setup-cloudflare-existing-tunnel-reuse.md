@@ -23,3 +23,7 @@ The documented reuse path is not implemented. The helper treats an existing tunn
 ## Suggested Fix
 
 Query `cloudflared tunnel list --output json`, match one exact tunnel name, verify the corresponding local credentials file, and reuse its ID. Keep ambiguous matches and missing credentials as actionable failures.
+
+## Local Audit Mitigation
+
+The `agent/setup-audit` branch no longer claims that the current wizard reuses a tunnel. The Cloudflare guide and in-app wizard now tell users to choose a new tunnel name when one already exists. Safe automatic reuse remains follow-up work.

@@ -3174,6 +3174,10 @@ private final class CodePilotCloudflareWizardController: NSWindowController {
         hostnameField.placeholderString = "codepilot.example.com"
         root.addArrangedSubview(fields)
 
+        let tunnelNameHelp = NSTextField(wrappingLabelWithString: "Use a new tunnel name. CodePilot cannot reuse an existing Cloudflare tunnel yet.")
+        tunnelNameHelp.textColor = .secondaryLabelColor
+        root.addArrangedSubview(tunnelNameHelp)
+
         root.addArrangedSubview(buttonRow([
             button("Install cloudflared", #selector(installCloudflared)),
             button("Sign In or Create Account", #selector(loginCloudflare))
