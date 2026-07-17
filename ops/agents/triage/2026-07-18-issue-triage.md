@@ -1,25 +1,25 @@
 # CodePilot Issue Triage - 2026-07-18
 
-Four open GitHub issues were reviewed for the Mac app, iOS app, gateway, release tooling, setup flow, and public documentation.
+No new GitHub issues were opened after the 2026-07-17 triage pass. The two open issues and the existing draft triage PR were reviewed for changes.
 
 ## Reviewed Issues
 
-- #28 Fail gateway tests when a worker thread raises
-  - Proposed labels: `bug`, `gateway`, and `severity: low`.
-  - Reproduced: the focused unit test exited successfully while its daemon worker raised a `TypeError` because the test double used the old `run_turn` signature.
-  - Fixed on `agent/issue-28-worker-thread-tests`: the test double accepts the current reasoning-effort argument and the affected test runs its worker synchronously so worker exceptions fail the owning test.
-  - Verification: the focused regression test and all 90 gateway tests pass without a background exception.
-- #27 Complete public beta repository settings
-  - Proposed labels: `documentation` and `severity: high`.
-  - Still requires maintainer review and merge of the prepared documentation, followed by repository administration for Pages, repository metadata, and private vulnerability reporting.
 - #25 Enforce paired-device leases on every Remote Desktop path
-  - Proposed labels: `bug`, `remote-desktop`, `mac`, `ios`, `gateway`, and `severity: critical`; current labels match.
-  - Remains a cross-stack security and distribution blocker. Keep Remote Desktop disabled until the signed-lease requirements and authorization regression coverage pass.
+  - Proposed labels remain `bug`, `remote-desktop`, `mac`, `ios`, `gateway`, and `severity: critical`; the current labels match.
+  - The critical authorization defect remains open and release-blocking. `origin/main` has not changed since the confirmed 2026-07-17 reproduction.
+  - Draft security PR #22 now contains fail-closed containment: it disables the native Remote Desktop host and makes public remote-control routes unavailable. This removes the exposed path if merged, but it does not implement the paired-device lease behavior or regression coverage required to resolve #25.
+  - PR #22 is open, mergeable, and passing its `Test and Audit` check.
+  - Draft PR #26 remains open, mergeable, and passing its `Test and Audit` check.
 - #8 Prepare sanitized public screenshot set
-  - Proposed labels: `documentation` and `severity: low`; current labels match.
-  - The approved demo-only screenshot task remains open. No screenshot assets were created or published in this pass.
+  - Proposed labels remain `documentation` and `severity: low`; the current labels match.
+  - The approved demo-only capture task remains open. No screenshot assets were added or published in this pass.
+
+## Action
+
+- No issue labels needed updating. Added a concise #25 comment linking the containment in PR #22 while keeping the lease-enforcement blocker explicit.
+- No code change was attempted. Issue #25 requires a coordinated cross-stack security fix, and issue #8 requires full-resolution visual inspection of newly captured demo assets.
+- After the privacy audit passed, the triage branch was updated and the containment note was added to #25.
 
 ## Blockers
 
-- #25 requires a coordinated security fix across iOS, gateway, native RPC, expiry and revocation, and WebRTC/HTTP paths.
-- #27 requires maintainer approval and repository administration that this unattended run is not authorized to perform.
+- The existing #25 escalation remains active. PR #22 provides safe fail-closed containment if merged, but keep Remote Desktop disabled and distribution blocked until the required authorization regression coverage passes.
