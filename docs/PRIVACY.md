@@ -4,6 +4,8 @@ CodePilot is a public beta for people who already run Codex CLI on a Mac they co
 
 This page describes the repository beta behavior. App Store privacy labels and any hosted service policy still require maintainer approval before submission.
 
+CodePilot is not an offline coding tool. When you start or continue a Codex turn, the gateway passes your prompt and selected attachments to Codex on the Mac. Codex can send that content, conversation context, and related service metadata to OpenAI according to your Codex account, configuration, and the policies that apply to that service. CodePilot does not replace or change those provider terms, retention rules, or account controls.
+
 ## Local Data
 
 CodePilot works with local coding-agent state on your Mac, including Codex login state, saved account profiles, usage data, gateway settings, uploaded files, thread metadata, and notification state.
@@ -42,6 +44,16 @@ Notification payloads do not intentionally include auth files, gateway bearer to
 During the public beta, remote iPhone access uses a user-owned Cloudflare Tunnel. Gateway requests and responses pass through Cloudflare, including thread data, prompts, turn output, usage and account status, and uploaded file contents when those features are used. Cloudflare also processes connection metadata for tunnel operation according to your Cloudflare account configuration and Cloudflare's own terms and policies.
 
 Use an HTTPS tunnel URL. CodePilot still requires the gateway bearer token when using Cloudflare Tunnel. Treat temporary TryCloudflare URLs, permanent tunnel hostnames, and the gateway token as private support data.
+
+## External Services
+
+The repository beta does not require a CodePilot-operated analytics or account service, but supported workflows can involve other services:
+
+- Codex and OpenAI process coding prompts, conversation context, and selected attachments when you use coding-agent features.
+- Cloudflare processes tunneled gateway traffic and connection metadata when you use the supported remote iPhone path.
+- Apple Push Notification service processes device tokens and notification or Live Activity payloads when those features are enabled.
+
+Review the settings and policies for each service you enable. Disabling notifications stops new CodePilot notification and Live Activity delivery, but it does not remove data already retained by Codex, OpenAI, Cloudflare, Apple, or the local Mac state.
 
 ## Remote Desktop
 

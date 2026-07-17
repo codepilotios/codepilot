@@ -32,6 +32,7 @@
 - Added the missing repository checkout step and documented the supported macOS 13 and iOS 17 minimums for beta setup.
 - Reframed Remote Desktop support categories as availability-guard reports so the gated feature is not presented as a supported beta workflow.
 - Expanded the beta privacy draft to disclose Cloudflare data transit, notification and Live Activity payload contents, and the lack of automatic upload cleanup.
+- Clarified that the local gateway does not make Codex workflows offline: prompts, conversation context, and selected attachments can still be processed by OpenAI, while Cloudflare and Apple process data only for the enabled tunnel and notification workflows.
 
 ### Recent Product Work
 

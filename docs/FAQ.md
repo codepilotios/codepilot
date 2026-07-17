@@ -32,6 +32,10 @@ No. Remote Desktop remains outside the supported public beta while its device-pa
 
 No hosted CodePilot service is required for the current beta, and Codex credentials stay on the Mac. When you use Cloudflare Tunnel, gateway traffic and connection metadata pass through Cloudflare under your Cloudflare account configuration; the gateway still requires its bearer token.
 
+## Does all coding data stay on my Mac?
+
+No. CodePilot runs its gateway on your Mac, but Codex is still an online coding service. Prompts, conversation context, and selected attachments can be sent to OpenAI through Codex according to your Codex account and configuration. Cloudflare processes gateway traffic when you use the supported remote iPhone path, and Apple processes notification or Live Activity data when those features are enabled. See [Privacy](PRIVACY.md) for the beta data-flow summary.
+
 ## What should I avoid posting in issues?
 
 Do not post auth files, gateway tokens, private hostnames, personal account names, local file paths, private screenshots, Apple identifiers, or logs that contain any of those values.

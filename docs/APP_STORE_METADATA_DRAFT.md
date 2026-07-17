@@ -24,7 +24,7 @@ Use the iPhone app to check active account status, follow threads, upload files,
 
 The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use Codex-specific names while the public CodePilot product surface is prepared for broader provider support later.
 
-CodePilot handles local coding-agent credentials and gateway access. Review the privacy, security, install, and support docs before exposing the gateway outside your local network.
+CodePilot handles local coding-agent credentials and gateway access. Coding prompts and selected attachments are still processed through Codex and OpenAI according to the user's Codex account and configuration. Review the privacy, security, install, and support docs before exposing the gateway outside your local network.
 
 ## Keywords
 
