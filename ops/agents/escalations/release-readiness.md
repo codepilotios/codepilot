@@ -7,15 +7,15 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 ## Verified Locally
 
 - `scripts/privacy-audit.sh`: passed after moving the optional private-identifier denylist to ignored local configuration.
-- `swift test`: passed; 57 tests, 0 failures.
+- `swift test`: passed; 78 tests, 0 failures.
 - Gateway unit tests: passed with the default Python toolchain; 112 tests, 0 failures.
 - macOS Swift release build: passed.
 - iOS simulator Debug and clean Release builds: passed with code signing disabled.
 - Unsigned generic-device iOS Release archive compile: passed.
-- iOS simulator tests: passed; 37 tests, 0 failures.
-- Fastlane Ruby syntax and version metadata JSON validation: passed.
+- iOS simulator tests: passed with 0 failures.
+- Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
-- The current install-linked OTA manifest and IPA both returned HTTP 200 in a read-only check, but no OTA build or external-state mutation was performed in this run.
+- The current install-linked OTA manifest and IPA both returned HTTP 200 in a read-only check. The manifest still identifies the legacy bundle ID; no OTA build or external-state mutation was performed in this run.
 
 ## Release Blockers
 
@@ -28,9 +28,9 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - `metadata/version/0.1/en-US.json` still needs approved support and privacy-policy URLs plus App Review notes/contact and gateway access instructions.
 - App Privacy, privacy labels, age rating, content rights, export compliance, category, availability, and any pricing/legal settings require maintainer confirmation in App Store Connect.
 - No `PrivacyInfo.xcprivacy` is present despite required-reason API use. Gateway-token Keychain hardening is being tracked separately and must be merged and verified before release.
-- The published docs currently link to privacy, support, and screenshot pages that are absent on this branch. Draft PR #17 prepares those pages and must be reconciled before the links can be treated as release-ready.
+- The published privacy, support, and screenshot URLs currently return HTTP 404, and the corresponding pages are absent on this branch. Draft PR #17 prepares those pages and must be reconciled before the links can be treated as release-ready.
 - App Store-ready screenshots are absent. All future captures need synthetic accounts, hosts, paths, and tokens.
-- App icon files include alpha channels, including the marketing icon; flatten and validate them before archive upload.
+- All nine App icon files include alpha channels, including the marketing icon; flatten and validate them before archive upload.
 - Draft metadata is not connected to the Fastlane lanes, which otherwise use a generic changelog. External TestFlight metadata still lacks an approved beta description, feedback email, and review contact. There is no local App Store metadata staging/validation path.
 - The locally built Mac app is arm64-only; Intel/universal distribution has not been verified.
 
