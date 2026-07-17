@@ -38,7 +38,14 @@ esac
 '
 write_stub brew 'echo "brew $*"'
 write_stub launchctl 'echo "launchctl $*"'
-write_stub curl 'echo "{\"ok\":true}"'
+write_stub curl '
+[[ "$*" == *"--config -"* ]] || exit 90
+config="$(cat)"
+[[ "$config" == '\''header = "Authorization: Bearer test-gateway-token"'\'' ]] || exit 91
+echo "{\"ok\":true}"
+'
+mkdir -p "$HOME/.codex-account-switcher"
+printf '%s\n' "test-gateway-token" > "$HOME/.codex-account-switcher/phone-gateway-token"
 
 "$SCRIPT" status >/tmp/codepilot-status.json 2>/tmp/codepilot-status.err || true
 grep -q "No such file" /tmp/codepilot-status.err && fail "status should not crash when config is missing"

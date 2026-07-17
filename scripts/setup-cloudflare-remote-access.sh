@@ -11,6 +11,7 @@ METADATA_PATH="$APP_DIR/cloudflare-setup.json"
 LABEL="${CODEPILOT_CLOUDFLARED_LAUNCHD_LABEL:-io.codepilot.phone-cloudflared}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 GATEWAY_URL="${CODEPILOT_GATEWAY_URL:-http://127.0.0.1:18790}"
+GATEWAY_TOKEN_PATH="${CODEPILOT_GATEWAY_TOKEN_PATH:-$APP_DIR/phone-gateway-token}"
 
 mkdir -p "$APP_DIR" "$CLOUDFLARED_DIR"
 chmod 700 "$APP_DIR" "$CLOUDFLARED_DIR"
@@ -297,7 +298,18 @@ verify_url() {
     echo "--url is required" >&2
     exit 2
   }
-  curl -fsS "$url/api/health" >/dev/null
+  [ -f "$GATEWAY_TOKEN_PATH" ] || {
+    echo "CodePilot gateway token is missing. Start the gateway before verifying remote access." >&2
+    exit 22
+  }
+  local token
+  token="$(tr -d '\r\n' < "$GATEWAY_TOKEN_PATH")"
+  if [[ -z "$token" || "$token" == *[^A-Za-z0-9_-]* ]]; then
+    echo "CodePilot gateway token is invalid. Rotate the token before verifying remote access." >&2
+    exit 22
+  fi
+  printf 'header = "Authorization: Bearer %s"\n' "$token" | \
+    curl -fsS --config - "$url/api/health" >/dev/null
   echo "verified $url"
 }
 

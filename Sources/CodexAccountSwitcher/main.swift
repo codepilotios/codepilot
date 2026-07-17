@@ -174,8 +174,12 @@ enum CodePilotHostServicesManager {
         let scheduler = bundledResource("scripts/codepilot-agent-scheduler.sh")
             ?? repoRoot.appendingPathComponent("scripts/codepilot-agent-scheduler.sh")
         guard fileManager.fileExists(atPath: scheduler.path) else { return }
-        let threadID = (try? String(contentsOf: appDir.appendingPathComponent("agents/thread-id"), encoding: .utf8))
-            ?? "019e2d20-3695-7423-be21-968f544d2b20"
+        let threadIDFile = appDir.appendingPathComponent("agents/thread-id")
+        guard let threadID = try? String(contentsOf: threadIDFile, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !threadID.isEmpty else {
+            return
+        }
         let codex = preferredCodexURL()?.path ?? executable(named: "codex")?.path ?? "codex"
         try writeLaunchAgent(
             label: "io.codepilot.agents.scheduler",
@@ -191,7 +195,7 @@ enum CodePilotHostServicesManager {
                 "CODEPILOT_AGENT_MODEL": "gpt-5.6-sol",
                 "CODEPILOT_AGENT_REASONING_EFFORT": "medium",
                 "CODEPILOT_CODEX_BIN": codex,
-                "CODEPILOT_AGENT_THREAD_ID": threadID.trimmingCharacters(in: .whitespacesAndNewlines)
+                "CODEPILOT_AGENT_THREAD_ID": threadID
             ],
             keepAlive: false,
             startInterval: 60

@@ -30,6 +30,12 @@ jobs:
       - name: Gateway token process-argument guard
         run: scripts/tests/gateway-token-argv-test.sh
 
+      - name: Cloudflare setup security tests
+        run: scripts/test-cloudflare-setup.sh
+
+      - name: Background-agent opt-in guard
+        run: scripts/tests/background-agent-opt-in-test.sh
+
       - name: Desktop sync security tests
         run: python3 -m unittest scripts/tests/test_desktop_sync_security.py
 
