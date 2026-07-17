@@ -2760,7 +2760,7 @@ struct CodePilotSetupStatus {
         return defaultPath ?? "Configured"
     }
 
-    private static func loadCloudflareMetadata() -> CodePilotCloudflareMetadata? {
+    static func loadCloudflareMetadata() -> CodePilotCloudflareMetadata? {
         let path = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".codex-account-switcher/cloudflare-setup.json")
         guard let data = try? Data(contentsOf: path) else { return nil }
@@ -2786,6 +2786,14 @@ struct CodePilotCloudflareMetadata: Codable, Equatable {
     var safeSummary: String {
         let host = hostname.isEmpty ? "No hostname configured" : hostname
         return "\(mode) tunnel \(tunnelName) for \(host)"
+    }
+
+    var remoteAccessURL: URL? {
+        guard mode == "permanent", !hostname.isEmpty else { return nil }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = hostname
+        return components.url
     }
 }
 
@@ -2849,7 +2857,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
 
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -2900,7 +2908,13 @@ private final class CodePilotSetupWindowController: NSWindowController {
             title: "Gateway",
             buttons: [
                 button("Restart Gateway When Idle", #selector(restartGatewayWhenIdle)),
-                button("Force Restart Gateway...", #selector(forceRestartGateway)),
+                button("Force Restart Gateway...", #selector(forceRestartGateway))
+            ]
+        ))
+        root.addArrangedSubview(section(
+            title: "iPhone Connection",
+            buttons: [
+                button("Copy Remote Access URL", #selector(copyRemoteAccessURL)),
                 button("Copy iOS Connection Token", #selector(copyToken))
             ]
         ))
@@ -3008,6 +3022,17 @@ private final class CodePilotSetupWindowController: NSWindowController {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(token, forType: .string)
         outputLabel.stringValue = "Copied iOS connection token. Keep it private."
+    }
+
+    @objc private func copyRemoteAccessURL() {
+        guard let metadata = CodePilotSetupStatus.loadCloudflareMetadata(),
+              let url = metadata.remoteAccessURL else {
+            outputLabel.stringValue = "No remote access URL found. Set up a permanent Cloudflare hostname, then refresh setup."
+            return
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        outputLabel.stringValue = "Copied remote access URL for the iPhone app."
     }
 
     @objc private func openCloudflareGuide() {

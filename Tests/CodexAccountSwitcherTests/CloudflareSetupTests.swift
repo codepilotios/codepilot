@@ -23,6 +23,21 @@ final class CloudflareSetupTests: XCTestCase {
         XCTAssertTrue(summary.contains("codepilot.example.com"))
         XCTAssertFalse(summary.localizedCaseInsensitiveContains("token"))
         XCTAssertFalse(summary.localizedCaseInsensitiveContains("credential"))
+        XCTAssertEqual(metadata.remoteAccessURL?.absoluteString, "https://codepilot.example.com")
+    }
+
+    func testTemporaryCloudflareMetadataDoesNotOfferStableRemoteAccessURL() {
+        let metadata = CodePilotCloudflareMetadata(
+            mode: "temporary",
+            hostname: "temporary.example.com",
+            tunnelName: "codepilot",
+            tunnelId: "",
+            configPath: "",
+            launchAgentLabel: "",
+            lastVerifiedAt: nil
+        )
+
+        XCTAssertNil(metadata.remoteAccessURL)
     }
 
     func testCloudflareScriptErrorMapsToRecoveryCopy() {

@@ -17,16 +17,16 @@ This guide configures a beta build that a tester has already received. A public 
 
 On first launch:
 
-1. Choose **Cloudflare**.
-2. Enter the gateway URL.
-3. Enter the iOS connection token from the Mac setup screen.
+1. Choose **Same Network** or **Cloudflare**.
+2. On the Mac, use **Setup CodePilot... > iPhone Connection** to copy the remote access URL and enter it as the gateway URL.
+3. Copy the iOS connection token from the same Mac setup section.
 4. Tap **Test Connection**.
 
 The first-run screen remains open until the authenticated connection test succeeds. Success means the app opens CodePilot and shows the active account from the Mac gateway.
 
 The app stores these values locally on the device. Do not share the token in issue reports or screenshots.
 
-For the default Mac setup, choose **Cloudflare** and enter the Cloudflare Tunnel URL. The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. Use **Same Network** only after configuring the gateway to listen on a Mac LAN address.
+For the default Mac setup, choose **Cloudflare** and use **Copy Remote Access URL** on the Mac. The Mac gateway listens on `127.0.0.1:18790` by default, which is only reachable from the Mac itself. Use **Same Network** only after configuring the gateway to listen on a Mac LAN address.
 
 The gateway URL must include `http://` or `https://`.
 
