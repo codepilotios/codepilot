@@ -2668,22 +2668,35 @@ struct CodePilotSetupStatus {
         ])
     }
 
-    private static func executablePath(named name: String) -> String? {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = [name]
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return nil
+    static func executablePath(
+        named name: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> String? {
+        let pathDirectories = (environment["PATH"] ?? "")
+            .split(separator: ":")
+            .map(String.init)
+        let standardDirectories = [
+            home.appendingPathComponent(".local/bin").path,
+            home.appendingPathComponent(".npm-global/bin").path,
+            home.appendingPathComponent(".bun/bin").path,
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin"
+        ]
+
+        var visited = Set<String>()
+        for directory in pathDirectories + standardDirectories where visited.insert(directory).inserted {
+            let candidate = URL(fileURLWithPath: directory, isDirectory: true)
+                .appendingPathComponent(name).path
+            if FileManager.default.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
         }
-        guard process.terminationStatus == 0 else { return nil }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return nil
     }
 
     private static func gatewayHealthRequirement() -> CodePilotSetupRequirement {

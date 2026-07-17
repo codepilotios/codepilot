@@ -24,3 +24,7 @@ Detection delegates to `which` without constructing a known search path or consu
 ## Suggested Fix
 
 Check documented installation locations and a sanitized login-shell path, show the resolved executable in advanced details, and provide a direct recovery action when detection fails.
+
+## Local Fix
+
+The `agent/setup-audit` branch checks the inherited search path plus standard Homebrew and user-level install directories. It also ignores files that exist but are not executable, so Finder and LaunchAgent launches no longer depend on shell startup configuration for common Codex installations.

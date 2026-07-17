@@ -2,6 +2,49 @@ import XCTest
 @testable import CodexAccountSwitcher
 
 final class SetupStatusTests: XCTestCase {
+    func testExecutableDetectionChecksUserInstallLocationsWhenPATHIsRestricted() throws {
+        let temporaryHome = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let executable = temporaryHome.appendingPathComponent(".local/bin/codex")
+        try FileManager.default.createDirectory(
+            at: executable.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("#!/bin/sh\n".utf8).write(to: executable)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: 0o755],
+            ofItemAtPath: executable.path
+        )
+        defer { try? FileManager.default.removeItem(at: temporaryHome) }
+
+        XCTAssertEqual(
+            CodePilotSetupStatus.executablePath(
+                named: "codex",
+                environment: ["PATH": "/usr/bin:/bin"],
+                home: temporaryHome
+            ),
+            executable.path
+        )
+    }
+
+    func testExecutableDetectionRejectsNonExecutableFiles() throws {
+        let temporaryHome = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        let candidate = temporaryHome.appendingPathComponent(".local/bin/codex")
+        try FileManager.default.createDirectory(
+            at: candidate.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try Data("not executable\n".utf8).write(to: candidate)
+        defer { try? FileManager.default.removeItem(at: temporaryHome) }
+
+        XCTAssertNil(CodePilotSetupStatus.executablePath(
+            named: "codex",
+            environment: ["PATH": ""],
+            home: temporaryHome
+        ))
+    }
+
     func testSetupStatusLabelsAreUserFacing() {
         XCTAssertEqual(CodePilotSetupRequirement.gatewayStopped.statusLabel, "Stopped")
         XCTAssertEqual(CodePilotSetupRequirement.gatewayBlockedByActiveTurn.statusLabel, "Blocked by active turn")
