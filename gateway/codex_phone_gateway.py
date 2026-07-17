@@ -1843,10 +1843,9 @@ def normalized_reasoning_effort(value) -> str | None:
 
 
 def codex_app_server_reasoning_effort(value: str | None) -> str | None:
-    effort = normalized_reasoning_effort(value)
-    if effort in {"none", "minimal"}:
-        return "low"
-    return effort
+    if value is not None:
+        normalized_reasoning_effort(value)
+    return "medium"
 
 
 def read_pinned_thread_ids(global_state_path: Path) -> list[str]:
@@ -4084,7 +4083,7 @@ class GatewayState:
     ) -> dict:
         prompt = prompt.strip()
         attachments = raw_attachments if isinstance(raw_attachments, list) else []
-        reasoning_effort = normalized_reasoning_effort(reasoning_effort)
+        reasoning_effort = codex_app_server_reasoning_effort(reasoning_effort)
         if not prompt and not attachments:
             raise ValueError("Prompt is empty")
 

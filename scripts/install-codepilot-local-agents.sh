@@ -60,6 +60,18 @@ write_scheduler_plist() {
   <dict>
     <key>CODEPILOT_REPO_ROOT</key>
     <string>$ROOT</string>
+    <key>CODEPILOT_AGENT_ENABLED</key>
+    <string>1</string>
+    <key>CODEPILOT_AGENT_CONTINUOUS</key>
+    <string>1</string>
+    <key>CODEPILOT_AGENT_PUBLIC_AUTONOMY</key>
+    <string>launch</string>
+    <key>CODEPILOT_AGENT_MODEL</key>
+    <string>gpt-5.6-sol</string>
+    <key>CODEPILOT_AGENT_REASONING_EFFORT</key>
+    <string>medium</string>
+    <key>CODEPILOT_CODEX_BIN</key>
+    <string>/Applications/ChatGPT.app/Contents/Resources/codex</string>
     <key>CODEPILOT_AGENT_THREAD_ID</key>
     <string>$THREAD_ID</string>
   </dict>
@@ -74,7 +86,7 @@ EOF
   launchctl load "$plist"
 }
 
-write_scheduler_plist scheduler 900
+write_scheduler_plist scheduler 60
 
 echo "Installed CodePilot local agent scheduler."
 echo "Escalations will be sent to Codex thread: $THREAD_ID"

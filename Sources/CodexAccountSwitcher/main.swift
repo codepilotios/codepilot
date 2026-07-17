@@ -61,6 +61,225 @@ enum PollingTimerFactory {
     }
 }
 
+enum CodePilotHostServicesManager {
+    private static let fileManager = FileManager.default
+    private static let home = FileManager.default.homeDirectoryForCurrentUser
+    private static let launchAgents = home.appendingPathComponent("Library/LaunchAgents", isDirectory: true)
+    private static let logs = home.appendingPathComponent("Library/Logs", isDirectory: true)
+    private static let appDir = home.appendingPathComponent(".codex-account-switcher", isDirectory: true)
+    private static let repoRoot = URL(fileURLWithPath: FileManager.default.currentDirectoryPath, isDirectory: true)
+
+    static func ensureConfiguredOnLaunch() {
+        DispatchQueue.global(qos: .utility).async {
+            do {
+                try fileManager.createDirectory(at: launchAgents, withIntermediateDirectories: true)
+                try fileManager.createDirectory(at: logs, withIntermediateDirectories: true)
+                ensurePreferredCodexCLI()
+                unloadAndRemoveLegacyLaunchAgents()
+                try installGatewayLaunchAgent()
+                try installCloudflaredLaunchAgentIfConfigured()
+                try installAgentSchedulerLaunchAgent()
+            } catch {
+                NSLog("CodePilot host service setup failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private static func preferredCodexURL() -> URL? {
+        let candidates = [
+            URL(fileURLWithPath: "/Applications/ChatGPT.app/Contents/Resources/codex"),
+            URL(fileURLWithPath: "/Applications/Codex.app/Contents/Resources/codex")
+        ]
+        return candidates.first { fileManager.isExecutableFile(atPath: $0.path) }
+    }
+
+    private static func ensurePreferredCodexCLI() {
+        guard let preferred = preferredCodexURL() else { return }
+        let localBin = home.appendingPathComponent(".local/bin", isDirectory: true)
+        let target = localBin.appendingPathComponent("codex")
+        do {
+            try fileManager.createDirectory(at: localBin, withIntermediateDirectories: true)
+            if fileManager.fileExists(atPath: target.path) {
+                try fileManager.removeItem(at: target)
+            }
+            try fileManager.createSymbolicLink(at: target, withDestinationURL: preferred)
+        } catch {
+            NSLog("CodePilot could not normalize Codex CLI path: \(error.localizedDescription)")
+        }
+    }
+
+    private static func unloadAndRemoveLegacyLaunchAgents() {
+        [
+            "com.tony.codex-phone-gateway",
+            "com.tony.codex-phone-cloudflared"
+        ].forEach { label in
+            let plist = launchAgents.appendingPathComponent("\(label).plist")
+            runLaunchctl(["unload", plist.path])
+            try? fileManager.removeItem(at: plist)
+        }
+    }
+
+    private static func installGatewayLaunchAgent() throws {
+        let gateway = bundledResource("gateway/codex_phone_gateway.py")
+            ?? repoRoot.appendingPathComponent("gateway/codex_phone_gateway.py")
+        guard fileManager.fileExists(atPath: gateway.path) else { return }
+
+        let env = [
+            "CODEX_PHONE_APNS_CERT_PATH": appDir.appendingPathComponent("apns/codexphone-apns-cert.pem").path,
+            "CODEX_PHONE_APNS_CERT_KEY_PATH": appDir.appendingPathComponent("apns/codexphone-apns-private.key").path,
+            "CODEX_PHONE_APNS_TOPIC": "com.tony.codexphone"
+        ]
+        try writeLaunchAgent(
+            label: "io.codepilot.phone-gateway",
+            programArguments: [
+                pythonPath(),
+                gateway.path,
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "18790"
+            ],
+            workingDirectory: gateway.deletingLastPathComponent().deletingLastPathComponent().path,
+            stdout: logs.appendingPathComponent("codex-phone-gateway.out.log").path,
+            stderr: logs.appendingPathComponent("codex-phone-gateway.err.log").path,
+            environment: env,
+            keepAlive: true,
+            startInterval: nil
+        )
+    }
+
+    private static func installCloudflaredLaunchAgentIfConfigured() throws {
+        guard let cloudflared = executable(named: "cloudflared") ?? executable(at: "/opt/homebrew/bin/cloudflared") ?? executable(at: "/usr/local/bin/cloudflared") else {
+            return
+        }
+        let modern = home.appendingPathComponent(".cloudflared/codepilot-config.yaml")
+        let legacy = home.appendingPathComponent(".cloudflared/codex-phone-config.yaml")
+        let config = fileManager.fileExists(atPath: modern.path) ? modern : legacy
+        guard fileManager.fileExists(atPath: config.path) else { return }
+
+        try writeLaunchAgent(
+            label: "io.codepilot.phone-cloudflared",
+            programArguments: [cloudflared.path, "tunnel", "--config", config.path, "run"],
+            workingDirectory: repoRoot.path,
+            stdout: logs.appendingPathComponent("codex-phone-cloudflared.out.log").path,
+            stderr: logs.appendingPathComponent("codex-phone-cloudflared.err.log").path,
+            environment: [:],
+            keepAlive: true,
+            startInterval: nil
+        )
+    }
+
+    private static func installAgentSchedulerLaunchAgent() throws {
+        let scheduler = bundledResource("scripts/codepilot-agent-scheduler.sh")
+            ?? repoRoot.appendingPathComponent("scripts/codepilot-agent-scheduler.sh")
+        guard fileManager.fileExists(atPath: scheduler.path) else { return }
+        let threadID = (try? String(contentsOf: appDir.appendingPathComponent("agents/thread-id"), encoding: .utf8))
+            ?? "019e2d20-3695-7423-be21-968f544d2b20"
+        let codex = preferredCodexURL()?.path ?? executable(named: "codex")?.path ?? "codex"
+        try writeLaunchAgent(
+            label: "io.codepilot.agents.scheduler",
+            programArguments: [scheduler.path],
+            workingDirectory: repoRoot.path,
+            stdout: logs.appendingPathComponent("CodePilotAgents/scheduler.launchd.out.log").path,
+            stderr: logs.appendingPathComponent("CodePilotAgents/scheduler.launchd.err.log").path,
+            environment: [
+                "CODEPILOT_REPO_ROOT": repoRoot.path,
+                "CODEPILOT_AGENT_ENABLED": "1",
+                "CODEPILOT_AGENT_CONTINUOUS": "1",
+                "CODEPILOT_AGENT_PUBLIC_AUTONOMY": "launch",
+                "CODEPILOT_AGENT_MODEL": "gpt-5.6-sol",
+                "CODEPILOT_AGENT_REASONING_EFFORT": "medium",
+                "CODEPILOT_CODEX_BIN": codex,
+                "CODEPILOT_AGENT_THREAD_ID": threadID.trimmingCharacters(in: .whitespacesAndNewlines)
+            ],
+            keepAlive: false,
+            startInterval: 60
+        )
+    }
+
+    private static func writeLaunchAgent(
+        label: String,
+        programArguments: [String],
+        workingDirectory: String,
+        stdout: String,
+        stderr: String,
+        environment: [String: String],
+        keepAlive: Bool,
+        startInterval: Int?
+    ) throws {
+        try fileManager.createDirectory(at: URL(fileURLWithPath: stdout).deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: URL(fileURLWithPath: stderr).deletingLastPathComponent(), withIntermediateDirectories: true)
+        let plist = launchAgents.appendingPathComponent("\(label).plist")
+        var payload: [String: Any] = [
+            "Label": label,
+            "ProgramArguments": programArguments,
+            "RunAtLoad": true,
+            "WorkingDirectory": workingDirectory,
+            "StandardOutPath": stdout,
+            "StandardErrorPath": stderr,
+            "EnvironmentVariables": environment
+        ]
+        if keepAlive {
+            payload["KeepAlive"] = true
+        }
+        if let startInterval {
+            payload["StartInterval"] = startInterval
+        }
+        let data = try PropertyListSerialization.data(fromPropertyList: payload, format: .xml, options: 0)
+        try data.write(to: plist, options: .atomic)
+        runLaunchctl(["unload", plist.path])
+        runLaunchctl(["load", plist.path])
+    }
+
+    private static func bundledResource(_ relativePath: String) -> URL? {
+        guard let resourceURL = Bundle.main.resourceURL else { return nil }
+        let url = resourceURL.appendingPathComponent(relativePath)
+        return fileManager.fileExists(atPath: url.path) ? url : nil
+    }
+
+    private static func pythonPath() -> String {
+        executable(at: "/usr/local/bin/python3")?.path
+            ?? executable(at: "/Library/Frameworks/Python.framework/Versions/3.13/bin/python3")?.path
+            ?? "/usr/bin/python3"
+    }
+
+    private static func executable(named name: String) -> URL? {
+        let process = Process()
+        let pipe = Pipe()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        process.arguments = [name]
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        try? process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { return nil }
+        let path = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let path, !path.isEmpty else { return nil }
+        return executable(at: path)
+    }
+
+    private static func executable(at path: String) -> URL? {
+        fileManager.isExecutableFile(atPath: path) ? URL(fileURLWithPath: path) : nil
+    }
+
+    @discardableResult
+    private static func runLaunchctl(_ arguments: [String]) -> Int32 {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
+        process.arguments = arguments
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus
+        } catch {
+            return 1
+        }
+    }
+}
+
 enum AuthStaleClassifier {
     static func isStaleAuthMessage(_ message: String) -> Bool {
         let lower = message.lowercased()
@@ -3063,6 +3282,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        CodePilotHostServicesManager.ensureConfiguredOnLaunch()
 
         if !CGPreflightScreenCaptureAccess() {
             _ = CGRequestScreenCaptureAccess()

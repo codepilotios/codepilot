@@ -464,7 +464,7 @@ class AppServerClientTests(unittest.TestCase):
         start = sent[2]
 
         self.assertEqual(start["method"], "thread/start")
-        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "high"})
+        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "medium"})
 
     def test_thread_start_uses_safe_policy_by_default(self):
         process = FakeAppServerProcess([
@@ -525,9 +525,9 @@ class AppServerClientTests(unittest.TestCase):
         turn = sent[2]
 
         self.assertEqual(turn["method"], "turn/start")
-        self.assertEqual(turn["params"]["effort"], "low")
+        self.assertEqual(turn["params"]["effort"], "medium")
 
-    def test_thread_start_maps_minimal_reasoning_effort_to_low(self):
+    def test_thread_start_maps_minimal_reasoning_effort_to_medium(self):
         process = FakeAppServerProcess([
             json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
             json.dumps({"id": "start-id", "result": {"thread": {"id": "thread-1"}}}) + "\n",
@@ -545,7 +545,7 @@ class AppServerClientTests(unittest.TestCase):
         start = sent[2]
 
         self.assertEqual(start["method"], "thread/start")
-        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "low"})
+        self.assertEqual(start["params"]["config"], {"model_reasoning_effort": "medium"})
 
     def test_thread_resume_sends_thread_id(self):
         process = FakeAppServerProcess([
@@ -2307,8 +2307,8 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
 
             job = state.start_turn("thread-b", "Start parallel work", reasoning_effort="high")
 
-            self.assertEqual(job["reasoningEffort"], "high")
-            self.assertEqual(captured["reasoning_effort"], "high")
+            self.assertEqual(job["reasoningEffort"], "medium")
+            self.assertEqual(captured["reasoning_effort"], "medium")
         finally:
             GatewayState.run_turn = old_run_turn
             with gateway.JOBS_LOCK:
