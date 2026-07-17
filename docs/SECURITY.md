@@ -31,6 +31,8 @@ Localhost web sessions use short-lived capability URLs so WebView subresources c
 
 Remote file previews are restricted to files uploaded through CodePilot by default. Advanced local setups can add explicit roots with the `CODEPILOT_FILE_DOWNLOAD_ROOTS` environment variable, using the platform path separator between roots. Never add a credential, SSH, cloud configuration, or account-auth directory.
 
+The native remote-desktop host is disabled while screen capture, input injection, and signaling still lack end-to-end lease authorization. CodePilot does not request Screen Recording permission at launch. Do not re-enable the host until the documented trusted-device and active-lease checks are enforced on every privileged operation.
+
 ## Account Switching
 
 CodePilot swaps local provider auth files. It waits for active turns to finish before automatic switching, but users should still avoid manually editing auth files while turns are running.

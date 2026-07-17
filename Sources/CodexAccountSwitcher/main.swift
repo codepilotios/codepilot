@@ -3266,6 +3266,13 @@ private final class GatewayRemoteInputValidator: RemoteInputLeaseValidating {
     }
 }
 
+enum RemoteDesktopHostPolicy {
+    // The native RPC host still lacks lease authorization for screen capture,
+    // input injection, and WebRTC signaling. Keep it unreachable until those
+    // checks are enforced end to end.
+    static let isEnabled = false
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
     private let remoteFrameCaptureService = RemoteFrameCaptureService()
@@ -3291,16 +3298,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
         CodePilotHostServicesManager.ensureConfiguredOnLaunch()
 
-        if !CGPreflightScreenCaptureAccess() {
-            _ = CGRequestScreenCaptureAccess()
-        }
-
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "CodePilot"
         menu.delegate = self
         statusItem.menu = menu
-        remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
-        if let remoteDesktopCoordinator {
+        if RemoteDesktopHostPolicy.isEnabled {
+            remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
+        }
+        if RemoteDesktopHostPolicy.isEnabled, let remoteDesktopCoordinator {
             do {
                 let server = RemoteDesktopSocketServer { [weak self, weak remoteDesktopCoordinator] request in
                     guard let self, let remoteDesktopCoordinator else {
