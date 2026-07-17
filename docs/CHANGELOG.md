@@ -30,6 +30,7 @@
 - Added direct privacy-safe bug and feature-request paths to the README, Pages landing page, FAQ, and support copy.
 - Added concrete draft support and privacy URLs that remain gated on GitHub Pages enablement and maintainer verification.
 - Added the missing repository checkout step and documented the supported macOS 13 and iOS 17 minimums for beta setup.
+- Reframed Remote Desktop support categories as availability-guard reports so the gated feature is not presented as a supported beta workflow.
 
 ### Recent Product Work
 

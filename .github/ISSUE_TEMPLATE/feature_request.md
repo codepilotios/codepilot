@@ -28,7 +28,7 @@ Describe what you do today, if anything.
 
 ## Setup Context
 
-- Mac app, iPhone app, gateway, Cloudflare setup, account switching, remote desktop, notifications, file upload, or docs:
+- Mac app, iPhone app, gateway, Cloudflare setup, account switching, notifications, file upload, or docs:
 - Codex CLI already working on the Mac: yes/no/not sure
 - Connection path: Cloudflare Tunnel / other / not applicable
 
