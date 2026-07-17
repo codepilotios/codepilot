@@ -23,7 +23,7 @@ Include:
 - Mac app, gateway, or iOS app area affected.
 - What you expected to happen.
 - What happened instead.
-- Whether Cloudflare setup, gateway connection, or token entry is the failing step.
+- Whether setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, file upload, notification delivery, turn control, or remote desktop is the failing step.
 - The visible recovery message, if one appears.
 - Whether Codex CLI was already working on the Mac before CodePilot setup.
 - Sanitized logs with private values removed.

@@ -14,6 +14,8 @@ assignees: ""
 - [ ] Cloudflare setup
 - [ ] Account switching
 - [ ] Remote desktop
+- [ ] File upload
+- [ ] Notifications
 - [ ] Documentation
 
 ## What happened?
