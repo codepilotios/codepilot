@@ -325,6 +325,47 @@ verify_url() {
     echo "--url is required" >&2
     exit 2
   }
+  /usr/bin/python3 - "$METADATA_PATH" "$url" <<'PY'
+import json
+import sys
+from pathlib import Path
+from urllib.parse import urlparse
+
+path = Path(sys.argv[1])
+verified_url = urlparse(sys.argv[2])
+if (
+    verified_url.scheme.lower() != "https"
+    or not verified_url.hostname
+    or verified_url.username
+    or verified_url.password
+    or verified_url.port not in (None, 443)
+    or verified_url.path not in ("", "/")
+    or verified_url.params
+    or verified_url.query
+    or verified_url.fragment
+):
+    print("--url must be the HTTPS tunnel origin, such as https://codepilot.example.com, without a path, query, or credentials.", file=sys.stderr)
+    raise SystemExit(2)
+
+if not path.is_file():
+    print("Cloudflare setup metadata is missing. Configure a permanent tunnel before verification.", file=sys.stderr)
+    raise SystemExit(2)
+
+try:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, ValueError):
+    print("Cloudflare setup metadata could not be read. Configure the permanent tunnel again before verification.", file=sys.stderr)
+    raise SystemExit(2)
+
+configured_hostname = str(payload.get("hostname", "")).strip().rstrip(".").lower()
+verified_hostname = verified_url.hostname.strip().rstrip(".").lower()
+if payload.get("mode") != "permanent" or not configured_hostname:
+    print("No permanent Cloudflare hostname is configured. Finish permanent tunnel setup before verification.", file=sys.stderr)
+    raise SystemExit(2)
+if configured_hostname != verified_hostname:
+    print(f"--url must use the configured Cloudflare hostname: {configured_hostname}", file=sys.stderr)
+    raise SystemExit(2)
+PY
   curl -fsS "$url/api/health" >/dev/null
   /usr/bin/python3 - "$METADATA_PATH" "$url" <<'PY'
 import json

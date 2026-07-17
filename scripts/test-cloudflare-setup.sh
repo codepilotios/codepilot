@@ -120,6 +120,21 @@ esac
 "$SCRIPT" install-service
 [ -f "$HOME/Library/LaunchAgents/io.codepilot.phone-cloudflared.plist" ] || fail "LaunchAgent plist missing"
 
+if "$SCRIPT" verify --url http://codepilot.example.com >/tmp/codepilot-http-verify.out 2>/tmp/codepilot-http-verify.err; then
+  fail "verify should reject non-HTTPS URLs"
+fi
+grep -qi "HTTPS tunnel origin" /tmp/codepilot-http-verify.err || fail "non-HTTPS verification should explain the expected URL format"
+
+if "$SCRIPT" verify --url https://other.example.com >/tmp/codepilot-other-verify.out 2>/tmp/codepilot-other-verify.err; then
+  fail "verify should reject a hostname that does not match setup metadata"
+fi
+grep -qi "configured Cloudflare hostname" /tmp/codepilot-other-verify.err || fail "mismatched verification should identify the configured hostname requirement"
+
+if "$SCRIPT" verify --url 'https://codepilot.example.com/unexpected?probe=1' >/tmp/codepilot-path-verify.out 2>/tmp/codepilot-path-verify.err; then
+  fail "verify should reject URLs with paths or queries"
+fi
+grep -qi "without a path" /tmp/codepilot-path-verify.err || fail "path verification failure should explain the origin-only requirement"
+
 "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-verify.out
 grep -q "verified" /tmp/codepilot-verify.out || fail "verify output should say verified"
 grep -Eq '"lastVerifiedAt": "[^\"]+"' "$HOME/.codex-account-switcher/cloudflare-setup.json" || fail "successful verification should update metadata"
