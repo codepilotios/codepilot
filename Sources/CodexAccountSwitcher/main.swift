@@ -127,7 +127,7 @@ enum CodePilotHostServicesManager {
         let env = [
             "CODEX_PHONE_APNS_CERT_PATH": appDir.appendingPathComponent("apns/codexphone-apns-cert.pem").path,
             "CODEX_PHONE_APNS_CERT_KEY_PATH": appDir.appendingPathComponent("apns/codexphone-apns-private.key").path,
-            "CODEX_PHONE_APNS_TOPIC": "com.tony.codexphone"
+            "CODEX_PHONE_APNS_TOPIC": "io.codepilot.iOS"
         ]
         try writeLaunchAgent(
             label: "io.codepilot.phone-gateway",
