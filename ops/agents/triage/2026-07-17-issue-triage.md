@@ -22,7 +22,7 @@ Remote write policy: public GitHub writes require a privacy audit. This pass pus
 
 - `python3 -m unittest gateway.test_remote_desktop_gateway.RemoteDesktopGatewayTests`: passed.
 - `swift test --filter RemoteDesktop`: passed (20 tests).
-- Full `gateway.test_remote_desktop_gateway` execution was blocked by the local Python 3.9 runtime lacking the standard-library `tomllib` module required by the phone gateway. This does not affect the confirmed authorization-path diagnosis.
+- Full gateway test discovery ran 23 tests but reported four import errors because the available Python 3.9 runtime lacks the standard-library `tomllib` module required by the phone gateway. The focused Remote Desktop gateway tests still passed, so this does not affect the confirmed authorization-path diagnosis.
 
 ## Action
 
