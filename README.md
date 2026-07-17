@@ -30,17 +30,8 @@ The public product name is provider-neutral, but the first implementation remain
 
 ## Quick Start
 
-The Mac app currently builds from source on macOS 13 or later. The iPhone companion requires iOS 17 or later and access to an approved beta build; this repository does not yet promise a public TestFlight invitation or App Store download.
-
-1. Install Codex on the Mac that will run CodePilot.
-2. Clone this repository:
-
-   ```sh
-   git clone https://github.com/codepilotios/codepilot.git
-   cd codepilot
-   ```
-
-3. Build the Mac app:
+1. [Install Codex CLI](https://developers.openai.com/codex/cli/) on the Mac that will run CodePilot, then run `codex` once to sign in.
+2. Build the Mac app:
 
    ```sh
    scripts/build-app.sh
