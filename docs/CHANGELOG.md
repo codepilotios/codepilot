@@ -4,6 +4,7 @@
 
 ### Public Beta Preparation
 
+- Added public-safe GitHub feature request and pull request templates for beta feedback and contribution review.
 - Added public beta docs for GitHub Pages, FAQ, privacy, support, screenshots, and changelog.
 - Added a beta feedback guide for Codex CLI users that asks for reproducible setup details without private data.
 - Clarified that CodePilot currently targets Codex CLI users and remains beta-focused.
