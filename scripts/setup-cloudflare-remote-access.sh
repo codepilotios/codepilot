@@ -188,6 +188,7 @@ install_service() {
   mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
   /usr/bin/python3 - "$ROOT" "$PLIST" "$LABEL" <<'PY'
 import plistlib
+import os
 import sys
 from pathlib import Path
 
@@ -206,6 +207,7 @@ plist = {
     "StandardErrorPath": str(Path.home() / "Library" / "Logs" / "codepilot-cloudflared.err.log"),
 }
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
+os.chmod(plist_path, 0o600)
 PY
 
   launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true

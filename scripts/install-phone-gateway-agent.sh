@@ -45,6 +45,7 @@ fi
 
 /usr/bin/python3 - "$ROOT" "$PLIST" "$LABEL" "$gateway_python" <<'PY'
 import plistlib
+import os
 import sys
 from pathlib import Path
 
@@ -60,10 +61,12 @@ allowed_env_keys = {
     "CODEX_PHONE_APNS_KEY_ID",
     "CODEX_PHONE_APNS_KEY_PATH",
     "CODEX_PHONE_APNS_TOPIC",
+    "CODEPILOT_FILE_DOWNLOAD_ROOTS",
     "SUPABASE_ACCESS_TOKEN",
 }
 environment = {}
 if env_path.is_file():
+    os.chmod(env_path, 0o600)
     for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -93,6 +96,7 @@ plist = {
 if environment:
     plist["EnvironmentVariables"] = environment
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
+os.chmod(plist_path, 0o600)
 PY
 
 gateway_jobs_state() {

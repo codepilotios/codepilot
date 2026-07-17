@@ -15,6 +15,7 @@ mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 
 /usr/bin/python3 - "$ROOT" "$EXECUTABLE" "$PLIST" "$LABEL" <<'PY'
 import plistlib
+import os
 import sys
 from pathlib import Path
 
@@ -40,6 +41,7 @@ plist = {
     "LimitLoadToSessionType": "Aqua",
 }
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
+os.chmod(plist_path, 0o600)
 PY
 
 launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true

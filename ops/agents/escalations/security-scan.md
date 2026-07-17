@@ -2,37 +2,21 @@
 
 Maintainer decision status: approved by maintainer on 2026-07-06.
 
-## 2026-07-17 Repository-History Finding
+## 2026-07-17 Remote-Desktop Release Blocker
 
-- Reachable commits on the public mainline contain machine-specific absolute paths that were removed from the current tree.
-- The current tracked tree passes the privacy audit, but the old values remain recoverable from Git history.
-- Maintainer intervention is required to coordinate a history rewrite across affected public refs and collaborator clones. Do not paste the historical values into public issues or pull requests.
-- No private email address or recognized live-token pattern was found in the mainline history scan.
+- The running remote-desktop host does not enforce the trusted-device lease model on screen capture or WebRTC signaling. Its HTTP input path validates only sequence ordering, not lease ownership. Possession of the general gateway bearer token is therefore sufficient to reach screen capture and control paths when Mac permissions are granted.
+- This branch makes all remote-control routes fail closed at the public gateway by default while preserving status reporting. Do not re-enable them until nonce issuance, trusted-device signature verification, active lease validation, Mac-lock invalidation, and per-lease signaling/frame authorization are enforced end to end and covered by integration tests.
+- Re-enabling remote desktop requires maintainer coordination because the safe implementation changes the iOS session flow and must complete the authorized OTA verification process.
 
-## 2026-07-17 Pending Release Hardening
+## 2026-07-17 Remaining High-Risk Work
 
-- The current mainline iOS app stores the gateway bearer token in preferences rather than a device-only Keychain item. A Keychain migration exists on the older security branch, but that draft now conflicts with main and requires an iOS OTA verification that this unattended run is not authorized to publish.
-- The current mainline file-preview API still accepts arbitrary readable absolute paths from an authenticated client. The approved thread-workspace scoping change also exists on the older security branch, but it requires coordinated iOS request changes and the same maintainer-run OTA verification.
-- Before public release, rebase or reimplement those two changes on current main, run the iOS test suite and authorized OTA process, and rotate the gateway token for any beta device that may have backed up the preference value.
+- The iOS gateway bearer token is still stored in preferences rather than a device-only Keychain item. Rebase or reimplement the existing Keychain migration before public release, then rotate tokens used by beta devices that may have backed up the old preference value.
+- A scan of all 202 reachable commits found private-identifier matches in 126 historical commit trees and no recognized live-secret pattern. The current tree passes the privacy audit. Coordinate a history rewrite and clone migration before representing the repository history as sanitized; never paste historical values into an issue or pull request.
+- Localhost proxy sessions remain bearerless capability URLs after creation. This branch removes wildcard CORS and adds no-referrer/nosniff response headers, but a leaked live capability URL can still reach the selected loopback port until its short expiry. Keep the capability private and consider a WebView-bound authentication design before broad launch.
 
-Maintainer intervention was requested before public launch for these product-boundary decisions:
+## 2026-07-17 Hardening Completed Locally
 
-1. Authenticated arbitrary file download remains enabled.
-   - Surface: `gateway/codex_phone_gateway.py` exposes `/api/files/download?path=...`.
-   - Current behavior: any client with the gateway bearer token can request any absolute file path readable by the gateway process.
-   - Risk: a leaked or phished gateway token becomes direct local file disclosure, independent of Codex approval/sandbox controls.
-   - Decision: approved to proceed with the proposed hardening direction. Keep the feature, but narrow the allowed scope before public launch to uploaded files, explicit per-thread workspace roots, or short-lived file-preview grants.
-
-2. Localhost proxy sessions are bearerless capability URLs.
-   - Surface: `POST /api/local-web/sessions` requires the bearer token, but the returned `/api/local-web/<session>/...` URL is fetched without bearer auth.
-   - Current behavior: the random session id gates access for the session lifetime.
-   - Risk: anyone who obtains a live session URL can proxy GET requests to the selected loopback port through the public gateway until expiry.
-   - Decision: approved to proceed with the proposed hardening direction. Keep WebView compatibility, but shorten and constrain capability sessions before public launch unless an authenticated browser/proxy design is ready.
-
-Local hardening already applied in this branch:
-
-- Removed public embedded private identifier patterns from the privacy audit and made local denylist patterns opt-in via `CODEPILOT_PRIVACY_PATTERNS_FILE`.
-- Removed machine-specific default repository paths from local agent scripts.
-- Changed gateway-created Codex app-server threads to use safe approval/sandbox settings unless dangerous mode is explicitly enabled.
-- Bounded ordinary JSON request bodies and attachment-bearing request envelopes.
-- Shortened localhost capabilities to ten minutes, capped active sessions and requests, and blocked redirects outside the selected loopback origin.
+- Restricted file previews to CodePilot uploads by default, with explicit opt-in download roots for advanced setups.
+- Forced gateway tokens, uploads, secret-bearing environment files, and generated LaunchAgent plists to owner-only permissions; gateway token symlinks and empty token files are rejected.
+- Added remote-desktop tests to CI and made agent guard tests independent of inherited autonomy/model environment settings.
+- Removed remaining private identity strings from the current tracked source and aligned the APNs topic with the public bundle identifier.

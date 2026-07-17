@@ -15,6 +15,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import stat
 import subprocess
 import tempfile
 import threading
@@ -384,11 +385,20 @@ class CodexAppServerClient:
 
 def read_or_create_token(path: Path) -> str:
     if path.exists():
-        return path.read_text(encoding="utf-8").strip()
-    path.parent.mkdir(parents=True, exist_ok=True)
+        metadata = path.lstat()
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            raise RuntimeError("Gateway token path must be a regular file")
+        os.chmod(path, 0o600)
+        token = path.read_text(encoding="utf-8").strip()
+        if not token:
+            raise RuntimeError("Gateway token file is empty")
+        return token
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path.parent, 0o700)
     token = secrets.token_urlsafe(32)
-    path.write_text(token + "\n", encoding="utf-8")
-    os.chmod(path, 0o600)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(token + "\n")
     return token
 
 
@@ -661,6 +671,8 @@ def json_response(handler, status: int, payload: dict):
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -722,7 +734,14 @@ def is_image_attachment(path: Path, mime_type: str) -> bool:
     return path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 
-def resolve_requested_file_path(raw_path: str) -> Path:
+def configured_download_roots() -> list[Path]:
+    roots = [DEFAULT_UPLOADS_DIR]
+    configured = os.environ.get("CODEPILOT_FILE_DOWNLOAD_ROOTS", "")
+    roots.extend(Path(value).expanduser() for value in configured.split(os.pathsep) if value.strip())
+    return [root.resolve(strict=False) for root in roots]
+
+
+def resolve_requested_file_path(raw_path: str, allowed_roots: list[Path] | None = None) -> Path:
     value = str(raw_path or "").strip()
     if not value:
         raise ValueError("Missing file path")
@@ -749,6 +768,11 @@ def resolve_requested_file_path(raw_path: str) -> Path:
     if not resolved.is_file():
         raise LookupError(f"Not a file: {resolved}")
 
+    roots = configured_download_roots() if allowed_roots is None else allowed_roots
+    normalized_roots = [root.expanduser().resolve(strict=False) for root in roots]
+    if not any(resolved == root or root in resolved.parents for root in normalized_roots):
+        raise PermissionError("File is outside the configured CodePilot download roots")
+
     return resolved
 
 
@@ -770,6 +794,8 @@ def file_response(handler: BaseHTTPRequestHandler, path: Path):
     handler.send_response(200)
     handler.send_header("Content-Type", metadata["mimeType"])
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(metadata["size"]))
     handler.send_header("Content-Disposition", f'attachment; filename="{download_name}"')
     handler.end_headers()
@@ -785,6 +811,8 @@ def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
     handler.send_response(status)
     handler.send_header("Content-Type", str(payload.get("contentType") or "application/octet-stream"))
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -4302,13 +4330,18 @@ class GatewayState:
                 raise ValueError("Total attachment size is too large")
 
             upload_dir.mkdir(parents=True, exist_ok=True)
+            os.chmod(upload_dir.parent.parent, 0o700)
+            os.chmod(upload_dir.parent, 0o700)
+            os.chmod(upload_dir, 0o700)
             filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
             path = upload_dir / filename
             if path.exists():
                 stem = path.stem or "attachment"
                 suffix = path.suffix
                 path = upload_dir / f"{stem}-{index}{suffix}"
-            path.write_bytes(data)
+            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(descriptor, "wb") as handle:
+                handle.write(data)
 
             mime_type = str(attachment.get("mimeType") or "application/octet-stream")
             saved.append({
@@ -4567,13 +4600,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "authorization, content-type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Allow", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
 
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
         super().end_headers()
 
     def authenticate(self) -> bool:
@@ -4734,6 +4765,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
+        except PermissionError as exc:
+            json_error(
+                self,
+                403,
+                "file_access_denied",
+                str(exc),
+                "Only preview files from a configured CodePilot download root.",
+            )
         except LookupError as exc:
             json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
         except Exception as exc:

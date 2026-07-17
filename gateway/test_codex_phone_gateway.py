@@ -897,6 +897,41 @@ class GatewayStateTests(unittest.TestCase):
         gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
         self._switcher_home_tempdir.cleanup()
 
+    def test_gateway_token_file_permissions_are_repaired(self):
+        token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
+        token_path.write_text("existing-token\n", encoding="utf-8")
+        token_path.chmod(0o644)
+
+        self.assertEqual(gateway.read_or_create_token(token_path), "existing-token")
+        self.assertEqual(token_path.stat().st_mode & 0o777, 0o600)
+
+    def test_gateway_token_rejects_symlink(self):
+        target = gateway.DEFAULT_SWITCHER_HOME / "target"
+        target.write_text("token\n", encoding="utf-8")
+        token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
+        token_path.symlink_to(target)
+
+        with self.assertRaisesRegex(RuntimeError, "regular file"):
+            gateway.read_or_create_token(token_path)
+
+    def test_saved_attachments_are_private(self):
+        original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
+        gateway.DEFAULT_UPLOADS_DIR = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        try:
+            state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+            saved = state.save_attachments("thread", "job", [{
+                "filename": "notes.txt",
+                "mimeType": "text/plain",
+                "dataBase64": "c2VjcmV0",
+            }])
+        finally:
+            gateway.DEFAULT_UPLOADS_DIR = original_uploads_dir
+
+        path = saved[0]["path"]
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(path.parent.parent.stat().st_mode & 0o777, 0o700)
+
     def test_public_health_exposes_safe_gateway_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
@@ -963,13 +998,21 @@ class GatewayStateTests(unittest.TestCase):
             file_path = Path(tmp) / "created-by-codex.txt"
             file_path.write_text("hello", encoding="utf-8")
 
-            resolved = gateway.resolve_requested_file_path(f"{file_path}:12")
+            resolved = gateway.resolve_requested_file_path(f"{file_path}:12", allowed_roots=[Path(tmp)])
 
             self.assertEqual(resolved, file_path.resolve())
 
     def test_resolve_requested_file_path_rejects_relative_paths(self):
         with self.assertRaises(ValueError):
             gateway.resolve_requested_file_path("created-by-codex.txt")
+
+    def test_resolve_requested_file_path_rejects_files_outside_allowed_roots(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as other:
+            file_path = Path(other) / "private.txt"
+            file_path.write_text("private", encoding="utf-8")
+
+            with self.assertRaisesRegex(PermissionError, "download roots"):
+                gateway.resolve_requested_file_path(str(file_path), allowed_roots=[Path(tmp)])
 
     def test_file_metadata_reports_download_details(self):
         with tempfile.TemporaryDirectory() as tmp:

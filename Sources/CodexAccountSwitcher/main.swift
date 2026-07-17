@@ -109,10 +109,11 @@ enum CodePilotHostServicesManager {
     }
 
     private static func unloadAndRemoveLegacyLaunchAgents() {
-        [
-            "com.tony.codex-phone-gateway",
-            "com.tony.codex-phone-cloudflared"
-        ].forEach { label in
+        let legacyLabels = ProcessInfo.processInfo.environment["CODEPILOT_LEGACY_LAUNCHD_LABELS"]?
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty } ?? []
+        legacyLabels.forEach { label in
             let plist = launchAgents.appendingPathComponent("\(label).plist")
             runLaunchctl(["unload", plist.path])
             try? fileManager.removeItem(at: plist)
@@ -227,6 +228,7 @@ enum CodePilotHostServicesManager {
         }
         let data = try PropertyListSerialization.data(fromPropertyList: payload, format: .xml, options: 0)
         try data.write(to: plist, options: .atomic)
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plist.path)
         runLaunchctl(["unload", plist.path])
         runLaunchctl(["load", plist.path])
     }

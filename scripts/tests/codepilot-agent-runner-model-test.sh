@@ -4,9 +4,8 @@ set -euo pipefail
 unset CODEPILOT_AGENT_MODEL CODEPILOT_AGENT_REASONING_EFFORT
 export CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch"
 
-TEST_ROOT="$(mktemp -d)"
-ROOT="$TEST_ROOT/repo"
-STATE_DIR="$TEST_ROOT/state"
+ROOT="$(mktemp -d)"
+STATE_DIR="$(mktemp -d)"
 LOG_DIR="$ROOT/logs"
 JOB="health-watch"
 CAPTURE="$ROOT/codex-args"
@@ -14,7 +13,8 @@ PROMPT_CAPTURE="$ROOT/codex-prompt"
 ASC_CAPTURE="$ROOT/asc-path"
 
 cleanup() {
-  rm -rf "$TEST_ROOT"
+  rm -rf "$ROOT"
+  rm -rf "$STATE_DIR"
 }
 trap cleanup EXIT
 
