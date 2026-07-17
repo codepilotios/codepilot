@@ -4,6 +4,8 @@
 
 ### Public Beta Preparation
 
+- Added GitHub Pages configuration and narrowed the generated site to user-facing beta documentation.
+- Refined the Pages landing page with beta scope, security guidance, and install prerequisites.
 - Added public-safe GitHub feature request and pull request templates for beta feedback and contribution review.
 - Added public beta docs for GitHub Pages, FAQ, privacy, support, screenshots, and changelog.
 - Added a public presence checklist for beta positioning, privacy review, support copy, and approval gates.
