@@ -31,13 +31,13 @@ now="$(date +%s)"
 
 if [[ "${CODEPILOT_AGENT_CONTINUOUS:-0}" == "1" ]]; then
   jobs=(
-    "health-watch:300"
-    "issue-triage:300"
-    "setup-audit:600"
-    "release-readiness:600"
-    "presence-maintenance:900"
-    "security-scan:900"
-    "community-drafts:1800"
+    "health-watch:60"
+    "issue-triage:120"
+    "setup-audit:180"
+    "release-readiness:180"
+    "presence-maintenance:240"
+    "security-scan:300"
+    "community-drafts:300"
   )
 else
   jobs=(

@@ -129,10 +129,41 @@ if [[ -z "$REASONING_EFFORT" ]]; then
   esac
 fi
 
+if [[ "$PUBLIC_AUTONOMY" == "launch" ]]; then
 PUBLIC_WRITE_POLICY=$(cat <<'EOF'
 # Public write policy
 
-Autonomy mode: review by default.
+Autonomy mode: launch.
+
+Use the public CodePilot identity. Do not mention private names, private email
+addresses, personal hosts, local usernames, machine-specific paths, tokens, or
+private screenshots in commits, issues, pull requests, docs, metadata, logs, or
+escalations.
+
+This unattended run may inspect public systems, create local commits only in its
+isolated agent worktree, push `agent/*` branches, create GitHub issues, and open
+draft pull requests when that directly advances public launch readiness. Run the
+privacy audit before any public write.
+
+This unattended run MUST NOT edit the production checkout, push protected
+branches, merge pull requests, publish releases, submit App Store review, upload
+TestFlight/App Store builds, alter pricing or legal metadata, create accounts,
+post publicly on social/community sites, change credentials, or mutate
+non-GitHub external systems.
+
+This applies to shell commands, connectors, apps, browsers, HTTP APIs, and any
+other tool. Do not bypass the command guards or invoke absolute binary paths to
+evade them.
+
+Prepare TestFlight/App Store metadata as local files or draft PRs only. Write an
+escalation only when maintainer intervention is genuinely required.
+EOF
+)
+else
+PUBLIC_WRITE_POLICY=$(cat <<'EOF'
+# Public write policy
+
+Autonomy mode: review.
 
 Use the public CodePilot identity. Do not mention private names, private email
 addresses, personal hosts, local usernames, machine-specific paths, tokens, or
@@ -154,6 +185,7 @@ Prepare TestFlight/App Store metadata as local files only. Write an escalation
 only when maintainer intervention is genuinely required.
 EOF
 )
+fi
 
 prompt_file="$(mktemp "${TMPDIR:-/tmp}/codepilot-agent-prompt.XXXXXX")"
 trap 'rm -f "$prompt_file" 2>/dev/null || true; rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
