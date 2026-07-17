@@ -1,8 +1,8 @@
-# CodePilot
+# CodePilot Public Beta
 
-CodePilot is a Mac menu bar app and iPhone companion for running coding-agent sessions from a Mac you control. It currently focuses on Codex account switching, usage visibility, remote iPhone access, file uploads, connector status, notifications, and gateway-backed conversation control.
+CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI coding users who already run Codex CLI on a Mac they control.
 
-The project is designed to become provider-neutral over time, including future Claude Code compatibility.
+The public beta focuses on Codex account switching, usage visibility, remote iPhone access through a user-owned Cloudflare Tunnel, file uploads, connector status, notifications, and gateway-backed conversation control. The project is designed to become provider-neutral over time, but the first beta is Codex-focused.
 
 ## License
 
@@ -59,7 +59,8 @@ See:
 - [Support](docs/SUPPORT.md)
 - [Changelog](docs/CHANGELOG.md)
 - [App Store Metadata Draft](docs/APP_STORE_METADATA_DRAFT.md)
-- [Screenshot Plan](metadata/screenshots/README.md)
+- [Screenshot Plan](docs/SCREENSHOTS.md)
+- [Public Presence Checklist](docs/PUBLIC_PRESENCE_CHECKLIST.md)
 - [Security](docs/SECURITY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Troubleshooting](docs/TROUBLESHOOTING.md)
@@ -82,6 +83,6 @@ See:
 
 No public screenshots are committed yet. The beta screenshot checklist is tracked in [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) so public images use demo data and avoid tokens, hostnames, local paths, private prompts, account names, or live desktop content.
 
-## Public Release Status
+## Public Beta Status
 
-CodePilot is being prepared for broader publishing. Expect some internal names, bundle identifiers, LaunchAgent labels, and local state paths to still contain legacy Codex-specific names during the first migration phase.
+CodePilot is being prepared for broader publishing through beta-first docs, sanitized screenshots, and maintainer-reviewed App Store metadata. Expect some internal names, bundle identifiers, LaunchAgent labels, and local state paths to still contain legacy Codex-specific names during the first migration phase.
