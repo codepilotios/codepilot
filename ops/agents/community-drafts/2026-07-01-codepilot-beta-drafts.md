@@ -46,7 +46,7 @@ Operational rules for this queue:
 | `r/GenAiApps` | Medium-high | The community is specifically for generative-AI apps. Current rules allow self-promotion when it provides value and context, require an appropriate flair, prohibit spam/duplicate or low-effort posts, require context for links, and prohibit unsafe links or personal information. Source: <https://www.reddit.com/r/GenAiApps/about/> | Good text-first beta-feedback candidate after maintainer approval. Use the `iOS` flair, disclose the maker relationship, explain the Codex-specific workflow, and include no link until the public beta URL is approved. Re-check recent posts and flair options immediately before posting. |
 | `r/vibecoding` | Low / externally gated | CodePilot counts as a developer tool, and the live rules require developer-tool makers to obtain approval by joining the community on X, posting the tool there, and waiting for a moderator DM before making one introduction post. The subreddit also rejects fully generated low-effort content and requires educational detail for project posts. Sources: <https://www.reddit.com/r/vibecoding/about/> and <https://www.reddit.com/r/vibecoding/comments/1mp8oyw/important_new_rules_update_on_selfpromotion/> | Hold. This run may not create or mutate accounts or post on non-GitHub external systems, so it cannot complete the X approval gate. Do not disguise CodePilot promotion as general discussion or a project breakdown. |
 | `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Current rules require posts to be directly related to Codex, use the right flair, avoid low-effort rants, and not use bots. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/about/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. A maintainer must post manually; use text-only feedback framing unless mods approve a beta link. |
-| `r/SideProject` | Medium-high | Community is for sharing and receiving constructive feedback on side projects. Current posts show beta/product feedback asks are common, and recent discussion warns that burying links in comments may be a rule-sensitive pattern. Sources: <https://www.reddit.com/r/SideProject/> and <https://www.reddit.com/r/SideProject/comments/1t7yd6x/post_your_project_looking_for_beta_testers_for_an/> | Good standalone beta feedback post after maintainer approval. Keep it story/feedback-first, avoid engagement manipulation, and use only approved links if links are allowed. |
+| `r/SideProject` | Medium-high | The live About page currently shows no community-specific rules beyond Reddit-wide rules and says anyone may post. Project showcases and beta-feedback requests are common, and a current self-promotion thread explicitly invites projects and feedback. A recent high-engagement community discussion objects to promotion-only accounts and link drops. Sources: <https://www.reddit.com/r/SideProject/about/>, <https://www.reddit.com/r/SideProject/>, <https://www.reddit.com/r/SideProject/comments/1utus1n/whats_everyone_working_on_lets_self_promote/>, and <https://www.reddit.com/r/SideProject/comments/1u07rgx/the_selfish_promotion_epidemic_is_killing_this_sub/> | Prefer the current self-promotion thread over a standalone post. Use the no-link, feedback-specific comment draft after maintainer approval, and re-check the thread and live About page immediately before posting. |
 | `r/iOSProgramming` | Medium | App posts are Saturday-only and limited to one post per app per year. The live App Saturday guide requires `Tech Stack Used`, `Development Challenge + How You Solved It`, and `AI Disclosure` content. The live rule also asks authors not to post without previous community activity but does not state a numeric karma threshold. Sources: <https://www.reddit.com/r/iOSProgramming/about/> and <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/> | Approval required. Hold until Saturday and do not use a new/inactive `codepilotios` account. |
 | `r/swift` | Medium | Self-promotion must be under 5% of the account's posts and comments in the subreddit. It is not allowed with fewer than 5 posts/comments in the sub or when the account is under 2 months old. Source: <https://www.reddit.com/r/swift/about/> | Approval required. Do not post from a new `codepilotios` account. Use only after the account age, activity, and contribution-ratio thresholds are met. |
 | `r/SwiftUI` | Low-medium for technical discussion only | Posts must be specifically about SwiftUI rather than general app feedback. App promotion is permitted only when source code is also provided, preferably through GitHub; low-effort showcases and questions without relevant code are discouraged. Source: <https://www.reddit.com/r/SwiftUI/about/> | Do not use for tester recruitment. Consider only a focused SwiftUI implementation discussion after the relevant source, code excerpt, and public repository have passed launch review. Maintainer approval is still required. |
@@ -70,6 +70,7 @@ Operational rules for this queue:
 - `r/GenAiApps`: general rules allow valuable self-promotion, but a maintainer must still approve the final post. Use the `iOS` flair, provide useful context, avoid repeat or low-effort promotion, and include no link until the public beta URL is approved.
 - `r/vibecoding`: do not post or prepare a disguised discussion placement. Developer-tool promotion requires prior approval through an X community post and moderator DM; satisfying that gate requires a maintainer-controlled external account action that this agent is not authorized to perform.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply, and the explicit no-bots rule means a maintainer must post manually.
+- `r/SideProject`: the live About page currently lists no community-specific rules, but community sentiment strongly disfavors promotion-only participation. Prefer the current self-promotion thread, post manually only after maintainer approval, disclose the maker relationship, and use the no-link feedback draft rather than a standalone launch post.
 - `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, and mandatory App Saturday content sections. The live rules do not currently state a numeric karma threshold, but eligibility must still be re-checked before posting.
 - `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit; self-promotional content must also remain below 5% of the account's posts and comments there.
 - `r/SwiftUI`: no tester-recruitment post. A later technical discussion requires a concrete SwiftUI question, relevant source code, an approved public repository if linked, and maintainer approval.
@@ -536,6 +537,37 @@ The project has three parts: a Mac menu bar app for local account and usage stat
 I am sharing the repository for technical and setup feedback, not asking for stars or votes. The feedback I would value most is whether the trust boundary is understandable, whether the setup documentation makes the gateway and tunnel responsibilities clear, and which parts of the repository should be easier to audit or contribute to.
 
 GitHub: [APPROVED_PUBLIC_GITHUB_REPOSITORY_URL]
+```
+
+## Draft 13: `r/SideProject` Self-Promotion Thread Comment
+
+Posting target: the current `r/SideProject` self-promotion thread.
+
+Approval status: needs maintainer approval before posting. Post manually from an
+approved identity; do not use an automated or promotion-only account.
+
+Rule and community notes:
+- The live About page currently lists no community-specific posting rules, so
+  Reddit-wide authenticity and spam rules still apply.
+- Prefer a current thread that explicitly invites self-promotion rather than a
+  standalone launch post.
+- Disclose the maker relationship and ask for specific product feedback.
+- Use the no-link version unless a direct public beta URL is separately approved.
+- Do not ask for upvotes, stars, follows, direct messages, or personal data.
+- Re-check the live About page and target thread immediately before posting.
+
+```text
+Hi, I am the maker of CodePilot. It is a beta Mac + iPhone companion for people who run Codex sessions on a Mac they control.
+
+I built it around a specific problem: a coding-agent turn can keep running after I leave my desk, but I do not want to move provider credentials or project files to another hosted service. CodePilot leaves those on the Mac. A token-protected local gateway gives the iPhone client narrow access to session status, threads, file uploads, notifications, and controls to steer or stop an active turn. The current public-beta remote path uses a Cloudflare Tunnel controlled by the tester.
+
+I am looking for blunt feedback on the idea before broader distribution:
+
+- Is checking or steering a coding-agent session from a phone a real workflow, or just a smaller terminal-shaped distraction?
+- Does the Mac gateway plus user-owned tunnel model feel understandable?
+- Which part would stop you from trying the beta: setup effort, token handling, remote access, or something else?
+
+This is a feedback request, not an upvote request. I have left out the beta link until public distribution is approved. Please do not share credentials, gateway tokens, private hostnames, logs, or project files in replies.
 ```
 
 ## Hacker News / Show HN Outline

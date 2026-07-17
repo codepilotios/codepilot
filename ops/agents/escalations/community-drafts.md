@@ -24,6 +24,9 @@ Status: maintainer action required before any public posting.
 - For `r/github`, approve an accessible, privacy-audited public repository URL
   before using the prepared self-promotion megathread comment. Do not post the
   placeholder or use a standalone feed post.
+- For `r/SideProject`, approve the prepared no-link comment and have a human use
+  the current self-promotion thread. Do not use a standalone launch post or a
+  promotion-only account; re-check the live About page and thread first.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 
