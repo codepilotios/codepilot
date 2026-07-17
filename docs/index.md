@@ -42,6 +42,7 @@ Use the structured templates so reports include the failing step and visible rec
 ## Before You Install
 
 - Use a Mac you control and keep the gateway bearer token private.
+- Keep that Mac awake and online, with the CodePilot gateway and Cloudflare Tunnel running, while using the iPhone companion.
 - Review the [privacy](PRIVACY.md) and [security](SECURITY.md) guidance before exposing the gateway through Cloudflare Tunnel.
 - Expect beta limitations and recovery work. CodePilot does not replace Codex CLI or provide a hosted CodePilot account service.
 - Sanitize logs and screenshots before opening a public issue.

@@ -24,6 +24,18 @@ Not yet. The name is provider-neutral, but the first beta is Codex-focused. Futu
 
 Yes for the public beta iPhone setup path. The Mac gateway listens on local loopback by default, so the iPhone app uses a Cloudflare Tunnel URL until CodePilot provides an explicit LAN-binding mode with firewall and trust guidance.
 
+## Does my Mac need to stay awake and online?
+
+Yes. The CodePilot gateway, Codex CLI, and Cloudflare Tunnel run from your Mac. The iPhone companion cannot reach sessions while that Mac is asleep, offline, or no longer running the gateway or tunnel. The current beta does not provide a hosted relay or wake the Mac remotely.
+
+## What happens to files I upload from iPhone?
+
+Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot state directory on the Mac. They are not removed automatically after a turn. Delete files you no longer need, and remember that a selected attachment can be sent to Codex and OpenAI when you use it in a turn. See [Privacy](PRIVACY.md) for the full beta data flow.
+
+## Can CodePilot switch accounts while a turn is running?
+
+Automatic switching waits for active turns to finish. Avoid manually changing Codex auth files while turns are running; use CodePilot's account controls so a new profile is applied safely to later turns.
+
 ## Is Remote Desktop included in the public beta?
 
 No. Remote Desktop remains outside the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable it in beta builds yet.

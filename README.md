@@ -57,6 +57,8 @@ The Mac app currently builds from source on macOS 13 or later. The iPhone compan
 6. Configure Cloudflare Tunnel for public-beta iPhone access.
 7. If you have an approved iPhone beta build, install it and enter the gateway URL plus bearer token.
 
+Keep the Mac awake and online, with the CodePilot gateway and Cloudflare Tunnel running, while using the iPhone companion. The current beta has no hosted relay that can reach an offline Mac.
+
 See:
 
 - [Mac Installation](docs/INSTALL_MAC.md)

@@ -12,7 +12,7 @@ The following public-publishing decisions are approved:
 
 ## Pending Maintainer Action
 
-The 2026-07-17 public repository review found two launch-readiness settings that require maintainer access:
+Reverified on 2026-07-18. The public repository review found two launch-readiness settings that require maintainer access and one unresolved release blocker:
 
 1. Enable GitHub Pages from the approved `main` branch `docs/` folder, verify the site, and add its URL to the repository website field. The Pages endpoint and repository website field are currently unset.
 2. Enable GitHub private vulnerability reporting, then link the private reporting form from `docs/SECURITY.md` and the security issue-template contact link. Private vulnerability reporting is currently disabled, so public copy must not imply that a secure reporting channel exists.
