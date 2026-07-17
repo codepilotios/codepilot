@@ -30,6 +30,8 @@ def safe_extract(bundle, destination):
             target = os.path.abspath(os.path.join(destination, member.name))
             if target != root and not target.startswith(root + os.sep):
                 raise RuntimeError(f"Refusing unsafe archive member: {member.name}")
+            if not (member.isdir() or member.isreg()):
+                raise RuntimeError(f"Refusing non-file archive member: {member.name}")
         try:
             archive.extractall(destination, filter="data")
         except TypeError:

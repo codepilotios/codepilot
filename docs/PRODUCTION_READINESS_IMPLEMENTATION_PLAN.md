@@ -323,7 +323,7 @@ curl -fsS -X POST http://127.0.0.1:8787/codexphone/api/build
 curl -fsS http://127.0.0.1:8787/codexphone/api/status
 ```
 
-Wait until `current.state == "complete"`, then verify the manifest and IPA from the approved OTA host, for example `https://ota.example.com`, return HTTP 200.
+Wait until `current.state == "complete"`, then verify the manifest and IPA from `https://ota.example.com` return HTTP 200.
 
 - [ ] **Step 8: Commit**
 

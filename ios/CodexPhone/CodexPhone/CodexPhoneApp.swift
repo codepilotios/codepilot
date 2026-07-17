@@ -31,8 +31,6 @@ struct CodexPhoneApp: App {
             switch arguments[index] {
             case "--gateway-url" where arguments.indices.contains(index + 1):
                 UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayURL")
-            case "--gateway-token" where arguments.indices.contains(index + 1):
-                SecureGatewayTokenStore.save(arguments[index + 1])
             default:
                 break
             }

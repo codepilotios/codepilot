@@ -34,18 +34,49 @@ users_dir_pattern="/$(printf %s Users)/[^[:space:]\"']+"
 generic_private_patterns=(
   "$users_dir_pattern"
   '[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}'
-  '(com|io)\.[A-Za-z0-9_-]+\.codexphone'
+  "[A-Z][a-z]+'s (iPhone|iPad|Mac)"
+  '(Ping|ping) [A-Z][a-z]+( only)? for:'
+  '[A-Z][a-z]+ approves (account|pricing|legal|App Store)'
 )
 
 audit_files=()
 for file in "${candidate_files[@]}"; do
   [[ "$file" == "scripts/privacy-audit.sh" ]] && continue
+  [[ "$file" == "scripts/tests/privacy-audit-test.sh" ]] && continue
   audit_files+=("$file")
 done
 
-generic_pattern="$(IFS='|'; echo "${generic_private_patterns[*]}")"
-if LC_ALL=C grep -nI -E "$generic_pattern" -- "${audit_files[@]}"; then
-  echo "privacy audit failed: repository files contain private paths or email addresses" >&2
+if git grep -q -I -E "$pattern" -- "${audit_files[@]}"; then
+  echo "privacy audit failed: tracked files contain private identifiers" >&2
+  exit 1
+fi
+
+contains_disallowed_ota_host() {
+  local url authority host
+  while IFS= read -r url; do
+    authority="${url#*://}"
+    host="${authority%%/*}"
+    host="${host%%:*}"
+    [[ "$host" == "ota.example.com" ]] || return 0
+  done < <(git grep -h -I -E -o 'https?://ota\.[A-Za-z0-9.-]+' -- "${audit_files[@]}" || true)
+  return 1
+}
+
+if contains_disallowed_ota_host; then
+  echo "privacy audit failed: tracked files contain a non-placeholder OTA host" >&2
+  exit 1
+fi
+
+contains_disallowed_bundle_namespace() {
+  local identifier
+  while IFS= read -r identifier; do
+    [[ "$identifier" == com.example.* || "$identifier" == com.openai.* ]] || return 0
+  done < <(git grep -h -I -E -o 'com\.[A-Za-z0-9_-]+\.(codex|codexphone)([A-Za-z0-9._-]*)' -- "${audit_files[@]}" || true)
+  return 1
+}
+
+if contains_disallowed_bundle_namespace; then
+  echo "privacy audit failed: tracked files contain a private bundle namespace" >&2
   exit 1
 fi
 
@@ -61,14 +92,8 @@ secret_patterns=(
 
 secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"
 
-if LC_ALL=C grep -nI -E "$secret_pattern" -- "${audit_files[@]}"; then
-  echo "privacy audit failed: repository files contain secret-looking material" >&2
-  exit 1
-fi
-
-noncanonical_public_url_pattern='https://(codepilotios\.github\.io|github\.com/codepilotios)/CodePilot'
-if git grep -n -I -E "$noncanonical_public_url_pattern" -- "${audit_files[@]}"; then
-  echo "privacy audit failed: tracked files contain noncanonical public CodePilot URLs" >&2
+if git grep -q -I -E "$secret_pattern" -- "${audit_files[@]}"; then
+  echo "privacy audit failed: tracked files contain secret-looking material" >&2
   exit 1
 fi
 

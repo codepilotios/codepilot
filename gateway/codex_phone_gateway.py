@@ -7,6 +7,7 @@ import contextlib
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+import ipaddress
 import json
 import mimetypes
 import os
@@ -255,9 +256,9 @@ class CodexAppServerClient:
         params = {
             "threadId": thread_id,
             "input": [self.text_input(text)],
-            "approvalPolicy": "never",
+            "approvalPolicy": "never" if self.allow_dangerous else "on-request",
             "sandboxPolicy": {
-                "type": "dangerFullAccess",
+                "type": "dangerFullAccess" if self.allow_dangerous else "workspaceWrite",
             },
         }
         if reasoning_effort:
@@ -400,6 +401,16 @@ def read_or_create_token(path: Path) -> str:
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
         handle.write(token + "\n")
     return token
+
+
+def is_loopback_host(host: str) -> bool:
+    value = str(host or "").strip().strip("[]")
+    if value.casefold() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(value).is_loopback
+    except ValueError:
+        return False
 
 
 def base64url(data: bytes) -> str:
@@ -5028,7 +5039,15 @@ def main():
     parser.add_argument("--codex-path", default=str(DEFAULT_CODEX))
     parser.add_argument("--token-file", default=str(DEFAULT_TOKEN_FILE))
     parser.add_argument("--allow-dangerous", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "--allow-non-loopback",
+        action="store_true",
+        help="Allow direct binding outside loopback. Use only behind a trusted TLS/authentication proxy.",
+    )
     args = parser.parse_args()
+
+    if not is_loopback_host(args.host) and not args.allow_non_loopback:
+        parser.error("Refusing a non-loopback bind without --allow-non-loopback")
 
     token = read_or_create_token(Path(args.token_file))
     state = GatewayState(

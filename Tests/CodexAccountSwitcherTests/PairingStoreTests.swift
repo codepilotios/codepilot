@@ -11,7 +11,7 @@ final class PairingStoreTests: XCTestCase {
 
         let challenge = store.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )
@@ -35,7 +35,7 @@ final class PairingStoreTests: XCTestCase {
         let expiredStore = try makeStore(clock: { expiredNow })
         let expiredChallenge = expiredStore.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )
@@ -56,7 +56,7 @@ final class PairingStoreTests: XCTestCase {
         let privateKey = P256.Signing.PrivateKey()
         let challenge = store.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )
@@ -93,7 +93,7 @@ final class PairingStoreTests: XCTestCase {
         let wrongPrivateKey = P256.Signing.PrivateKey()
         let challenge = store.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )
@@ -120,7 +120,7 @@ final class PairingStoreTests: XCTestCase {
         let privateKey = P256.Signing.PrivateKey()
         let challenge = store.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )
@@ -148,7 +148,7 @@ final class PairingStoreTests: XCTestCase {
         let privateKey = P256.Signing.PrivateKey()
         let challenge = store.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )
@@ -171,7 +171,7 @@ final class PairingStoreTests: XCTestCase {
         let privateKey = P256.Signing.PrivateKey()
         let challenge = store.issueChallenge(
             deviceID: "device-1",
-            name: "Taylor's iPhone",
+            name: "Test iPhone",
             publicKeyRawRepresentation: privateKey.publicKey.rawRepresentation,
             macName: "Studio Mac"
         )

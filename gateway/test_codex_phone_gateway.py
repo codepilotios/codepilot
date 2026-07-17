@@ -10,7 +10,7 @@ from unittest import mock
 from pathlib import Path
 
 import codex_phone_gateway as gateway
-from codex_phone_gateway import CodexAppServerClient, GatewayState, format_stream_event
+from codex_phone_gateway import CodexAppServerClient, GatewayState, format_stream_event, is_loopback_host
 
 
 class FakeAppServerProcess:
@@ -113,6 +113,14 @@ class FakeRemoteLoginProcess:
 
 
 class AppServerClientTests(unittest.TestCase):
+    def test_gateway_bind_host_recognizes_only_loopback_addresses(self):
+        for host in ("localhost", "127.0.0.1", "127.9.8.7", "::1", "[::1]"):
+            with self.subTest(host=host):
+                self.assertTrue(is_loopback_host(host))
+        for host in ("0.0.0.0", "::", "192.0.2.10", "gateway.example.com", ""):
+            with self.subTest(host=host):
+                self.assertFalse(is_loopback_host(host))
+
     def setUp(self):
         self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
         self._switcher_home_tempdir = tempfile.TemporaryDirectory()
@@ -527,6 +535,47 @@ class AppServerClientTests(unittest.TestCase):
 
         self.assertEqual(turn["method"], "turn/start")
         self.assertEqual(turn["params"]["effort"], "medium")
+
+    def test_turn_start_uses_safe_policy_by_default(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "turn-id", "result": {"turn": {"id": "turn-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "turn-id"]).__next__,
+        )
+
+        client.start()
+        client.turn_start("thread-1", "Hello")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        turn = sent[2]
+
+        self.assertEqual(turn["params"]["approvalPolicy"], "on-request")
+        self.assertEqual(turn["params"]["sandboxPolicy"], {"type": "workspaceWrite"})
+
+    def test_turn_start_allows_dangerous_mode_only_when_explicitly_enabled(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "turn-id", "result": {"turn": {"id": "turn-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "turn-id"]).__next__,
+            allow_dangerous=True,
+        )
+
+        client.start()
+        client.turn_start("thread-1", "Hello")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        turn = sent[2]
+
+        self.assertEqual(turn["params"]["approvalPolicy"], "never")
+        self.assertEqual(turn["params"]["sandboxPolicy"], {"type": "dangerFullAccess"})
 
     def test_thread_start_maps_minimal_reasoning_effort_to_medium(self):
         process = FakeAppServerProcess([

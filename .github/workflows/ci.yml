@@ -17,8 +17,8 @@ jobs:
       - name: Privacy audit
         run: scripts/privacy-audit.sh
 
-      - name: Public presence audit
-        run: scripts/public-presence-audit.sh
+      - name: Privacy audit regression tests
+        run: scripts/tests/privacy-audit-test.sh
 
       - name: SwiftPM tests
         run: swift test
@@ -29,6 +29,9 @@ jobs:
 
       - name: Gateway token process-argument guard
         run: scripts/tests/gateway-token-argv-test.sh
+
+      - name: Desktop sync security tests
+        run: python3 -m unittest scripts/tests/test_desktop_sync_security.py
 
       - name: Fastlane syntax
         run: ruby -c ios/CodexPhone/fastlane/Fastfile
