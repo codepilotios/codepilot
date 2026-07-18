@@ -6,6 +6,7 @@ Detailed security findings are intentionally not stored in the public repository
 
 Before public launch, maintainer coordination is still required for:
 
+- Reviewing and resolving the open GitHub secret-scanning alert through the private security channel, including revocation or rotation where applicable.
 - A confidential review before any currently disabled privileged remote-access feature is re-enabled.
 - A credential and edge-access architecture review for the remotely reachable gateway.
 - Sanitizing historical private identifiers and commit metadata, followed by coordinated clone migration.

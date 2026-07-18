@@ -1159,6 +1159,20 @@ class GatewayStateTests(unittest.TestCase):
         self.assertNotIn("private-capability", rendered)
         self.assertNotIn("/private/file", rendered)
 
+    def test_gateway_logs_omit_file_path_queries(self):
+        handler = object.__new__(gateway.Handler)
+        handler.command = "GET"
+        handler.path = "/api/files/download?path=/private/file"
+        handler.request_version = "HTTP/1.1"
+
+        with mock.patch.object(handler, "log_message") as log_message:
+            handler.log_request(200, 42)
+
+        format_string, *arguments = log_message.call_args.args
+        rendered = format_string % tuple(arguments)
+        self.assertIn("/api/files/download", rendered)
+        self.assertNotIn("/private/file", rendered)
+
     def test_gateway_logs_escape_control_characters(self):
         handler = object.__new__(gateway.Handler)
         handler.client_address = ("127.0.0.1", 12345)

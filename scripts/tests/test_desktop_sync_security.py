@@ -54,6 +54,24 @@ class DesktopSyncSecurityTests(unittest.TestCase):
             destination.mkdir()
             importer.safe_extract(bundle, destination)
             self.assertEqual((destination / "manifest.json").read_bytes(), content)
+            self.assertEqual(stat.S_IMODE((destination / "manifest.json").stat().st_mode), 0o600)
+
+    def test_import_rejects_duplicate_file_members(self):
+        importer = load_import_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_path = Path(temporary)
+            bundle = temporary_path / "bundle.tgz"
+            with tarfile.open(bundle, "w:gz") as archive:
+                for content in (b"first", b"second"):
+                    member = tarfile.TarInfo("manifest.json")
+                    member.size = len(content)
+                    archive.addfile(member, io.BytesIO(content))
+
+            destination = temporary_path / "extract"
+            destination.mkdir()
+            with self.assertRaises(FileExistsError):
+                importer.safe_extract(bundle, destination)
+            self.assertEqual((destination / "manifest.json").read_bytes(), b"first")
 
     def test_export_bundle_is_owner_only(self):
         with tempfile.TemporaryDirectory() as temporary:
