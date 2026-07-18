@@ -28,7 +28,7 @@ CodePilot is source-available for noncommercial use. It is not OSI open source. 
 - [Troubleshooting](TROUBLESHOOTING.md)
 - [FAQ](FAQ.md)
 - [Beta feedback guide](BETA_FEEDBACK.md)
-- [Privacy and beta data flow](PRIVACY.md#beta-data-flow-at-a-glance)
+- [Privacy, beta data flow, and deletion](PRIVACY.md#beta-data-flow-at-a-glance)
 - [Security](SECURITY.md)
 - [Support](SUPPORT.md)
 - [Changelog](CHANGELOG.md)

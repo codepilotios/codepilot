@@ -66,7 +66,7 @@ See:
 - [Cloudflare Setup](docs/CLOUDFLARE_SETUP.md)
 - [FAQ](docs/FAQ.md)
 - [Beta Feedback Guide](docs/BETA_FEEDBACK.md)
-- [Privacy and beta data flow](docs/PRIVACY.md#beta-data-flow-at-a-glance)
+- [Privacy, beta data flow, and deletion](docs/PRIVACY.md#beta-data-flow-at-a-glance)
 - [Support](docs/SUPPORT.md)
 - [Changelog](docs/CHANGELOG.md)
 - [App Store Metadata Draft](docs/APP_STORE_METADATA_DRAFT.md)

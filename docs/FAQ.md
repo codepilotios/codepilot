@@ -40,6 +40,12 @@ Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot st
 
 One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit. These are request limits, not an automatic cleanup policy.
 
+## How do I remove beta data?
+
+Delete unneeded uploads from `~/.codex-account-switcher/phone-uploads/` on the Mac. Other saved profiles, gateway settings, notification registrations, and Live Activity registrations remain in the CodePilot state directory until you remove or replace them. On iPhone, clear or replace the saved gateway URL and token before handing the device to someone else; deleting the app removes its local app container according to iOS behavior.
+
+Removing local CodePilot data does not delete information retained separately by Codex, OpenAI, Cloudflare, or Apple. See [Privacy](PRIVACY.md#retention-and-deletion) for the full retention and deletion summary, and back up any account profile you still need before removing CodePilot state.
+
 ## Can I open a localhost link from the iPhone app?
 
 Yes. When Codex output contains an `http` or `https` link for `localhost`, `127.0.0.1`, or `::1`, CodePilot can open it in an in-app browser through the authenticated Mac gateway. The web server must be running on the Mac, and the short-lived local-web session must still be active.

@@ -38,6 +38,16 @@ Do not commit these files, include them in public issues, or show them in screen
 
 Uploaded files remain under the CodePilot state directory after a turn finishes. The current beta does not automatically remove them; delete uploads from the Mac when they are no longer needed.
 
+## Retention And Deletion
+
+CodePilot does not operate a hosted account, analytics, or relay service for the current repository beta, so there is no separate hosted CodePilot copy to request from the project maintainers. Data stored by the beta remains on the Mac or iPhone until you remove it, reset it, or uninstall the relevant app. In particular:
+
+- Uploaded files remain in `~/.codex-account-switcher/phone-uploads/` until you delete them on the Mac.
+- Saved account profiles, gateway configuration, registered notification devices, and Live Activity registrations remain in the CodePilot state directory until you remove or replace them.
+- The iPhone app keeps its gateway URL, bearer token, and app preferences in local app storage. Clear or replace the connection values before giving the device to someone else; deleting the app removes its local app container according to iOS behavior.
+
+Removing CodePilot data does not delete data retained separately by Codex, OpenAI, Cloudflare, or Apple. Use each provider's account and data controls for data processed or retained by that service. Back up any local account profile you still need before removing CodePilot state, and never paste the state files or their contents into a public support request.
+
 ## Mac Gateway
 
 The CodePilot gateway runs on your Mac and requires a bearer token. It exposes CodePilot features to trusted clients, including account status, usage status, thread access, file upload, notification registration, and turn controls where supported.
