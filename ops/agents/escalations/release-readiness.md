@@ -1,14 +1,14 @@
 # CodePilot Release Readiness Escalation
 
-Date: 2026-07-18
+Date: 2026-07-19
 
 Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. Local builds, gateway tests, and public CI are healthy, but release identity, signing/App Store Connect access, privacy work, screenshots, and review metadata remain blocked.
 
 ## Verified Locally
 
-- `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
+- `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. Supplemental current-tree scans found no credible secrets, private paths, local username/hostname, or private email exposure, and Git is configured with the public CodePilot identity. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
 - `swift test`: passed; 78 tests, 0 failures.
-- The release-readiness draft PR and the open draft PRs referenced below remain mergeable, and their latest completed public CI checks passed. This worktree was also re-verified locally on July 18.
+- The release-readiness draft PR and the open draft PRs referenced below remain mergeable, and their latest completed public CI checks passed. This worktree was also re-verified locally on July 19.
 - Gateway unit tests: passed with Python 3.13; 112 tests, 0 failures. An alternate Xcode-provided Python 3.9 invocation cannot import `tomllib`, confirming that local gateway verification must use the documented Python 3.11-or-newer runtime.
 - macOS Swift release build: passed.
 - iOS clean Release simulator build: passed with code signing disabled.
@@ -18,7 +18,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, entitlements, and version metadata JSON validation passed. With the supported Ruby 4.0.4 and Bundler 4.0.11 selected explicitly, `bundle check` and Fastlane lane discovery pass. The default unattended working-directory environment still selects system Ruby 2.6 and cannot start the lockfile-required Bundler, so the release entrypoint is not yet deterministic. No signed archive or upload lane was run.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
-- A July 18 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403. No OTA build or external-state mutation was performed in this run.
+- A July 19 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403. No OTA build or external-state mutation was performed in this run.
 
 ## Release Blockers
 
