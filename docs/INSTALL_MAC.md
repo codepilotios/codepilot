@@ -26,6 +26,21 @@ scripts/build-app.sh
 open "build/CodePilot.app"
 ```
 
+## Update A Source Build
+
+Finish active turns, then update the checkout and rebuild:
+
+```sh
+git pull --ff-only
+scripts/build-app.sh
+scripts/install-switcher-agent.sh
+scripts/install-phone-gateway-agent.sh
+```
+
+The gateway installer defers its restart if it detects an active phone turn. If that happens, let the turn finish and run the gateway installer again. Do not force a restart just to apply a routine update.
+
+If the update changes setup requirements, review the latest [changelog](CHANGELOG.md) and rerun the relevant setup step before reconnecting the iPhone app.
+
 ## Start At Login
 
 The existing helper installs a LaunchAgent for the menu bar app:

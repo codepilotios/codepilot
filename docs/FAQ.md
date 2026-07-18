@@ -8,6 +8,12 @@ CodePilot is for AI coding users who already run Codex CLI on a Mac and want an 
 
 The Mac app currently builds from source on macOS 13 or later using the repository installation guide. The iPhone companion requires iOS 17 or later and access to an approved beta build; CodePilot does not yet advertise a public TestFlight invitation or App Store download.
 
+## How do I update the beta?
+
+For the Mac source build, finish active turns, pull the latest approved branch, rebuild the app, and rerun the menu bar and gateway installers. The gateway installer waits rather than interrupting an active phone turn. Follow the [Mac update steps](INSTALL_MAC.md#update-a-source-build) and review the [changelog](CHANGELOG.md) for setup changes.
+
+Install iPhone updates only through the approved beta distribution channel you already use. This repository does not advertise a public TestFlight invitation or App Store download yet.
+
 ## Is CodePilot ready for production teams?
 
 No. The current release track is a public beta. Use it on a trusted Mac, expect rough edges, and review the security and privacy docs before exposing the gateway outside your local network.

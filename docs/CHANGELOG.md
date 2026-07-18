@@ -43,6 +43,7 @@
 - Documented the iPhone attachment count and size limits so beta users can recover from rejected uploads without sharing private files.
 - Added notification and file-upload recovery checklists to the public iPhone, FAQ, and troubleshooting guidance.
 - Aligned Fastlane's default privacy and marketing URLs with the canonical lowercase public repository path and the prepared GitHub Pages privacy page.
+- Added a safe source-build update path that preserves active turns and separates Mac updates from approved iPhone beta distribution.
 
 ### Recent Product Work
 
