@@ -63,3 +63,4 @@ Use only the DNS hostname with `--hostname`, not the full `https://` URL and not
 - **502 from Cloudflare**: start the CodePilot gateway and restart the Cloudflare tunnel.
 - **401/403**: copy the current iOS connection token from the Mac app into the iPhone app.
 - **Works locally but not remotely**: check the Cloudflare LaunchAgent logs in `~/Library/Logs/`.
+- **Verification cannot reach the hostname**: the check stops after 15 seconds. Confirm the Mac is online, restart the gateway and tunnel, then retry **Verify Remote Access**.

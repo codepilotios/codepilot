@@ -2846,6 +2846,8 @@ enum CodePilotCloudflareErrorMapper {
             return "Cloudflare did not create a new tunnel. Confirm you are signed in, choose an unused tunnel name, then retry."
         case 23:
             return "The remote URL did not report a running CodePilot gateway. Start or restart the gateway and tunnel, then retry verification."
+        case 24:
+            return "Could not reach the remote URL within 15 seconds. Confirm the Mac gateway and Cloudflare tunnel are running, then retry."
         default:
             return "Cloudflare setup did not finish. Open details, review the last command output, and retry the failed step."
         }

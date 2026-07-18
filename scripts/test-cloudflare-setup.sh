@@ -136,6 +136,13 @@ if "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-stopped.
 fi
 grep -qi "running CodePilot gateway" /tmp/codepilot-stopped.err || fail "stopped-gateway failure should identify the readiness requirement"
 
+write_stub curl 'print -r -- "$*" > "$HOME/curl-args"; exit 28'
+if "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-unreachable.out 2>/tmp/codepilot-unreachable.err; then
+  fail "verify should reject an unreachable tunnel"
+fi
+grep -qi "within 15 seconds" /tmp/codepilot-unreachable.err || fail "unreachable tunnel failure should include a bounded retry message"
+grep -q -- "--connect-timeout 5 --max-time 15" "$HOME/curl-args" || fail "verification request should use bounded connection and total timeouts"
+
 write_stub curl 'echo "{\"gateway\":{\"running\":true}}"'
 
 "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-verify.out

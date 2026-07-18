@@ -87,5 +87,9 @@ final class CloudflareSetupTests: XCTestCase {
             CodePilotCloudflareErrorMapper.message(forExitCode: 23),
             "The remote URL did not report a running CodePilot gateway. Start or restart the gateway and tunnel, then retry verification."
         )
+        XCTAssertEqual(
+            CodePilotCloudflareErrorMapper.message(forExitCode: 24),
+            "Could not reach the remote URL within 15 seconds. Confirm the Mac gateway and Cloudflare tunnel are running, then retry."
+        )
     }
 }

@@ -367,7 +367,10 @@ if configured_hostname != verified_hostname:
     raise SystemExit(2)
 PY
   local health_response
-  health_response="$(curl -fsS "$url/api/health")"
+  if ! health_response="$(curl -fsS --connect-timeout 5 --max-time 15 "$url/api/health")"; then
+    echo "Could not reach $url/api/health within 15 seconds. Confirm the Mac gateway and Cloudflare tunnel are running, then retry." >&2
+    exit 24
+  fi
   /usr/bin/python3 - "$url" "$health_response" <<'PY'
 import json
 import sys
