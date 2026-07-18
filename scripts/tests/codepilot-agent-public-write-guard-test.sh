@@ -22,6 +22,10 @@ if [[ "$1" == "branch" && "$2" == "--show-current" ]]; then
   printf '%s\n' "${CODEPILOT_FAKE_GIT_BRANCH:-agent/test}"
   exit 0
 fi
+if [[ "$1" == "remote" && "$2" == "get-url" && "$3" == "origin" ]]; then
+  printf '%s\n' "${CODEPILOT_FAKE_GIT_REMOTE_URL:-https://github.com/codepilotios/codepilot.git}"
+  exit 0
+fi
 if [[ "$1" == "config" && "$2" == "--get" && "$3" == "alias.publish" ]]; then
   [[ "${CODEPILOT_FAKE_GIT_ALIAS:-}" == "publish" ]] || exit 1
   printf '%s\n' 'push'
@@ -180,6 +184,11 @@ grep -qx 'create' "$TMP_ROOT/capture"
 
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance
 grep -qx 'push' "$TMP_ROOT/capture"
+
+if CODEPILOT_FAKE_GIT_REMOTE_URL="https://github.com/example/other.git" CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance; then
+  echo "Launch autonomy allowed a push through an unexpected origin URL" >&2
+  exit 1
+fi
 
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance HEAD:refs/heads/main; then
   echo "Launch autonomy allowed a protected refspec beside an agent refspec" >&2

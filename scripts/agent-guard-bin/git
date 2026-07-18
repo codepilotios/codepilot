@@ -4,6 +4,7 @@ set -euo pipefail
 REAL_GIT="${CODEPILOT_AGENT_REAL_GIT:-/usr/bin/git}"
 ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
 AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
+EXPECTED_REPO="${CODEPILOT_AGENT_GITHUB_REPO:-codepilotios/codepilot}"
 
 if [[ "${1:-}" == -* ]]; then
   previous_arg=""
@@ -35,6 +36,19 @@ is_configured_alias() {
   local command_name="${1:-}"
   [[ -n "$command_name" ]] || return 1
   "$REAL_GIT" config --get "alias.$command_name" >/dev/null 2>&1
+}
+
+origin_targets_expected_repo() {
+  local remote_url github_ssh_user="git"
+  remote_url="$("$REAL_GIT" remote get-url origin 2>/dev/null)" || return 1
+  case "$remote_url" in
+    "https://github.com/$EXPECTED_REPO"|"https://github.com/$EXPECTED_REPO.git"|\
+    "${github_ssh_user}@github.com:$EXPECTED_REPO"|"${github_ssh_user}@github.com:$EXPECTED_REPO.git"|\
+    "ssh://${github_ssh_user}@github.com/$EXPECTED_REPO"|"ssh://${github_ssh_user}@github.com/$EXPECTED_REPO.git")
+      return 0
+      ;;
+  esac
+  return 1
 }
 
 if [[ "${1:-}" != -* ]] && is_configured_alias "${1:-}"; then
@@ -106,7 +120,7 @@ if [[ "${1:-}" == "push" ]]; then
       esac
     done
 
-    if (( remote_seen == 1 && allowed_remote == 1 && refspec_count > 0 && reject_push == 0 )); then
+    if (( remote_seen == 1 && allowed_remote == 1 && refspec_count > 0 && reject_push == 0 )) && origin_targets_expected_repo; then
       if [[ -x "$ROOT/scripts/privacy-audit.sh" ]]; then
         (cd "$ROOT" && "$ROOT/scripts/privacy-audit.sh" >/dev/null)
       fi
