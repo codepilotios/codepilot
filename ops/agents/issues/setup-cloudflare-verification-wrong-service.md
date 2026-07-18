@@ -22,4 +22,4 @@ The helper used `curl -fsS` and discarded the response body, so HTTP status alon
 
 ## Local Audit Fix
 
-The `agent/setup-audit` branch now validates the health payload before updating verification metadata. Shell regression tests cover an unrelated HTML response, a stopped gateway payload, and a running CodePilot gateway.
+The `agent/setup-audit` branch now validates the health payload before updating verification metadata. The Mac wizard tells users to restart the gateway and tunnel when the remote URL does not report a running CodePilot gateway. Shell regression tests cover an unrelated HTML response, a stopped gateway payload, and a running CodePilot gateway.

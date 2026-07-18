@@ -79,5 +79,13 @@ final class CloudflareSetupTests: XCTestCase {
             CodePilotCloudflareErrorMapper.message(forExitCode: 21),
             "cloudflared is missing. Install it from the Cloudflare setup step before continuing."
         )
+        XCTAssertEqual(
+            CodePilotCloudflareErrorMapper.message(forExitCode: 22),
+            "Cloudflare did not create a new tunnel. Confirm you are signed in, choose an unused tunnel name, then retry."
+        )
+        XCTAssertEqual(
+            CodePilotCloudflareErrorMapper.message(forExitCode: 23),
+            "The remote URL did not report a running CodePilot gateway. Start or restart the gateway and tunnel, then retry verification."
+        )
     }
 }
