@@ -27,6 +27,8 @@ The iOS client refuses non-HTTPS gateway URLs except for `localhost`, `::1`, and
 
 The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
 
+Do not place infrastructure or connector management tokens in `phone-gateway.env`. The gateway service deliberately does not load `SUPABASE_ACCESS_TOKEN`, and gateway-launched Codex processes scrub gateway-only credentials from their environment. Configure sensitive connectors in a separately trusted local Codex session instead of exposing their bearer tokens to remotely initiated turns.
+
 Cloudflare remote verification sends the gateway token only to the HTTPS origin stored by the permanent-tunnel setup. It rejects alternate hosts, URL credentials, nonstandard ports, and URL extras. Reconfigure the permanent tunnel instead of overriding verification with another URL.
 
 Localhost web sessions use short-lived capability URLs so WebView subresources can load without exposing the gateway bearer token to page content. Do not share those URLs. Sessions are restricted to the selected loopback origin, expire after ten minutes, and have bounded request counts.

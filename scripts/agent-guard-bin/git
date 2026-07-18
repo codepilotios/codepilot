@@ -1,10 +1,13 @@
 #!/usr/bin/env zsh
 set -euo pipefail
+umask 077
 
 REAL_GIT="${CODEPILOT_AGENT_REAL_GIT:-/usr/bin/git}"
 ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
 AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
 EXPECTED_REPO="${CODEPILOT_AGENT_GITHUB_REPO:-codepilotios/codepilot}"
+PUBLIC_AUTHOR_NAME="CodePilot"
+PUBLIC_AUTHOR_EMAIL="codepilotios""@users.noreply.github.com"
 
 if [[ "${1:-}" == -* ]]; then
   previous_arg=""
@@ -51,6 +54,45 @@ origin_targets_expected_repo() {
   return 1
 }
 
+audit_push_commits() {
+  local source_ref="$1"
+  local destination_ref="$2"
+  local remote_tracking_ref="refs/remotes/origin/${destination_ref#refs/heads/}"
+  local base_ref="refs/remotes/origin/main"
+  local range metadata_file messages_file
+
+  if "$REAL_GIT" show-ref --verify --quiet "$remote_tracking_ref"; then
+    base_ref="$remote_tracking_ref"
+  fi
+  "$REAL_GIT" rev-parse --verify --quiet "${source_ref}^{commit}" >/dev/null || return 1
+  "$REAL_GIT" rev-parse --verify --quiet "${base_ref}^{commit}" >/dev/null || return 1
+  range="${base_ref}..${source_ref}"
+
+  metadata_file="$(mktemp "${TMPDIR:-/tmp}/codepilot-push-metadata.XXXXXX")"
+  messages_file="$(mktemp "${TMPDIR:-/tmp}/codepilot-push-messages.XXXXXX")"
+  "$REAL_GIT" log --format='%an%x09%ae%x09%cn%x09%ce' "$range" > "$metadata_file"
+  "$REAL_GIT" log --format='%B' "$range" > "$messages_file"
+
+  local author_name author_email committer_name committer_email
+  while IFS=$'\t' read -r author_name author_email committer_name committer_email; do
+    if [[ "$author_name" != "$PUBLIC_AUTHOR_NAME" \
+      || "$author_email" != "$PUBLIC_AUTHOR_EMAIL" \
+      || "$committer_name" != "$PUBLIC_AUTHOR_NAME" \
+      || "$committer_email" != "$PUBLIC_AUTHOR_EMAIL" ]]; then
+      rm -f "$metadata_file" "$messages_file"
+      echo "CodePilot agent guard blocked a push with non-public commit identity." >&2
+      return 1
+    fi
+  done < "$metadata_file"
+
+  local audit_status=0
+  if [[ -x "$ROOT/scripts/privacy-audit.sh" ]]; then
+    (cd "$ROOT" && CODEPILOT_PRIVACY_EXTERNAL_FILE="$messages_file" "$ROOT/scripts/privacy-audit.sh" >/dev/null) || audit_status=$?
+  fi
+  rm -f "$metadata_file" "$messages_file"
+  return "$audit_status"
+}
+
 if [[ "${1:-}" != -* ]] && is_configured_alias "${1:-}"; then
   echo "CodePilot agent guard blocked a configured git alias." >&2
   exit 77
@@ -87,6 +129,8 @@ if [[ "${1:-}" == "push" ]]; then
     allowed_remote=0
     refspec_count=0
     reject_push=0
+    push_sources=()
+    push_destinations=()
 
     for arg in "${push_args[@]}"; do
       case "$arg" in
@@ -111,6 +155,8 @@ if [[ "${1:-}" == "push" ]]; then
           destination="${refspec##*:}"
           case "$destination" in
             refs/heads/agent/*)
+              push_sources+=("${refspec%%:*}")
+              push_destinations+=("$destination")
               ;;
             *)
               reject_push=1
@@ -124,6 +170,9 @@ if [[ "${1:-}" == "push" ]]; then
       if [[ -x "$ROOT/scripts/privacy-audit.sh" ]]; then
         (cd "$ROOT" && "$ROOT/scripts/privacy-audit.sh" >/dev/null)
       fi
+      for (( index = 1; index <= ${#push_sources}; index++ )); do
+        audit_push_commits "${push_sources[$index]}" "${push_destinations[$index]}" || exit $?
+      done
       exec "$REAL_GIT" "$@"
     fi
   fi

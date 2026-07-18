@@ -62,7 +62,6 @@ allowed_env_keys = {
     "CODEX_PHONE_APNS_KEY_PATH",
     "CODEX_PHONE_APNS_TOPIC",
     "CODEPILOT_FILE_DOWNLOAD_ROOTS",
-    "SUPABASE_ACCESS_TOKEN",
 }
 environment = {}
 if env_path.is_file():

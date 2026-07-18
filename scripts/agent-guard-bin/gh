@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 set -euo pipefail
+umask 077
 
 REAL_GH="${CODEPILOT_AGENT_REAL_GH:-}"
 if [[ -z "$REAL_GH" || ! -x "$REAL_GH" ]]; then
@@ -60,6 +61,47 @@ has_arg() {
   return 1
 }
 
+has_option_value() {
+  local long_option="$1"
+  local short_option="$2"
+  shift 2
+  local expect_value=0
+  local arg
+  for arg in "$@"; do
+    if (( expect_value == 1 )); then
+      [[ -n "$arg" ]] && return 0
+      return 1
+    fi
+    if [[ "$arg" == "$long_option" || "$arg" == "$short_option" ]]; then
+      expect_value=1
+      continue
+    fi
+    if [[ "$arg" == "$long_option="* && -n "${arg#*=}" ]]; then
+      return 0
+    fi
+    if [[ "$arg" == "$short_option"?* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+has_explicit_body() {
+  has_option_value "--body" "-b" "$@" || has_option_value "--body-file" "--body-file" "$@"
+}
+
+uses_unaudited_content_source() {
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --editor|--web|--recover|--recover=*|--template|--template=*|--fill|--fill-first|--fill-verbose)
+        return 0
+        ;;
+    esac
+  done
+  return 1
+}
+
 targets_expected_repo() {
   local repo_target=""
   local expect_repo_value=0
@@ -97,13 +139,22 @@ esac
 if [[ "$AUTONOMY" == "launch" ]]; then
   case "$top:$sub" in
     issue:create)
-      if targets_expected_repo "$@" && body_files_are_tracked "$@"; then
+      if targets_expected_repo "$@" \
+        && body_files_are_tracked "$@" \
+        && has_option_value "--title" "-t" "$@" \
+        && has_explicit_body "$@" \
+        && ! uses_unaudited_content_source "$@"; then
         run_privacy_audit "$@" || exit $?
         exec "$REAL_GH" "$@"
       fi
       ;;
     pr:create)
-      if has_arg "--draft" "$@" && targets_expected_repo "$@" && body_files_are_tracked "$@"; then
+      if has_arg "--draft" "$@" \
+        && targets_expected_repo "$@" \
+        && body_files_are_tracked "$@" \
+        && has_option_value "--title" "-t" "$@" \
+        && has_explicit_body "$@" \
+        && ! uses_unaudited_content_source "$@"; then
         run_privacy_audit "$@" || exit $?
         exec "$REAL_GH" "$@"
       fi

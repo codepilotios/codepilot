@@ -26,6 +26,19 @@ if [[ "$1" == "remote" && "$2" == "get-url" && "$3" == "origin" ]]; then
   printf '%s\n' "${CODEPILOT_FAKE_GIT_REMOTE_URL:-https://github.com/codepilotios/codepilot.git}"
   exit 0
 fi
+if [[ "$1" == "show-ref" ]]; then
+  exit 1
+fi
+if [[ "$1" == "rev-parse" ]]; then
+  exit 0
+fi
+if [[ "$1" == "log" && "$2" == --format=* ]]; then
+  case "$2" in
+    *%an*) printf '%s\t%s\t%s\t%s\n' "${CODEPILOT_FAKE_GIT_AUTHOR_NAME:-CodePilot}" "codepilotios""@users.noreply.github.com" "CodePilot" "codepilotios""@users.noreply.github.com" ;;
+    *%B*) printf '%s\n' "${CODEPILOT_FAKE_GIT_MESSAGE:-Public hardening change}" ;;
+  esac
+  exit 0
+fi
 if [[ "$1" == "config" && "$2" == "--get" && "$3" == "alias.publish" ]]; then
   [[ "${CODEPILOT_FAKE_GIT_ALIAS:-}" == "publish" ]] || exit 1
   printf '%s\n' 'push'
@@ -174,6 +187,11 @@ if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title
   exit 1
 fi
 
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "Setup issue" --recover saved-input; then
+  echo "Launch autonomy allowed recovered issue content" >&2
+  exit 1
+fi
+
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --repo example/other --title unsafe; then
   echo "Launch autonomy allowed issue creation outside the CodePilot repository" >&2
   exit 1
@@ -182,8 +200,28 @@ fi
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" pr create --draft --title "Docs update" --body "Prepared by agent"
 grep -qx 'create' "$TMP_ROOT/capture"
 
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" pr create --draft --fill; then
+  echo "Launch autonomy allowed unaudited commit text to fill a pull request" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" pr create --draft --title "Docs update" --recover saved-input; then
+  echo "Launch autonomy allowed recovered pull request content" >&2
+  exit 1
+fi
+
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance
 grep -qx 'push' "$TMP_ROOT/capture"
+
+if CODEPILOT_FAKE_GIT_AUTHOR_NAME="Private Author" CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance; then
+  echo "Launch autonomy allowed a push with non-public commit identity" >&2
+  exit 1
+fi
+
+if CODEPILOT_FAKE_GIT_MESSAGE="Contact person""@example.net" CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance; then
+  echo "Launch autonomy allowed a push with private commit text" >&2
+  exit 1
+fi
 
 if CODEPILOT_FAKE_GIT_REMOTE_URL="https://github.com/example/other.git" CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance; then
   echo "Launch autonomy allowed a push through an unexpected origin URL" >&2

@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEFAULT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -55,7 +56,6 @@ exec >>"$log_file" 2>&1
 
 echo "== CodePilot agent: $JOB =="
 echo "started_at=$timestamp"
-echo "repo=$ROOT"
 
 cd "$ROOT"
 
@@ -242,7 +242,7 @@ if [[ -n "$AFTER_HASH" && "$AFTER_HASH" != "$BEFORE_HASH" ]]; then
       echo "A CodePilot continuous agent needs intervention."
       echo
       echo "Agent: $JOB"
-      echo "Escalation file: $ESCALATION_FILE"
+      echo "Escalation file: ops/agents/escalations/$JOB.md"
       echo
       sed -n '1,220p' "$ESCALATION_FILE"
     } | "$CODEX_BIN" exec resume "$THREAD_ID" -

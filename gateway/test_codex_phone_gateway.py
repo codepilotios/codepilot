@@ -204,7 +204,7 @@ class AppServerClientTests(unittest.TestCase):
             self.assertNotIn("CODEPILOT_TURN_KEY_ID", env)
             self.assertNotIn("CODEX_PHONE_APNS_KEY_PATH", env)
             self.assertNotIn("CODEPILOT_FILE_DOWNLOAD_ROOTS", env)
-            self.assertEqual(env["SUPABASE_ACCESS_TOKEN"], "connector-secret")
+            self.assertNotIn("SUPABASE_ACCESS_TOKEN", env)
         finally:
             gateway.os.environ.clear()
             gateway.os.environ.update(old_env)
