@@ -44,6 +44,9 @@ DEFAULT_NOTIFICATION_DEVICES_FILE = DEFAULT_SWITCHER_HOME / "phone-notification-
 DEFAULT_LIVE_ACTIVITIES_FILE = DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
 DEFAULT_CODEX = Path("/Applications/ChatGPT.app/Contents/Resources/codex")
 CODEX_CHILD_PATH_PREFIXES = (
+    str(HOME / ".local/bin"),
+    str(HOME / ".npm-global/bin"),
+    str(HOME / ".bun/bin"),
     "/opt/homebrew/bin",
     "/opt/homebrew/sbin",
     "/usr/local/bin",
@@ -2269,7 +2272,13 @@ class GatewayState:
         if self.codex_path.exists():
             return self.codex_path
         resolved = shutil.which("codex")
-        return Path(resolved) if resolved else DEFAULT_CODEX
+        if resolved:
+            return Path(resolved)
+        for directory in CODEX_CHILD_PATH_PREFIXES:
+            candidate = Path(directory) / "codex"
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                return candidate
+        return DEFAULT_CODEX
 
     def active_auth_fingerprint(self) -> str:
         try:

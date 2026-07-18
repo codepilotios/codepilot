@@ -7,6 +7,7 @@ CONTENTS="$APP/Contents"
 MACOS="$CONTENTS/MacOS"
 RESOURCES="$CONTENTS/Resources"
 FRAMEWORKS="$CONTENTS/Frameworks"
+ENTITLEMENTS="$ROOT/scripts/CodePilot.entitlements"
 
 cd "$ROOT"
 swift build -c release
@@ -49,6 +50,8 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
   <string>13.0</string>
   <key>LSUIElement</key>
   <true/>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>CodePilot opens Terminal to run interactive Codex and Cloudflare sign-in commands.</string>
 </dict>
 </plist>
 PLIST
@@ -61,7 +64,7 @@ if [[ -n "$SIGNING_IDENTITY" ]]; then
   if [[ -d "$FRAMEWORKS/LiveKitWebRTC.framework" ]]; then
     codesign --force --timestamp=none --sign "$SIGNING_IDENTITY" "$FRAMEWORKS/LiveKitWebRTC.framework"
   fi
-  codesign --force --timestamp=none --options runtime --identifier io.codepilot.mac --sign "$SIGNING_IDENTITY" "$APP"
+  codesign --force --timestamp=none --options runtime --entitlements "$ENTITLEMENTS" --identifier io.codepilot.mac --sign "$SIGNING_IDENTITY" "$APP"
 else
   echo "warning: no Apple Development signing identity found; macOS permissions may reset after rebuilds" >&2
 fi
