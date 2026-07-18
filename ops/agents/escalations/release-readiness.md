@@ -16,6 +16,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - iOS simulator tests: passed; 37 tests, 0 failures.
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
+- Bundler 4.0.11 installed the locked dependencies successfully; `bundle check`, Fastlane 2.234.0 startup, and lane discovery passed. No signed archive or upload lane was run.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
 - A July 18 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
 
@@ -28,7 +29,6 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - App Store Connect inspection was unavailable in this run. The Apple developer team setting is empty, and the launch guard blocked even `asc auth status`; the app record, processed builds, availability, version attachment, and strict validation therefore could not be checked without maintainer-provided release access.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
 - Public Git history contains legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
-- A Fastlane lockfile is committed, but the system Ruby cannot start it because the lockfile-required Bundler 4.0.11 is unavailable. Both TestFlight lanes upload builds; the external lane also changes tester-group state.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
 - `metadata/version/0.1/en-US.json` still needs approved support and privacy-policy URLs plus App Review notes/contact and gateway access instructions.
 - The App Store draft and canonical JSON currently disagree on subtitle and promotional/keyword copy; reconcile one approved canonical metadata set before staging.
