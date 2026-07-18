@@ -38,7 +38,7 @@ Operational rules for this queue:
 
 | Community | Fit | Rule summary | Recommendation |
 | --- | --- | --- | --- |
-| `r/ChatGPTCoding` | High topical fit, currently gated | The community is currently restricted: anyone may view, but only approved users may contribute. Sidebar/wiki guidance routes service-style promotion to the designated self-promotion thread unless sponsorship is approved by modmail. The latest search-visible official thread reviewed permits project sharing, says one promotion per project, and prohibits selling model access. Sources: <https://www.reddit.com/r/ChatGPTCoding/about/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/> | Hold unless the approved `codepilotios` identity is already an approved contributor and a current self-promotion thread is confirmed. Do not request contributor access or sponsorship solely for this unattended run. Human approval remains required before posting. |
+| `r/ChatGPTCoding` | High topical fit, thread-gated | The community is public. Its rules route service-style promotion to the designated self-promotion thread unless a main-feed sponsorship is approved through modmail. The current official thread permits project sharing, says one promotion per project, and prohibits selling model access; visible removals also show account-karma filtering. Sources: <https://www.reddit.com/r/ChatGPTCoding/about/> and <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/> | Use only the current self-promotion thread after confirming that it is still open and that the approved `codepilotios` identity can comment. Do not request sponsorship solely for this unattended run. Human approval remains required before posting. |
 | `r/TestFlight` | High once the public beta link is live | Live rules require posts to concern a TestFlight app, allow only TestFlight links, require an app-name title without tags such as `[Tester]` or `[Recruiting]`, require platform flair, and ask developers not to flood the feed with repeat posts. Source: <https://www.reddit.com/r/TestFlight/about/> | Best direct tester-recruitment target after the public TestFlight link is verified and approved. Use `iOS` flair, keep the title to the app name plus a short message, and put later updates in comments rather than reposting. |
 | `r/BetaTests` | Medium | The community welcomes product beta-testing and feedback posts, but prohibits spam and low-effort submissions. Posting accounts must be at least 24 hours old and have at least 2 combined Reddit karma. The sidebar says product posts do not need moderator pre-approval. Sources: <https://www.reddit.com/r/betatests/about/> and <https://www.reddit.com/r/betatests/comments/1np8t46/from_today_everyone_can_post_in_rbetatests/> | Useful secondary tester-recruitment target after the identity is approved and eligible. Use the specific no-link feedback draft first, disclose the maker relationship, and add only a separately approved public beta URL. Re-check the live rules immediately before posting. |
 | `r/alphaandbetausers` | Medium | The live About page currently lists no community-specific rules beyond Reddit-wide policy, and recent posts include explicit iOS/TestFlight tester requests. Source: <https://www.reddit.com/r/alphaandbetausers/about/> and recent example: <https://www.reddit.com/r/alphaandbetausers/comments/1uwkucj/looking_for_ios_beta_testers_i_will_test_your_app/> | Useful secondary tester-recruitment target. Use the link-free, feedback-specific draft after maintainer approval; disclose the maker relationship and do not offer reciprocal testing or incentives that have not been approved. Re-check the live About page and recent moderation behavior immediately before posting. |
@@ -66,7 +66,7 @@ Operational rules for this queue:
 ## Rules That Require Approval Before Posting
 
 - Any public Reddit post, comment, or account profile must be approved by a maintainer per the launch plan.
-- `r/ChatGPTCoding`: currently restricted to approved contributors. Hold unless the approved `codepilotios` identity already has contributor access and a current self-promotion thread is confirmed. Main-feed promotion needs modmail/sponsorship approval; do not request access or sponsorship in this unattended run.
+- `r/ChatGPTCoding`: the community is public, but maker-authored service promotion belongs only in the current self-promotion thread. Confirm that the thread is still open and that the approved `codepilotios` identity clears its account-karma filters. Main-feed promotion needs modmail/sponsorship approval; do not request sponsorship in this unattended run.
 - `r/TestFlight`: hold until there is a verified, approved public TestFlight link. Use only that link, select `iOS` flair, keep the title free of recruitment tags, and avoid repeat posts; later updates belong in the original post's comments.
 - `r/BetaTests`: no moderator pre-approval is currently required, but launch-plan maintainer approval still is. Confirm that `codepilotios` is at least 24 hours old and has at least 2 combined Reddit karma. Keep the post specific to beta testing, constructive, and non-spammy; use the no-link draft unless a public beta URL is separately approved.
 - `r/alphaandbetausers`: no community-specific rules are currently shown, but launch-plan maintainer approval still applies. Use the link-free tester-feedback draft, disclose the maker relationship, avoid unapproved incentives or test-for-test promises, and re-check the live rules and recent removals before posting.
@@ -108,11 +108,12 @@ approve the exact copy immediately before every manual post or comment.
 3. **Direct installation:** once a verified public Apple TestFlight URL is
    approved, use Draft 10 in `r/TestFlight` with `iOS` flair and only that link.
    Put later beta updates in the original post's comments rather than reposting.
-4. **Restricted or participation-gated communities:** consider
-   `r/ChatGPTCoding`, `r/AI_Agents`, `r/codex`, `r/iOSProgramming`, `r/swift`,
-   and `r/MacOS` only after their contributor, activity, timing, moderator, and
-   maintainer gates are satisfied. Keep all other held targets out of the launch
-   queue unless their rules or CodePilot's release status materially change.
+4. **Thread, moderator, or participation-gated communities:** consider the
+   current `r/ChatGPTCoding` self-promotion thread, `r/AI_Agents`, `r/codex`,
+   `r/iOSProgramming`, `r/swift`, and `r/MacOS` only after their thread,
+   activity, timing, moderator, account-filter, and maintainer gates are
+   satisfied. Keep all other held targets out of the launch queue unless their
+   rules or CodePilot's release status materially change.
 
 ## Draft Reddit Profile
 
@@ -142,12 +143,14 @@ This account is for transparent beta feedback only. I will disclose my relations
 
 Posting target: current or next `r/ChatGPTCoding` self-promotion thread.
 
-Approval status: held unless `codepilotios` is already an approved contributor;
-then needs maintainer approval before posting.
+Approval status: needs maintainer approval before posting. Confirm that the
+current thread remains open and that `codepilotios` can comment without an
+account-karma removal.
 
 Rule notes:
 - Fits the self-promotion thread.
-- The community is currently restricted to approved contributors.
+- The community is public, but visible thread removals show account-karma
+  filtering and possible manual review.
 - Use a comment in the thread, not a main-feed post, unless moderators explicitly approve otherwise.
 - Do not mention selling access to models.
 - Promote once per project.
@@ -787,9 +790,11 @@ Escalation needed: yes/no
 An escalation note was created at
 `ops/agents/escalations/community-drafts.md`. Draft preparation is complete, but
 all public posting remains blocked on maintainer approval. The recommended first
-placement is now the link-free `r/GenAiApps` draft with `iOS` flair because
-`r/ChatGPTCoding` is currently restricted to approved contributors. The
-`r/TestFlight` draft additionally requires a verified public TestFlight link. The
+placement remains the link-free `r/GenAiApps` draft with `iOS` flair. The
+`r/ChatGPTCoding` self-promotion-thread draft is also eligible for maintainer
+review once the thread and `codepilotios` account-karma eligibility are checked;
+main-feed promotion remains out of scope. The `r/TestFlight` draft additionally
+requires a verified public TestFlight link. The
 `r/BetaTests` draft requires an approved identity that meets the community's
 24-hour account-age and 2-karma eligibility gates. The `r/alphaandbetausers`
 draft has no visible community-specific eligibility threshold, but still needs
