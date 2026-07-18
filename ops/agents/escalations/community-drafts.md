@@ -32,6 +32,9 @@ Status: maintainer action required before any public posting.
   TestFlight apps to `r/TestFlight`. Do not use the `r/iosapps` main feed or
   App Shelf: its current rules prohibit generative-AI and AI-wrapper apps and
   direct them to `r/GenAiApps`.
+- Do not use `r/ShowMeYourApps`: although it accepts mobile-app promotion, its
+  live rules explicitly prohibit AI content. Do not reframe CodePilot to bypass
+  that rule or contact moderators solely to seek an exception.
 - `r/GenAiApps` is a text-first alternative whose rules allow contextual,
   valuable self-promotion. Approve the prepared copy and `iOS` flair before a
   human posts it; do not add a beta link until that URL is verified and approved.
