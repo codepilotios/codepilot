@@ -12,7 +12,7 @@ The following public-publishing decisions are approved:
 
 ## Pending Maintainer Action
 
-Reverified on 2026-07-18. The public repository review found three launch-readiness settings that require maintainer access, one legal-content decision, and one unresolved release blocker:
+Reverified on 2026-07-19. The public repository review found three launch-readiness settings that require maintainer access, one legal-content decision, and one unresolved release blocker:
 
 Repository-setting follow-up is tracked in GitHub issue #27.
 
