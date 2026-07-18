@@ -122,6 +122,16 @@ if "$GUARD_BIN/git" push origin main; then
   exit 1
 fi
 
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" -C "$ROOT" push origin main; then
+  echo "Launch autonomy allowed git -C to bypass the push guard" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" send-pack origin main; then
+  echo "Launch autonomy allowed direct send-pack remote writes" >&2
+  exit 1
+fi
+
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "Setup issue" --body "Drafted by agent"
 grep -qx 'create' "$TMP_ROOT/capture"
 

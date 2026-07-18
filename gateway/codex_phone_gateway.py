@@ -48,6 +48,17 @@ CODEX_CHILD_PATH_PREFIXES = (
     "/opt/homebrew/sbin",
     "/usr/local/bin",
 )
+GATEWAY_ONLY_CHILD_ENV_KEYS = {
+    "CODEPILOT_FILE_DOWNLOAD_ROOTS",
+    "CODEPILOT_TURN_API_TOKEN",
+    "CODEPILOT_TURN_KEY_ID",
+    "CODEX_PHONE_APNS_CERT_KEY_PATH",
+    "CODEX_PHONE_APNS_CERT_PATH",
+    "CODEX_PHONE_APNS_KEY_ID",
+    "CODEX_PHONE_APNS_KEY_PATH",
+    "CODEX_PHONE_APNS_TEAM_ID",
+    "CODEX_PHONE_APNS_TOPIC",
+}
 MAX_ATTACHMENTS = 8
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_ATTACHMENT_BYTES = 50 * 1024 * 1024
@@ -90,6 +101,8 @@ RUN_LOCK = threading.Lock()
 
 def codex_child_env(codex_home: Path) -> dict:
     env = os.environ.copy()
+    for key in GATEWAY_ONLY_CHILD_ENV_KEYS:
+        env.pop(key, None)
     env["CODEX_HOME"] = str(codex_home)
     existing_path = env.get("PATH") or os.defpath
     path_parts = [part for part in existing_path.split(os.pathsep) if part]

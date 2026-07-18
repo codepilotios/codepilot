@@ -147,6 +147,30 @@ class AppServerClientTests(unittest.TestCase):
             gateway.os.environ.clear()
             gateway.os.environ.update(old_env)
 
+    def test_codex_child_env_removes_gateway_only_credentials(self):
+        old_env = dict(gateway.os.environ)
+        try:
+            gateway.os.environ.clear()
+            gateway.os.environ.update({
+                "PATH": "/usr/bin:/bin",
+                "CODEPILOT_TURN_API_TOKEN": "turn-secret",
+                "CODEPILOT_TURN_KEY_ID": "turn-key",
+                "CODEX_PHONE_APNS_KEY_PATH": "/private/apns-key.p8",
+                "CODEPILOT_FILE_DOWNLOAD_ROOTS": "/private/previews",
+                "SUPABASE_ACCESS_TOKEN": "connector-secret",
+            })
+
+            env = gateway.codex_child_env(Path("/tmp/codex-home"))
+
+            self.assertNotIn("CODEPILOT_TURN_API_TOKEN", env)
+            self.assertNotIn("CODEPILOT_TURN_KEY_ID", env)
+            self.assertNotIn("CODEX_PHONE_APNS_KEY_PATH", env)
+            self.assertNotIn("CODEPILOT_FILE_DOWNLOAD_ROOTS", env)
+            self.assertEqual(env["SUPABASE_ACCESS_TOKEN"], "connector-secret")
+        finally:
+            gateway.os.environ.clear()
+            gateway.os.environ.update(old_env)
+
     def test_initializes_app_server_over_stdio(self):
         process = FakeAppServerProcess([
             json.dumps({

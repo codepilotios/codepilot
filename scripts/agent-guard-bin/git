@@ -5,11 +5,27 @@ REAL_GIT="${CODEPILOT_AGENT_REAL_GIT:-/usr/bin/git}"
 ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
 AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
 
+if [[ "${1:-}" == -* ]]; then
+  for arg in "$@"; do
+    case "$arg" in
+      commit|merge|rebase|cherry-pick|reset|checkout|switch|push|send-pack|http-push)
+        echo "CodePilot agent guard blocked git $arg with global options." >&2
+        echo "Run guarded mutation commands from the target worktree without git global options." >&2
+        exit 77
+        ;;
+    esac
+  done
+fi
+
 current_branch() {
   "$REAL_GIT" branch --show-current 2>/dev/null || true
 }
 
 case "${1:-}" in
+  send-pack|http-push)
+    echo "CodePilot agent guard blocked direct remote-write plumbing: git $1." >&2
+    exit 77
+    ;;
   commit|merge|rebase|cherry-pick|reset)
     branch="$(current_branch)"
     if [[ "$branch" == "main" || "$branch" == "master" ]]; then
