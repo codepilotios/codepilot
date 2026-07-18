@@ -2266,6 +2266,12 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
 
         old_run_turn = GatewayState.run_turn
         GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True, reasoning_effort=None: None
+
+        def run_worker_synchronously(*, target, args, daemon):
+            worker = mock.Mock()
+            worker.start.side_effect = lambda: target(*args)
+            return worker
+
         try:
             state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
             state.get_thread = lambda thread_id: {
@@ -2274,7 +2280,8 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 "rolloutPath": "/tmp/rollout.jsonl",
             }
 
-            job = state.start_turn("thread-b", "Start parallel work")
+            with mock.patch.object(gateway.threading, "Thread", side_effect=run_worker_synchronously):
+                job = state.start_turn("thread-b", "Start parallel work")
 
             self.assertEqual(job["threadId"], "thread-b")
             self.assertEqual(job["status"], "running")
