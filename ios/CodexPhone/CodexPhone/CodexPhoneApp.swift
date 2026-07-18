@@ -129,12 +129,7 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if !isGatewaySetupComplete(
-                    url: gatewayURL,
-                    token: gatewayToken,
-                    connectionKind: selectedConnectionKind,
-                    verifiedConfiguration: verifiedGatewayConfiguration
-                ) {
+                if !gatewaySetupIsComplete {
                     EmptySettingsView(
                         gatewayURL: $gatewayURL,
                         gatewayToken: $gatewayToken,
@@ -166,7 +161,7 @@ struct RootView: View {
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Switch OpenAI Account")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -175,7 +170,7 @@ struct RootView: View {
                         Image(systemName: "square.and.pencil")
                     }
                     .accessibilityLabel("New Thread")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -184,7 +179,7 @@ struct RootView: View {
                         Image(systemName: "desktopcomputer")
                     }
                     .accessibilityLabel("Remote Desktop")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -193,7 +188,7 @@ struct RootView: View {
                         Image(systemName: "chart.bar.xaxis")
                     }
                     .accessibilityLabel("Usage Status")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -210,13 +205,15 @@ struct RootView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                     .accessibilityLabel("Refresh")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
             }
             .refreshable {
+                guard gatewaySetupIsComplete else { return }
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
-            .task {
+            .task(id: verifiedGatewayRequestID) {
+                guard gatewaySetupIsComplete else { return }
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
             .sheet(isPresented: $showingSettings) {
@@ -257,7 +254,8 @@ struct RootView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
-            .task(id: gatewayToken) {
+            .task(id: verifiedGatewayRequestID) {
+                guard gatewaySetupIsComplete else { return }
                 await model.pollAccountStatus(baseURL: gatewayURL, token: gatewayToken)
             }
             .task(id: liveActivityReconciliationID) {
@@ -332,6 +330,24 @@ struct RootView: View {
 
     private var selectedConnectionKind: GatewayConnectionKind {
         GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
+    }
+
+    private var gatewaySetupIsComplete: Bool {
+        isGatewaySetupComplete(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind,
+            verifiedConfiguration: verifiedGatewayConfiguration
+        )
+    }
+
+    private var verifiedGatewayRequestID: String? {
+        gatewayRequestID(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind,
+            verifiedConfiguration: verifiedGatewayConfiguration
+        )
     }
 }
 
@@ -1963,6 +1979,20 @@ func isGatewaySetupComplete(
         return false
     }
     return verifiedConfiguration == expected
+}
+
+func gatewayRequestID(
+    url: String,
+    token: String,
+    connectionKind: GatewayConnectionKind,
+    verifiedConfiguration: String
+) -> String? {
+    isGatewaySetupComplete(
+        url: url,
+        token: token,
+        connectionKind: connectionKind,
+        verifiedConfiguration: verifiedConfiguration
+    ) ? verifiedConfiguration : nil
 }
 
 func localWebSessionURL(path: String, baseURL: String) -> URL? {

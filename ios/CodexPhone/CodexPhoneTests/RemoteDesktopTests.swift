@@ -145,6 +145,38 @@ final class RemoteDesktopTests: XCTestCase {
         ))
     }
 
+    func testGatewayRequestsOnlyStartForCurrentVerifiedConfiguration() throws {
+        let url = "https://codepilot.example.com"
+        let token = "token"
+        let verifiedConfiguration = try XCTUnwrap(gatewaySetupVerificationKey(
+            url: url,
+            token: token,
+            connectionKind: .cloudflare
+        ))
+
+        XCTAssertNil(gatewayRequestID(
+            url: url,
+            token: token,
+            connectionKind: .cloudflare,
+            verifiedConfiguration: ""
+        ))
+        XCTAssertEqual(
+            gatewayRequestID(
+                url: url,
+                token: token,
+                connectionKind: .cloudflare,
+                verifiedConfiguration: verifiedConfiguration
+            ),
+            verifiedConfiguration
+        )
+        XCTAssertNil(gatewayRequestID(
+            url: "https://other.example.com",
+            token: token,
+            connectionKind: .cloudflare,
+            verifiedConfiguration: verifiedConfiguration
+        ))
+    }
+
     func testMacLocalWebURLDetectionOnlyAcceptsLoopbackHTTPURLs() throws {
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://localhost:3000"))))
         XCTAssertTrue(isMacLocalWebURL(try XCTUnwrap(URL(string: "http://127.0.0.1:5173/path"))))
