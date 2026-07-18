@@ -28,7 +28,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - App Store Connect inspection was unavailable in this run. The Apple developer team setting is empty, and the launch guard blocked even `asc auth status`; the app record, processed builds, availability, version attachment, and strict validation therefore could not be checked without maintainer-provided release access.
 - The local Fastlane preflight cannot load the lockfile-required Bundler version with the currently selected Ruby runtime. Provide a supported release Ruby/Bundler entrypoint before attempting a signed build or TestFlight lane.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
-- Public Git history contains 7 legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
+- Public Git history contains 11 legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
 - `metadata/version/0.1/en-US.json` still needs approved support and privacy-policy URLs plus App Review notes/contact and gateway access instructions.
 - The App Store draft and canonical JSON currently disagree on subtitle and promotional/keyword copy; reconcile one approved canonical metadata set before staging.
