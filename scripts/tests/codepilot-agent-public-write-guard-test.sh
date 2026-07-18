@@ -22,6 +22,14 @@ if [[ "$1" == "branch" && "$2" == "--show-current" ]]; then
   printf '%s\n' "${CODEPILOT_FAKE_GIT_BRANCH:-agent/test}"
   exit 0
 fi
+if [[ "$1" == "config" && "$2" == "--get" && "$3" == "alias.publish" ]]; then
+  [[ "${CODEPILOT_FAKE_GIT_ALIAS:-}" == "publish" ]] || exit 1
+  printf '%s\n' 'push'
+  exit 0
+fi
+if [[ "$1" == "config" && "$2" == "--get" ]]; then
+  exit 1
+fi
 printf '%s\n' "$@" > "$CODEPILOT_GUARD_CAPTURE"
 EOF
 
@@ -30,6 +38,7 @@ export CODEPILOT_GUARD_CAPTURE="$TMP_ROOT/capture"
 export CODEPILOT_AGENT_REAL_GH="$TMP_ROOT/gh"
 export CODEPILOT_AGENT_REAL_GIT="$TMP_ROOT/git"
 export CODEPILOT_AGENT_PUBLIC_AUTONOMY="draft"
+export CODEPILOT_REPO_ROOT="$ROOT"
 
 "$GUARD_BIN/gh" issue list --repo codepilotios/codepilot
 grep -qx 'list' "$TMP_ROOT/capture"
@@ -132,6 +141,11 @@ if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" -c alias.publish=pu
   exit 1
 fi
 
+if CODEPILOT_FAKE_GIT_ALIAS="publish" CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" publish origin main; then
+  echo "Launch autonomy allowed a configured alias to bypass the push guard" >&2
+  exit 1
+fi
+
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" send-pack origin main; then
   echo "Launch autonomy allowed direct send-pack remote writes" >&2
   exit 1
@@ -139,6 +153,22 @@ fi
 
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "Setup issue" --body "Drafted by agent"
 grep -qx 'create' "$TMP_ROOT/capture"
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "person""@example.net" --body "Drafted by agent"; then
+  echo "Launch autonomy allowed private outbound issue content" >&2
+  exit 1
+fi
+
+print -r -- "Drafted by agent" > "$TMP_ROOT/issue-body.md"
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "Setup issue" --body-file "$TMP_ROOT/issue-body.md"; then
+  echo "Launch autonomy allowed an untracked issue body file" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --title "Setup issue" --body-file -; then
+  echo "Launch autonomy allowed an unaudited stdin issue body" >&2
+  exit 1
+fi
 
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" issue create --repo example/other --title unsafe; then
   echo "Launch autonomy allowed issue creation outside the CodePilot repository" >&2

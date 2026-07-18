@@ -112,4 +112,20 @@ if git grep -q -I -E "$secret_pattern" -- "${audit_files[@]}"; then
   exit 1
 fi
 
+external_file="${CODEPILOT_PRIVACY_EXTERNAL_FILE:-}"
+if [[ -n "$external_file" ]]; then
+  if [[ -L "$external_file" || ! -f "$external_file" ]]; then
+    echo "privacy audit failed: external content must be a regular file" >&2
+    exit 2
+  fi
+  if grep -q -I -E "$pattern" "$external_file"; then
+    echo "privacy audit failed: external content contains private identifiers" >&2
+    exit 1
+  fi
+  if grep -q -I -E "$secret_pattern" "$external_file"; then
+    echo "privacy audit failed: external content contains secret-looking material" >&2
+    exit 1
+  fi
+fi
+
 echo "privacy audit passed"

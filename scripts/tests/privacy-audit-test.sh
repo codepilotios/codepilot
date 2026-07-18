@@ -63,6 +63,14 @@ assert_rejected_without_echo "GitLab token" "glpat-0123456789abcdefghijklmnop"
 assert_rejected_without_echo "npm token" "npm_0123456789abcdefghijklmnopqrstuv"
 assert_rejected_without_echo "JWT" "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleGFtcGxlIn0.abcdefghijklmnopqrstuvwxyz012345"
 
+write_fixture "Safe tracked content"
+print -r -- "external-person@example.net" > "$TEST_ROOT/external-content"
+external_output=""
+if external_output="$(CODEPILOT_PRIVACY_PATTERNS_FILE="$TEST_ROOT/patterns" CODEPILOT_PRIVACY_EXTERNAL_FILE="$TEST_ROOT/external-content" zsh scripts/privacy-audit.sh 2>&1)"; then
+  fail "external private content was accepted"
+fi
+[[ "$external_output" != *"external-person@example.net"* ]] || fail "external private content was printed"
+
 print -r -- 'internal-marker-[0-9]+' > "$TEST_ROOT/patterns"
 assert_rejected_without_echo "user-configured pattern" "internal-marker-1234"
 
