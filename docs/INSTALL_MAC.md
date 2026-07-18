@@ -10,6 +10,8 @@ CodePilot Mac is a menu bar app. It currently builds from source with SwiftPM.
 - [Codex CLI](https://developers.openai.com/codex/cli/) installed and available as `codex`.
 - A local Codex login at `~/.codex/auth.json`.
 
+CodePilot currently expects Codex to use its default `~/.codex` state directory. A custom `CODEX_HOME` is not supported by the Mac app and gateway yet; use the default directory for CodePilot beta setup.
+
 Successful setup means the menu bar app shows `CodePilot`, at least one account profile exists, and the setup window marks the gateway token and gateway as ready.
 
 If Codex CLI is not installed yet, use OpenAI's macOS/Linux installer, then run `codex` once and complete sign-in:
