@@ -10,6 +10,7 @@ in every post or comment that mentions the project.
 
 ## Draft files
 
+- [Current research checkpoint (2026-07-19)](2026-07-19-community-checkpoint.md)
 - [Research and posting queue](2026-07-18-community-research.md)
 - [Tailored posts and comments](2026-07-18-draft-posts-and-comments.md)
 - [Profile and reusable replies](profile-and-response-library.md)
