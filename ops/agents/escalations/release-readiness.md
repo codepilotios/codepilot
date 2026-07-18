@@ -7,13 +7,14 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 ## Verified Locally
 
 - `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
-- `swift test`: passed; 57 tests, 0 failures.
+- `swift test`: passed; 78 tests, 0 failures.
 - The release-readiness draft PR and the open draft PRs referenced below remain mergeable, and their latest completed public CI checks passed. This worktree was also re-verified locally on July 18.
 - Gateway unit tests: passed with Python 3.13; 112 tests, 0 failures. An alternate Xcode-provided Python 3.9 invocation cannot import `tomllib`, confirming that local gateway verification must use the documented Python 3.11-or-newer runtime.
 - macOS Swift release build: passed.
 - iOS clean Release simulator build: passed with code signing disabled.
 - Unsigned generic-device iOS Release archive compile: passed with Xcode 26.5.
 - iOS simulator tests: passed; 37 tests, 0 failures.
+- Cloudflare setup-script tests: passed.
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, entitlements, and version metadata JSON validation passed. With the supported Ruby 4.0.4 and Bundler 4.0.11 selected explicitly, `bundle check` and Fastlane lane discovery pass. The default unattended working-directory environment still selects system Ruby 2.6 and cannot start the lockfile-required Bundler, so the release entrypoint is not yet deterministic. No signed archive or upload lane was run.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
