@@ -3626,13 +3626,18 @@ final class RemoteLoginAuthenticationViewController: UIViewController, ASWebAuth
 
         guard let redirectURL = Self.redirectURL(from: url),
               let port = redirectURL.port,
+              let expectedState = Self.state(from: url),
               Self.isCodexLoopbackCallback(redirectURL) else {
             onFailure("Login callback URL could not be prepared.")
             return
         }
 
         do {
-            let server = try LoopbackCallbackServer(port: UInt16(port), expectedPath: redirectURL.path) { [weak self] callbackURL in
+            let server = try LoopbackCallbackServer(
+                port: UInt16(port),
+                expectedPath: redirectURL.path,
+                expectedState: expectedState
+            ) { [weak self] callbackURL in
                 DispatchQueue.main.async {
                     guard let self, !self.didComplete else { return }
                     self.didComplete = true
@@ -3692,6 +3697,14 @@ final class RemoteLoginAuthenticationViewController: UIViewController, ASWebAuth
             .flatMap(URL.init(string:))
     }
 
+    private static func state(from authURL: URL) -> String? {
+        URLComponents(url: authURL, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first { $0.name == "state" }?
+            .value
+            .flatMap { $0.isEmpty ? nil : $0 }
+    }
+
     private static func isCodexLoopbackCallback(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased(),
               host == "localhost" || host == "127.0.0.1",
@@ -3705,17 +3718,26 @@ final class RemoteLoginAuthenticationViewController: UIViewController, ASWebAuth
 final class LoopbackCallbackServer {
     private let port: UInt16
     private let expectedPath: String
+    private let expectedState: String
     private let onCallback: (URL) -> Void
     private let queue = DispatchQueue(label: "codexphone.loopback-callback")
     private var listener: NWListener?
     private var didComplete = false
 
-    init(port: UInt16, expectedPath: String, onCallback: @escaping (URL) -> Void) throws {
+    init(
+        port: UInt16,
+        expectedPath: String,
+        expectedState: String,
+        onCallback: @escaping (URL) -> Void
+    ) throws {
         self.port = port
         self.expectedPath = expectedPath.isEmpty ? "/auth/callback" : expectedPath
+        self.expectedState = expectedState
         self.onCallback = onCallback
         let nwPort = NWEndpoint.Port(rawValue: port)!
-        listener = try NWListener(using: .tcp, on: nwPort)
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: nwPort)
+        listener = try NWListener(using: parameters)
         listener?.newConnectionHandler = { [weak self] connection in
             self?.handle(connection)
         }
@@ -3739,7 +3761,12 @@ final class LoopbackCallbackServer {
             }
             guard let data,
                   let request = String(data: data, encoding: .utf8),
-                  let callbackURL = self.callbackURL(from: request) else {
+                  let callbackURL = loopbackCallbackURL(
+                    from: request,
+                    port: self.port,
+                    expectedPath: self.expectedPath,
+                    expectedState: self.expectedState
+                  ) else {
                 self.respond(to: connection, status: "400 Bad Request", body: "Invalid Codex callback.")
                 return
             }
@@ -3748,17 +3775,6 @@ final class LoopbackCallbackServer {
             self.didComplete = true
             self.onCallback(callbackURL)
         }
-    }
-
-    private func callbackURL(from request: String) -> URL? {
-        guard let requestLine = request.split(separator: "\r\n", maxSplits: 1, omittingEmptySubsequences: false).first else {
-            return nil
-        }
-        let parts = requestLine.split(separator: " ")
-        guard parts.count >= 2 else { return nil }
-        let path = String(parts[1])
-        guard path.hasPrefix(expectedPath) else { return nil }
-        return URL(string: "http://localhost:\(port)\(path)")
     }
 
     private func respond(to connection: NWConnection, status: String, body: String) {
@@ -3774,6 +3790,28 @@ final class LoopbackCallbackServer {
             connection.cancel()
         })
     }
+}
+
+func loopbackCallbackURL(
+    from request: String,
+    port: UInt16,
+    expectedPath: String,
+    expectedState: String
+) -> URL? {
+    guard let requestLine = request.split(separator: "\r\n", maxSplits: 1, omittingEmptySubsequences: false).first else {
+        return nil
+    }
+    let parts = requestLine.split(separator: " ")
+    guard parts.count == 3, parts[0] == "GET" else { return nil }
+    let requestTarget = String(parts[1])
+    guard requestTarget.hasPrefix("/"),
+          let callbackURL = URL(string: "http://127.0.0.1:\(port)\(requestTarget)"),
+          let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+          components.path == expectedPath,
+          components.queryItems?.filter({ $0.name == "state" }).map(\.value) == [expectedState] else {
+        return nil
+    }
+    return callbackURL
 }
 
 @MainActor

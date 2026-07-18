@@ -66,6 +66,35 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertNil(GatewayEndpoint.baseURL(from: "//gateway.example"))
     }
 
+    func testLoopbackCallbackRequiresExactPathAndOAuthState() throws {
+        let valid = try XCTUnwrap(loopbackCallbackURL(
+            from: "GET /auth/callback?code=fixture&state=expected HTTP/1.1\r\nHost: localhost\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+
+        XCTAssertEqual(valid.path, "/auth/callback")
+        XCTAssertNil(loopbackCallbackURL(
+            from: "GET /auth/callback/forged?state=expected HTTP/1.1\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+        XCTAssertNil(loopbackCallbackURL(
+            from: "GET /auth/callback?state=wrong HTTP/1.1\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+        XCTAssertNil(loopbackCallbackURL(
+            from: "POST /auth/callback?state=expected HTTP/1.1\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+    }
+
     func testGatewayOriginsIncludeSchemeHostAndEffectivePort() throws {
         let standardHTTPS = try XCTUnwrap(URL(string: "https://gateway.example/api/health"))
         let explicitHTTPS = try XCTUnwrap(URL(string: "https://gateway.example:443/redirect"))

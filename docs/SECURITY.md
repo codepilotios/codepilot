@@ -36,6 +36,7 @@ Remote file previews are restricted to files uploaded through CodePilot by defau
 Uploaded attachment batches are retained for seven days. The gateway removes expired batches at startup and before saving another upload. Storage and cleanup stay within a private CodePilot upload directory and refuse symbolic links.
 
 Remote account-login sessions expire after ten minutes, are limited to four at a time, and terminate their temporary login process when they expire or fail.
+The temporary iOS OAuth callback listener binds only to IPv4 loopback and accepts a callback only when its path and OAuth state exactly match the active login request.
 
 The native remote-desktop host is disabled while screen capture, input injection, and signaling still lack end-to-end lease authorization. CodePilot does not request Screen Recording permission at launch. Do not re-enable the host until the documented trusted-device and active-lease checks are enforced on every privileged operation.
 
