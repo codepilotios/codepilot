@@ -39,6 +39,7 @@ DEFAULT_CODEX_HOME = HOME / ".codex"
 DEFAULT_SWITCHER_HOME = HOME / ".codex-account-switcher"
 DEFAULT_TOKEN_FILE = DEFAULT_SWITCHER_HOME / "phone-gateway-token"
 DEFAULT_UPLOADS_DIR = DEFAULT_SWITCHER_HOME / "phone-uploads"
+MIN_GATEWAY_TOKEN_LENGTH = 32
 DEFAULT_THREAD_MESSAGE_CACHE_DIR = DEFAULT_SWITCHER_HOME / "phone-thread-message-cache"
 DEFAULT_NOTIFICATION_DEVICES_FILE = DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
 DEFAULT_LIVE_ACTIVITIES_FILE = DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
@@ -412,6 +413,10 @@ def read_or_create_token(path: Path) -> str:
         token = path.read_text(encoding="utf-8").strip()
         if not token:
             raise RuntimeError("Gateway token file is empty")
+        if len(token) < MIN_GATEWAY_TOKEN_LENGTH or re.fullmatch(r"[A-Za-z0-9_-]+", token) is None:
+            raise RuntimeError(
+                f"Gateway token must contain at least {MIN_GATEWAY_TOKEN_LENGTH} URL-safe characters; rotate it before restarting"
+            )
         return token
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(path.parent, 0o700)

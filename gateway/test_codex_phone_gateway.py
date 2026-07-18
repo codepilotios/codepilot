@@ -1011,11 +1011,21 @@ class GatewayStateTests(unittest.TestCase):
 
     def test_gateway_token_file_permissions_are_repaired(self):
         token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
-        token_path.write_text("existing-token\n", encoding="utf-8")
+        token = "a" * gateway.MIN_GATEWAY_TOKEN_LENGTH
+        token_path.write_text(token + "\n", encoding="utf-8")
         token_path.chmod(0o644)
 
-        self.assertEqual(gateway.read_or_create_token(token_path), "existing-token")
+        self.assertEqual(gateway.read_or_create_token(token_path), token)
         self.assertEqual(token_path.stat().st_mode & 0o777, 0o600)
+
+    def test_gateway_token_rejects_weak_or_malformed_existing_values(self):
+        token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
+
+        for token in ("short", "a" * gateway.MIN_GATEWAY_TOKEN_LENGTH + "+"):
+            with self.subTest(token=token):
+                token_path.write_text(token + "\n", encoding="utf-8")
+                with self.assertRaisesRegex(RuntimeError, "at least 32 URL-safe characters"):
+                    gateway.read_or_create_token(token_path)
 
     def test_gateway_token_rejects_symlink(self):
         target = gateway.DEFAULT_SWITCHER_HOME / "target"

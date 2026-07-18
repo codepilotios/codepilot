@@ -20,6 +20,7 @@ Recommended:
 
 - Use HTTPS when remote.
 - Use a long random bearer token.
+- The gateway refuses existing tokens shorter than 32 characters or containing non-URL-safe characters.
 - Rotate the token if a device is lost.
 - Restrict Cloudflare access where practical.
 
