@@ -3,9 +3,10 @@
 Status: maintainer action required before any public posting.
 
 - Review and approve the proposed first placement: the link-free `r/GenAiApps`
-  draft with `iOS` flair. `r/ChatGPTCoding` is public again, but maker-authored
-  promotion must use its current self-promotion thread and remains subject to
-  account-karma filtering.
+  draft with `iOS` flair. `r/ChatGPTCoding` is currently restricted to approved
+  contributors; if `codepilotios` is already eligible, maker-authored promotion
+  must use its current self-promotion thread and remains subject to account-karma
+  filtering. Do not request contributor status solely for this launch run.
 - Confirm that the `codepilotios` identity is approved and eligible under the
   target community's account-age, karma, and participation rules. Do not create
   an account solely to satisfy this request.
