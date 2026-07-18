@@ -16,12 +16,12 @@ immediately before requesting approval to post.
 
 | Community | Assessment | Decision |
 | --- | --- | --- |
-| r/MacApps | Relevant to the menu-bar app, but the community requires 10 local karma, qualification or a monthly megathread, a prescribed post template, and explicit post approval. Promotion is limited to once per developer in 30 days. | Hold. Ask a maintainer to verify account eligibility and the current approval instructions. Never manufacture karma. |
+| r/MacApps | Relevant to the menu-bar app, but the community requires 10 local karma and limits promotion to once per developer in 30 days. Main-feed promotion also requires an established trust signal or a public transparency path; other promotions belong in the monthly App Pile megathread. | Hold for the App Pile only. A maintainer must verify local-karma eligibility, the current megathread, and its required format. Never manufacture karma or expose a private identity to qualify. |
 | r/OpenAI | Relevant but broad. Self-promotion should remain under 10% of participation, must be a contextual text post rather than a direct-link post, and participation is expected before advertising. | Hold until the identity has genuine participation and a maintainer approves a contextual post. |
 | r/SideProject | No community-specific rules were returned by Reddit's rules endpoint, but current community discussion strongly rejects link dropping and low-effort promotion. | Optional later build-story post only, after the focused beta communities. Keep it discussion-first and do not cross-post identical copy. |
 | Show HN | A project must be personally built, directly usable, non-trivial, and ready for the author to discuss. Show HN discourages signup barriers and vote coordination. | Hold until the public beta is immediately testable and a maintainer can be present to answer questions. |
 | r/SwiftUI | Promotion is allowed only when source code is provided and the app is open source. CodePilot is source-available under a noncommercial license, not OSI open source. | Do not promote CodePilot there under the current rules. |
-| r/iOSApps | Requires 10 local karma, disclosure, ABC-format promotion, official App Store/TestFlight links, and either qualification or the monthly megathread. Its rules also exclude generative-AI or AI-wrapped apps. | Do not submit without explicit moderator confirmation that CodePilot is in scope; otherwise use r/TestFlight. |
+| r/iOSApps | Requires 10 local karma, disclosure, ABC-format promotion, official App Store/TestFlight links, and either qualification or the monthly App Shelf megathread. More importantly, its current rules exclude generative-AI and AI-wrapped apps when AI is a core feature. | Do not promote CodePilot there under the current rules. Use r/TestFlight instead. |
 
 ## Rule sources
 
@@ -31,6 +31,7 @@ immediately before requesting approval to post.
 - [r/Codex rules](https://www.reddit.com/r/codex/about/rules)
 - [r/iOSProgramming rules](https://www.reddit.com/r/iOSProgramming/about/rules)
 - [r/MacApps rules](https://www.reddit.com/r/macapps/about/rules)
+- [r/MacApps trust and transparency update](https://www.reddit.com/r/macapps/comments/1ryaeex/rmacapps_mods_went_too_far_whats_changing_phase_3/)
 - [r/OpenAI rules](https://www.reddit.com/r/OpenAI/about/rules)
 - [r/SideProject rules](https://www.reddit.com/r/SideProject/about/rules)
 - [r/SwiftUI rules](https://www.reddit.com/r/SwiftUI/about/rules)
@@ -45,9 +46,9 @@ immediately before requesting approval to post.
   explicitly authorize project promotion.
 - r/iOSProgramming requires confirmation of Saturday timing, genuine prior
   activity, and the once-per-year allowance.
-- r/MacApps requires community post approval plus its local-karma and template
-  requirements.
+- r/MacApps requires confirmation of 10 local karma, the current App Pile
+  megathread, the 30-day allowance, and the required post format. The
+  `codepilotios` identity must not disclose private identity details to qualify
+  for a main-feed transparency path.
 - r/OpenAI requires genuine prior participation before self-promotion.
-- r/iOSApps requires eligibility confirmation and likely moderator clarification
-  because CodePilot is an AI coding companion.
-
+- r/iOSApps is excluded from the posting queue while its no-AI rule remains.

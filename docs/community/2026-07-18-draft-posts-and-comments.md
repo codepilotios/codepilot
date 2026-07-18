@@ -156,23 +156,27 @@ that the account has not used the once-per-year app allowance.
 > It is an early beta. Please do not put tokens, hostnames, account names, private
 > screenshots, or unsanitized logs in public feedback.
 
-## r/MacApps monthly megathread
+## r/MacApps App Pile megathread
 
-**Status:** Hold until the account meets local-karma and approval requirements.
-Adapt to the current mandatory template before approval.
+**Status:** Hold until the account has 10 genuine local karma, the 30-day
+allowance is unused, and a maintainer has verified the current App Pile thread
+and required format. Do not disclose a private identity to qualify for the main
+feed.
 
 > Disclosure: we build CodePilot; this is the project's account.
 >
-> CodePilot is a Mac menu-bar app and iPhone companion for people who already run
-> Codex CLI on a Mac. The Mac app manages saved account profiles, shows usage
-> status, and coordinates a local gateway so the iPhone can inspect threads,
-> upload files, control turns where supported, and receive notifications.
+> **Answer:** CodePilot is a Mac menu-bar app and iPhone companion for people who
+> already run Codex CLI on a Mac and want to check or control a session while
+> away from the computer.
 >
-> The public beta is aimed at technical testers who are comfortable reviewing its
-> setup, privacy, and security documentation. We are looking specifically for Mac
-> first-run and menu-bar feedback.
+> **Better:** The coding-agent process and credentials stay on the user's Mac.
+> The app adds saved account profiles, usage status, a local gateway, iPhone
+> thread visibility, file uploads, supported turn controls, and notifications.
+> The public beta is aimed at technical testers who are comfortable reviewing
+> its setup, privacy, and security documentation.
 >
-> Project and build instructions: [PUBLIC_REPOSITORY_URL]
+> **Cost:** This draft is for beta testing only; no future pricing details are
+> being announced. Project and build instructions: [PUBLIC_REPOSITORY_URL]
 > TestFlight companion: [TESTFLIGHT_URL]
 
 ## r/SideProject build-story draft
@@ -237,4 +241,3 @@ remain present to answer questions.
 > understandable and whether the setup diagnostics are specific enough.
 >
 > Disclosure: this is the CodePilot project account, and we built it.
-
