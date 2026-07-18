@@ -63,7 +63,7 @@ Operational rules for this queue:
 | `r/selfhosted` | Low-medium later | Mobile apps are allowed only as companions to a self-hosted backend. Promoted apps must be production-ready and documented. Projects under 3 months old may be posted only in the current New Project Megathread; Wednesday has a separate exception for dashboards and tools that help self-hosters. Source: <https://www.reddit.com/r/selfhosted/about/> | Hold for now. CodePilot has a local gateway and user-owned tunnel, but this is not primarily a general self-hosted server product; ask moderators only after public docs and production readiness are stronger. |
 | `r/github` self-promotion megathread | Medium | The designated recurring self-promotion thread accepts tools, libraries, and side projects hosted on GitHub. Comments should include a short project description, a GitHub repository link, and optionally the stack, main features, or contribution context. Source: <https://www.reddit.com/r/github/comments/1jy8rea/promote_your_projects_here_selfpromotion/> | Candidate only after the public repository URL is approved, accessible, and privacy-audited. Use the megathread rather than a standalone promotional post, disclose the maker relationship, and ask for repository/setup feedback rather than votes. |
 | `r/ClaudeAI` | Low | Project showcases must be built with Claude/Claude Code or specifically for Claude by the poster, be free to try, explain how Claude helped, use minimal promotional language, and come from an account with more than 50 karma. Source: <https://www.reddit.com/r/ClaudeAI/about/> | Do not post CodePilot promotion because this Codex-focused beta does not meet the stated Claude-project relevance gate. Only answer organically if directly relevant and approved by a maintainer. |
-| Hacker News / Show HN | Medium | Show HN is for something people can try; HN asks submitters not to use it primarily for promotion and not to post generated or AI-edited comments. Sources: <https://news.ycombinator.com/showhn.html> and <https://news.ycombinator.com/newsguidelines.html> | Human rewrite required. Prepare outline only; do not paste AI-generated text. |
+| Hacker News / Show HN | Medium, currently contributor-gated | Show HN is for something people can try; HN asks submitters not to use it primarily for promotion and not to post generated or AI-edited comments. HN is also temporarily restricting Show HN submissions and asks prospective submitters to become genuine contributors before posting an occasional project. Sources: <https://news.ycombinator.com/showlim>, <https://news.ycombinator.com/showhn.html>, and <https://news.ycombinator.com/newsguidelines.html> | Hold unless a maintainer confirms that an existing approved public identity is eligible. Do not create an HN account or manufacture participation for this launch. If eligible later, a maintainer must rewrite the outline manually and post only when the beta is directly usable. |
 | Product Hunt | Medium later | Product Hunt recommends clear product pages, maker first comment, feedback requests rather than upvote requests, and warns against spamming communities where you have not been active. Sources: <https://www.producthunt.com/launch/preparing-for-launch> and <https://www.producthunt.com/launch/sharing-your-launch> | Not a first beta move. Requires account, launch assets, and pricing/status decisions, so hold for human approval. |
 
 ## Rules That Require Approval Before Posting
@@ -94,7 +94,7 @@ Operational rules for this queue:
 - `r/selfhosted`: hold until CodePilot has public docs and production-ready positioning that fits the community; projects under 3 months old belong only in the current New Project Megathread, and any maker-authored mention still needs moderator and maintainer approval.
 - `r/github`: use only the designated self-promotion megathread and only after a maintainer approves an accessible, privacy-audited public repository URL. The comment must include that GitHub link, so a no-link placeholder must not be posted.
 - `r/ClaudeAI`: do not promote this Codex-focused beta because it does not meet the community's Claude-built/Claude-focused showcase gate; eligible showcases also require more than 50 account karma.
-- Hacker News: a maintainer should write the actual comment manually because HN asks users not to post generated or AI-edited comments.
+- Hacker News: Show HN is temporarily restricted to people who have first become genuine contributors. Do not create an account or manufacture participation for this launch. If an existing approved public identity is eligible, a maintainer should still write the actual submission and comments manually because HN asks users not to post generated or AI-edited comments.
 - Product Hunt: hold until account, maker identity, screenshots, launch URL, and current beta/pricing status are approved.
 
 ## Recommended Approval Queue
@@ -814,7 +814,14 @@ I am looking for technical critique rather than installs or votes. I have omitte
 
 ## Hacker News / Show HN Outline
 
-Do not paste this as-is. HN guidelines ask users not to post generated or AI-edited comments. A maintainer should rewrite manually if posting.
+Approval status: hold. HN is temporarily restricting Show HN submissions to
+people who have first become genuine contributors. Do not create an account or
+manufacture activity for this launch. A maintainer may use this outline only if
+an existing approved public identity is eligible and the beta is directly
+usable.
+
+Do not paste this as-is. HN guidelines ask users not to post generated or
+AI-edited comments. A maintainer should rewrite manually if posting.
 
 Possible title:
 
@@ -894,4 +901,6 @@ decisions and external account actions outside this run.
 The new `r/indiehackers` draft is a held, one-time validation option pending
 flair confirmation and genuine participation. The new `r/macosprogramming`
 technical draft is moderator-first because CodePilot's source-available license
-does not qualify for that community's open-source exception.
+does not qualify for that community's open-source exception. Hacker News / Show
+HN is also held while its temporary genuine-contributor restriction remains;
+this run did not create an account or manufacture participation.

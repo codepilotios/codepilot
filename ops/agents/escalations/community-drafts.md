@@ -54,6 +54,11 @@ Status: maintainer action required before any public posting.
   non-promotional participation. Approve the one-time, link-free validation
   draft before a human posts it; do not make revenue claims or manufacture
   engagement.
+- Hold Hacker News / Show HN. HN is temporarily restricting Show HN submissions
+  to genuine contributors. Do not create an account or manufacture activity for
+  this launch. Reconsider only if an existing approved public identity is
+  eligible, the beta is directly usable, and a maintainer manually rewrites the
+  prepared outline.
 - Treat `r/macosprogramming` as moderator-first. CodePilot is source-available
   under a noncommercial license, not OSI open source, so its open-source posting
   exception must not be assumed. A maintainer must approve and manually send the
