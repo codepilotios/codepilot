@@ -38,6 +38,7 @@
 - Clarified that iPhone access depends on an awake, online Mac running the gateway and Cloudflare Tunnel, with no hosted relay or remote wake promise in the current beta.
 - Added FAQ and installation guidance for upload retention and safe account switching during active turns.
 - Clarified that notifications are optional, require gateway APNs configuration for background delivery, and use iOS controls separate from Live Activities.
+- Removed implied future-provider promises from public copy and focused the App Store promotional draft on current Codex CLI beta workflows.
 
 ### Recent Product Work
 

@@ -12,9 +12,9 @@ Codex companion for your Mac
 
 ## Promotional Text
 
-Public beta for Codex CLI users who want iPhone access to thread status, file uploads, turn controls, and coding-agent sessions on their own Mac.
+Public beta for Codex CLI users: check usage and threads, upload files, and steer coding sessions running on a Mac you control.
 
-Character count: 145 of 170.
+Character count: 127 of 170.
 
 ## Description
 
@@ -22,7 +22,7 @@ CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI codi
 
 Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive optional turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
 
-The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use Codex-specific names while the public CodePilot product surface is prepared for broader provider support later.
+The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use legacy Codex-specific names, and support for other coding agents is not part of the current beta.
 
 CodePilot handles local coding-agent credentials and gateway access. Coding prompts and selected attachments are still processed through Codex and OpenAI according to the user's Codex account and configuration. Review the privacy, security, install, and support docs before exposing the gateway outside your local network.
 

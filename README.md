@@ -2,7 +2,7 @@
 
 CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI coding users who already run Codex CLI on a Mac they control.
 
-The public beta focuses on Codex account switching, usage visibility, remote iPhone access through a user-owned Cloudflare Tunnel, file uploads, connector status, optional notifications, and gateway-backed conversation control. The project is designed to become provider-neutral over time, but the first beta is Codex-focused.
+The public beta focuses on Codex account switching, usage visibility, remote iPhone access through a user-owned Cloudflare Tunnel, file uploads, connector status, optional notifications, and gateway-backed conversation control. The current beta is Codex-focused; support for other coding agents is not part of the beta promise.
 
 ## License
 
