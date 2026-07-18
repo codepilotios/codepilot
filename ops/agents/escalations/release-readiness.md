@@ -8,7 +8,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 
 - `scripts/privacy-audit.sh`: passed its generic private-path, email, and secret-pattern checks. The optional project-specific private-identifier denylist was not available in this worktree, so this is not a complete private-name/host signoff.
 - `swift test`: passed; 57 tests, 0 failures.
-- The public CI run for the current commit passed its privacy audit, SwiftPM tests, gateway tests, Fastlane syntax check, and iOS simulator build.
+- No public CI run is associated with the current local commit. The open draft PRs referenced below remain mergeable and their latest public CI checks passed, while this worktree was verified locally.
 - Gateway unit tests: passed with the release runner's default Python 3.9 toolchain; 112 tests, 0 failures.
 - macOS Swift release build: passed.
 - iOS simulator Debug and clean Release builds: passed with code signing disabled.
@@ -17,7 +17,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation: passed.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
-- A July 18 read-only OTA check still points to a July 8 build with no recorded source commit. Its install-linked manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public OTA install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
+- A July 18 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403 even with a normal browser user agent. No OTA build or external-state mutation was performed in this run.
 
 ## Release Blockers
 
