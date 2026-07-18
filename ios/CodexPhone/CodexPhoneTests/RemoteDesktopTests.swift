@@ -66,6 +66,14 @@ final class RemoteDesktopTests: XCTestCase {
         )
     }
 
+    func testGatewayConnectionSuccessMessageExplainsMissingAccountProfile() {
+        XCTAssertEqual(
+            gatewayConnectionSuccessMessage(activeAccount: ""),
+            "Connected. No active account profile was reported; add and save one in CodePilot on the Mac."
+        )
+        XCTAssertEqual(gatewayConnectionSuccessMessage(activeAccount: " Work "), "Connected as Work.")
+    }
+
     func testGatewaySetupValidationRejectsUnreachableLocalhostForSameNetwork() {
         XCTAssertEqual(
             gatewaySetupValidationMessage(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local),

@@ -434,8 +434,7 @@ struct EmptySettingsView: View {
         defer { isTestingConnection = false }
         do {
             let status = try await client.accountStatus(baseURL: gatewayURL, token: gatewayToken)
-            let accountText = status.activeAccount.isEmpty ? "unknown account" : status.activeAccount
-            connectionMessage = "Connected as \(accountText)."
+            connectionMessage = gatewayConnectionSuccessMessage(activeAccount: status.activeAccount)
             verifiedGatewayConfiguration = gatewaySetupVerificationKey(
                 url: gatewayURL,
                 token: gatewayToken,
@@ -1923,6 +1922,14 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
     }
 }
 
+func gatewayConnectionSuccessMessage(activeAccount: String) -> String {
+    let account = activeAccount.trimmingCharacters(in: .whitespacesAndNewlines)
+    if account.isEmpty {
+        return "Connected. No active account profile was reported; add and save one in CodePilot on the Mac."
+    }
+    return "Connected as \(account)."
+}
+
 func gatewaySetupVerificationKey(
     url rawURL: String,
     token rawToken: String,
@@ -2280,15 +2287,17 @@ struct SettingsView: View {
                             .foregroundStyle(.orange)
                     }
 
-                    TextField("URL", text: $gatewayURL)
+                    TextField("Gateway URL", text: $gatewayURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
+                        .autocorrectionDisabled()
                     SecureField("iOS connection token", text: $gatewayToken)
                         .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
 
                 Section("Status") {
-                    LabeledContent("Active account", value: model.activeAccount.isEmpty ? "Unknown" : model.activeAccount)
+                    LabeledContent("Active account", value: model.activeAccount.isEmpty ? "No active account" : model.activeAccount)
                     if let generatedAt = model.accountStatusGeneratedAt {
                         LabeledContent("Usage updated", value: Date(timeIntervalSince1970: TimeInterval(generatedAt)).formatted(date: .abbreviated, time: .shortened))
                     }
@@ -2376,8 +2385,7 @@ struct SettingsView: View {
             let status = try await client.accountStatus(baseURL: gatewayURL, token: gatewayToken)
             model.applyAccountStatusFromConnectionTest(status)
             lastConnectedAt = Date()
-            let accountText = status.activeAccount.isEmpty ? "unknown account" : status.activeAccount
-            connectionMessage = "Connected as \(accountText)."
+            connectionMessage = gatewayConnectionSuccessMessage(activeAccount: status.activeAccount)
             verifiedGatewayConfiguration = gatewaySetupVerificationKey(
                 url: gatewayURL,
                 token: gatewayToken,

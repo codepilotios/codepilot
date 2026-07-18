@@ -22,4 +22,4 @@ The app showed only **No Threads**, **No Projects**, or **No Accounts**. It did 
 
 ## Local Fix
 
-The `agent/setup-audit` branch adds actionable descriptions to these empty states and documents the first-thread path in `docs/INSTALL_IOS.md`. A future guided onboarding flow could make the first successful prompt a tracked completion step.
+The `agent/setup-audit` branch adds actionable descriptions to these empty states and documents the first-thread path in `docs/INSTALL_IOS.md`. A successful connection with no active account now directs the user to add and save a profile in CodePilot on the Mac instead of reporting an "unknown account." A future guided onboarding flow could make the first successful prompt a tracked completion step.
