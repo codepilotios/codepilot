@@ -19,7 +19,10 @@ Status: maintainer action required before any public posting.
 - For `r/BetaTests`, approve the no-link tester-feedback draft and confirm that
   the `codepilotios` identity is at least 24 hours old with at least 2 combined
   Reddit karma. The community currently permits product beta posts without
-  moderator pre-approval, but final maintainer approval is still required.
+  moderator pre-approval, but final maintainer approval is still required. Its
+  current posting guidance asks for a clear product explanation and specific
+  feedback questions; the prepared draft includes both. Add a link only after a
+  direct public beta URL is verified and approved.
 - For `r/alphaandbetausers`, approve the prepared link-free tester-feedback
   draft before a human posts it. The live About page currently shows no
   community-specific rules, but the rules and recent removals must be checked
