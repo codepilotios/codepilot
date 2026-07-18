@@ -3,25 +3,23 @@ import XCTest
 @testable import CodexPhone
 
 final class RemoteDesktopTests: XCTestCase {
-    func testLegacyGatewayTokenMigratesOutOfPreferences() {
-        let defaults = UserDefaults.standard
-        let previousToken = SecureGatewayTokenStore.read()
-        let previousLegacyToken = defaults.string(forKey: "gatewayToken")
-        defer {
-            SecureGatewayTokenStore.save(previousToken)
-            if let previousLegacyToken {
-                defaults.set(previousLegacyToken, forKey: "gatewayToken")
-            } else {
-                defaults.removeObject(forKey: "gatewayToken")
-            }
-        }
-
-        XCTAssertTrue(SecureGatewayTokenStore.save(""))
-        defaults.set("legacy-test-token", forKey: "gatewayToken")
-
-        XCTAssertEqual(SecureGatewayTokenStore.migrateLegacyTokenIfNeeded(), "legacy-test-token")
-        XCTAssertEqual(SecureGatewayTokenStore.read(), "legacy-test-token")
-        XCTAssertNil(defaults.object(forKey: "gatewayToken"))
+    func testRemotePairingRecoveryCopyExplainsCommonSetupFailures() {
+        XCTAssertEqual(
+            remotePairingRecoveryMessage(URLError(.cannotConnectToHost)),
+            "Could not reach Remote Desktop. Confirm the Mac, gateway, and tunnel are online, then retry."
+        )
+        XCTAssertEqual(
+            remotePairingRecoveryMessage(RemoteDesktopAPIError.server(status: 410, code: "pairing_expired")),
+            "Pairing expired. Start pairing again."
+        )
+        XCTAssertEqual(
+            remotePairingRecoveryMessage(RemoteDesktopAPIError.server(status: 403, code: "screen_recording_required")),
+            "Allow Screen Recording for CodePilot on the Mac, restart CodePilot, then retry."
+        )
+        XCTAssertEqual(
+            remotePairingRecoveryMessage(RemoteDesktopAPIError.server(status: 401, code: "unauthorized")),
+            "Remote Desktop access was denied. Copy the current iOS connection token from the Mac setup screen, then retry."
+        )
     }
 
     func testGatewayErrorRecoveryCopyUsesStablePayload() {

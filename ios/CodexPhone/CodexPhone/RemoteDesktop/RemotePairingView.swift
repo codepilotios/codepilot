@@ -85,7 +85,7 @@ struct RemotePairingView: View {
                 statusText = "Not paired"
             }
         } catch {
-            statusText = "Host unavailable"
+            statusText = remotePairingRecoveryMessage(error)
         }
     }
 
@@ -105,13 +105,9 @@ struct RemotePairingView: View {
                 deviceID: identity.deviceID,
                 signature: signature
             )
-            statusText = approval.status == "pending_mac_approval"
-                ? "Waiting for approval on \(approval.macName)"
-                : "Pairing pending"
-        } catch RemoteDesktopAPIError.server(_, let code) {
-            statusText = code
+            statusText = "Paired with \(challenge.macName)"
         } catch {
-            statusText = "Pairing failed"
+            statusText = remotePairingRecoveryMessage(error)
         }
     }
 
@@ -124,6 +120,40 @@ struct RemotePairingView: View {
     }
 }
 
-func canStartRemoteDesktop(statusText: String) -> Bool {
-    statusText.hasPrefix("Paired with ")
+func remotePairingRecoveryMessage(_ error: Error) -> String {
+    if let urlError = error as? URLError {
+        switch urlError.code {
+        case .notConnectedToInternet:
+            return "This iPhone is offline. Reconnect, then retry Remote Desktop."
+        case .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .dnsLookupFailed, .timedOut:
+            return "Could not reach Remote Desktop. Confirm the Mac, gateway, and tunnel are online, then retry."
+        default:
+            break
+        }
+    }
+
+    guard let apiError = error as? RemoteDesktopAPIError else {
+        return "Remote Desktop failed. Confirm CodePilot is open on the Mac, then retry."
+    }
+
+    switch apiError {
+    case .invalidURL:
+        return "Open Settings and enter the gateway URL from the Mac setup screen."
+    case .invalidResponse:
+        return "The Mac returned an unreadable response. Restart the gateway, then retry."
+    case .server(_, let code) where code == "pairing_expired":
+        return "Pairing expired. Start pairing again."
+    case .server(_, let code) where code == "invalid_signature":
+        return "Pairing could not verify this iPhone. Start pairing again."
+    case .server(_, let code) where code == "screen_recording_required":
+        return "Allow Screen Recording for CodePilot on the Mac, restart CodePilot, then retry."
+    case .server(_, let code) where code == "accessibility_required":
+        return "Allow Accessibility for CodePilot on the Mac, restart CodePilot, then retry."
+    case .server(_, let code) where code == "host_unavailable" || code == "timeout":
+        return "Remote Desktop is unavailable on the Mac. Confirm CodePilot is open, then retry."
+    case .server(let status, _) where status == 401 || status == 403:
+        return "Remote Desktop access was denied. Copy the current iOS connection token from the Mac setup screen, then retry."
+    case .server:
+        return "Remote Desktop failed on the Mac. Open Remote Desktop in CodePilot on the Mac, then retry."
+    }
 }
