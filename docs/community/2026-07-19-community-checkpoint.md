@@ -22,7 +22,7 @@ the first beta placements. The broader community survey remains in
 | `r/alphaandbetausers` | Good secondary tester pool | Its rules endpoint currently publishes no community-specific rules. Use only after a same-day review of rules and recent removals; do not offer incentives or reciprocal testing. |
 | `r/ChatGPTCoding` | Good audience, gated placement | Maker-authored service promotion belongs in the designated self-promotion thread. Main-feed placement requires moderator sponsorship. Confirm the current thread and identity eligibility before a human posts one approved comment. |
 | `r/Codex` | Best topical match, moderator-first | Posts must be directly about Codex, use the right flair, and must not use bots. The published rules do not explicitly authorize maker promotion, so send the prepared permission request manually and post only if moderators and a maintainer approve. |
-| `r/iOSProgramming` | Good technical retrospective, not recruitment-first | App promotion is limited to Saturday, one app per year, with previous activity expected. Use the technical App Saturday draft only after eligibility, timing, and the annual allowance are confirmed. |
+| `r/iOSProgramming` | Good technical retrospective, not recruitment-first | App promotion is limited to Saturday and one app per year. Current enforcement requires labeled Tech Stack, Development Challenge, and AI Disclosure sections. Use the revised technical draft only after account eligibility, timing, and the annual allowance are confirmed. |
 | `r/MacApps` | Relevant but currently held | Requires 10 local karma, official distribution links, relationship disclosure, no more than one developer promotion in 30 days, and either main-feed qualification or the current promotion megathread. Do not manufacture eligibility or disclose a private identity. |
 | `r/OpenAI` | Broad, participation-gated | Direct self-promotional project-link posts are not allowed; contextual text posts should stay under the one-in-ten guideline and follow genuine participation. Hold for a later moderator-approved discussion. |
 | `r/SwiftUI` | Not eligible for this campaign | App promotion requires source code and describes eligible projects as open source. CodePilot is source-available under a noncommercial license, not OSI open source. Do not promote it there. |
@@ -63,8 +63,9 @@ plan. The following destinations add a community-specific gate:
   sponsorship.
 - `r/Codex`: moderator permission, correct flair, maintainer approval, and a
   human-authored manual post with no automation.
-- `r/iOSProgramming`: Saturday timing, genuine prior participation, and an
-  unused once-per-year app allowance.
+- `r/iOSProgramming`: Saturday timing, current account eligibility, genuine
+  prior participation, an unused once-per-year app allowance, and the required
+  Tech Stack, Development Challenge, and AI Disclosure sections.
 - `r/MacApps`: 10 genuine local karma, official distribution, the current
   promotion format, and the 30-day allowance.
 - `r/OpenAI`: genuine prior participation and a compliant one-in-ten ratio;
@@ -82,6 +83,8 @@ The concise maintainer action list remains in
 - <https://www.reddit.com/r/ChatGPTCoding/about/rules>
 - <https://www.reddit.com/r/codex/about/rules>
 - <https://www.reddit.com/r/iOSProgramming/about/rules>
+- <https://www.reddit.com/r/iOSProgramming/comments/1pnivdy/proposed_update_to_app_saturday_feedback_requested/>
+- <https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/>
 - <https://www.reddit.com/r/macapps/about/rules>
 - <https://www.reddit.com/r/OpenAI/about/rules>
 - <https://www.reddit.com/r/SwiftUI/about/rules>

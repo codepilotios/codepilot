@@ -28,6 +28,11 @@ Status: maintainer action required before any public posting.
   community-specific rules, but the rules and recent removals must be checked
   again immediately before posting. Do not add reciprocal-testing promises,
   rewards, or an unapproved beta link.
+- For `r/iOSProgramming`, confirm Saturday timing, the identity's current
+  participation and account eligibility, and that its once-per-year app
+  allowance is unused. Approve the revised technical draft with all three
+  labeled sections—Tech Stack, Development Challenge, and AI Disclosure—kept
+  intact; current automated moderation removes posts missing any section.
 - Hold `r/BetaTestersNeeded`. It is restricted to approved contributors and
   requires a tester perk in the title and body plus a signup/test link. Do not
   request approval, invent a perk, imply paid-tier value, or add an unverified

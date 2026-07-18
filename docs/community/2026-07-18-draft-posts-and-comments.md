@@ -222,8 +222,10 @@ must send it. Do not automate.
 
 ## r/iOSProgramming App Saturday
 
-**Status:** Use only on Saturday after confirming genuine prior participation and
-that the account has not used the once-per-year app allowance.
+**Status:** Use only on Saturday after confirming genuine prior participation,
+current account eligibility, and that the account has not used the once-per-year
+app allowance. Keep all three labeled sections below; current automated
+moderation removes App Saturday posts that omit any of them.
 
 **Title**
 
@@ -233,32 +235,41 @@ that the account has not used the once-per-year app allowance.
 
 > Disclosure: we build CodePilot; this is the project's account.
 >
-> We have been working on a public beta that pairs a Swift iPhone app with a
-> coding-agent gateway running on the user's Mac. The interesting iOS problem was
-> less about chat UI and more about making remote state understandable: active
-> turns, stale authentication, file-transfer progress, background notifications,
-> and controls that may or may not be supported by the current agent state.
+> **Tech Stack**
 >
-> The product boundary is deliberately explicit. Codex CLI and its credentials
-> stay on the Mac. The phone talks to a local gateway, with remote access currently
-> routed through a user-controlled Cloudflare Tunnel. The UI has to distinguish a
-> tunnel failure, an unreachable gateway, and rejected authentication without
-> collapsing them into a generic connection error.
+> The iPhone app is built with SwiftUI. It talks to a token-protected local
+> gateway running on the user's Mac. A Mac menu-bar app surfaces local Codex
+> account and usage state. For remote access in the current beta, the iPhone
+> reaches the gateway through a user-controlled Cloudflare Tunnel and still
+> authenticates with a bearer token.
 >
-> We are now testing whether the onboarding explains that architecture clearly
-> enough for someone who did not build it. If you test developer tools on both a
-> Mac and iPhone, we would value feedback on:
+> The client focuses on connection setup, gateway health, thread and session
+> status, file uploads, usage and account state, notifications, and supported
+> controls for steering or stopping active turns.
 >
-> - connection-state wording;
-> - recovery actions after an auth or gateway failure;
-> - whether remote turn controls communicate their limits clearly.
+> **Development Challenge**
 >
-> TestFlight: [TESTFLIGHT_URL]
+> The hard part was making remote control useful without pretending the phone
+> owns the coding-agent session. The source of truth still lives on the Mac:
+> credentials, project files, active turns, and account state. The UI also has
+> to distinguish a tunnel failure, an unreachable gateway, and rejected
+> authentication instead of collapsing them into one generic connection error.
 >
-> Source and architecture notes: [PUBLIC_REPOSITORY_URL]
+> We kept the iPhone app as a narrow gateway client and modeled each setup
+> failure as a recoverable connection state. We are now testing whether someone
+> who did not build the system can understand what stays local, what is remote,
+> what the token protects, and which recovery action to take.
 >
-> It is an early beta. Please do not put tokens, hostnames, account names, private
-> screenshots, or unsanitized logs in public feedback.
+> **AI Disclosure**
+>
+> AI-assisted. Coding agents have assisted with parts of the planning, copy, and
+> implementation. Security-sensitive flows, gateway exposure, authentication,
+> and release materials remain subject to human review.
+>
+> We would value feedback from iOS and macOS developers on whether this
+> architecture and its connection states are understandable. It is an early
+> beta; please do not put tokens, hostnames, account names, private screenshots,
+> or unsanitized logs in public feedback.
 
 ## r/MacApps App Pile megathread
 

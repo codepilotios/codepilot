@@ -13,7 +13,7 @@ immediately before requesting approval to post.
 | 4 | r/alphaandbetausers | Broad alpha/beta tester recruitment | No community-specific rules are visible, but recent moderation behavior and Reddit-wide authenticity rules still apply. | Maintainer approves the exact link-free post after a same-day rules and removals check. |
 | 5 | r/ChatGPTCoding | AI coding users and agent-tool builders | Promotion belongs in the designated self-promotion thread; flair is required for main posts; promote a project only once in the thread's stated policy. Main-feed promotion requires moderator sponsorship through modmail. | Maintainer approval required. Use only the current self-promotion thread, not the main feed. |
 | 6 | r/Codex | Best audience match for the Codex-focused beta | Content must be directly related to Codex, use the right flair, and avoid bots. The rules do not explicitly permit self-promotion. | Moderator approval and maintainer approval required before any promotional post. A human must post; do not automate. |
-| 7 | r/iOSProgramming | Useful for a technical build retrospective | App promotion is allowed only on Saturday, limited to one app once per year, and discouraged without previous community activity. The post should contain technical substance rather than an advertisement. | Maintainer approval required after confirming account history, Saturday timing, and unused annual allowance. |
+| 7 | r/iOSProgramming | Useful for a technical build retrospective | App promotion is allowed only on Saturday, limited to one app once per year, and requires genuine participation. Current automated moderation requires labeled Tech Stack, Development Challenge, and AI Disclosure sections. | Maintainer approval required after confirming account eligibility, Saturday timing, unused annual allowance, and all three required sections. |
 
 ## Secondary or hold destinations
 
@@ -37,6 +37,8 @@ immediately before requesting approval to post.
 - [r/ChatGPTCoding promotion thread example](https://www.reddit.com/r/ChatGPTCoding/comments/1ryqth6/self_promotion_thread/)
 - [r/Codex rules](https://www.reddit.com/r/codex/about/rules)
 - [r/iOSProgramming rules](https://www.reddit.com/r/iOSProgramming/about/rules)
+- [r/iOSProgramming App Saturday format update](https://www.reddit.com/r/iOSProgramming/comments/1pnivdy/proposed_update_to_app_saturday_feedback_requested/)
+- [r/iOSProgramming current missing-section enforcement example](https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/)
 - [r/MacApps rules](https://www.reddit.com/r/macapps/about/rules)
 - [r/MacApps trust and transparency update](https://www.reddit.com/r/macapps/comments/1ryaeex/rmacapps_mods_went_too_far_whats_changing_phase_3/)
 - [r/OpenAI rules](https://www.reddit.com/r/OpenAI/about/rules)
@@ -58,8 +60,9 @@ immediately before requesting approval to post.
   removals because it publishes no community-specific rules.
 - r/Codex requires moderator confirmation because its published rules do not
   explicitly authorize project promotion.
-- r/iOSProgramming requires confirmation of Saturday timing, genuine prior
-  activity, and the once-per-year allowance.
+- r/iOSProgramming requires confirmation of Saturday timing, current account
+  eligibility, genuine prior activity, the once-per-year allowance, and the
+  required Tech Stack, Development Challenge, and AI Disclosure sections.
 - r/MacApps requires confirmation of 10 local karma, the current App Pile
   megathread, the 30-day allowance, and the required post format. The
   `codepilotios` identity must not disclose private identity details to qualify
