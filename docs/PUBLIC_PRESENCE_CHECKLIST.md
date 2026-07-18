@@ -32,7 +32,7 @@ For screenshot, metadata, issue-template, or support-copy changes, also verify:
 
 Public support and feedback copy should ask for:
 
-- Affected area: Mac app, iPhone app, gateway, Cloudflare setup, account switching, file upload, notifications, docs, or the Remote Desktop availability guard.
+- Affected area: Mac app, iPhone app, gateway, Cloudflare setup, account switching, file upload, localhost link opening, notifications, docs, or the Remote Desktop availability guard.
 - Failing step and visible recovery message.
 - macOS version, iOS version, CodePilot build or commit, and Codex CLI version when available.
 - Sanitized logs or screenshots only when they materially help reproduce the issue.

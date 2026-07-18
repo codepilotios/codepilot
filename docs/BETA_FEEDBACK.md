@@ -6,11 +6,11 @@ CodePilot public beta feedback is most useful when it helps reproduce a real Cod
 
 Include:
 
-- The area affected: Mac app, iPhone app, gateway, Cloudflare setup, account switching, usage status, connector/plugin status, file upload, notifications, docs, or the Remote Desktop availability guard.
+- The area affected: Mac app, iPhone app, gateway, Cloudflare setup, account switching, usage status, connector/plugin status, file upload, localhost link opening, notifications, docs, or the Remote Desktop availability guard.
 - What you were trying to do.
 - What happened instead.
 - The visible recovery message or status text.
-- Whether the failing step was setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, usage or connector status, upload, notification delivery, turn control, or an unavailable feature appearing unexpectedly.
+- Whether the failing step was setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, usage or connector status, upload, localhost link opening, notification delivery, turn control, or an unavailable feature appearing unexpectedly.
 - macOS version, iOS version, CodePilot build or commit, and Codex CLI version when available.
 - Sanitized logs or screenshots only when they make the issue clearer.
 
@@ -30,6 +30,7 @@ Remove these before opening an issue or attaching screenshots:
 - Codex auth files, gateway bearer tokens, and Cloudflare tunnel URLs.
 - Private hostnames, account names, personal names, email addresses, Apple identifiers, and team identifiers.
 - Local file paths, private repository names, uploaded files, private prompts, thread names, and live desktop contents.
+- Localhost or local-web session URLs, local page contents, and local web screenshots.
 - Logs containing any of the above.
 
 For security-sensitive reports, follow [Security](SECURITY.md) and avoid posting exploit details or secrets publicly.

@@ -10,6 +10,7 @@ The beta is focused on practical workflows for AI coding users:
 - Switch saved Codex account profiles after active turns finish.
 - Connect the iPhone app to the Mac gateway through a user-owned Cloudflare Tunnel during the public beta.
 - Upload files, inspect threads, steer or stop turns where supported, and receive turn-finished notifications when APNs is configured for the gateway.
+- Open loopback web links from Codex output in the iPhone app through the authenticated Mac gateway.
 
 ## Beta Access
 

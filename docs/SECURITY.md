@@ -29,6 +29,12 @@ The gateway health response is intentionally public-safe, but it is still operat
 
 CodePilot swaps local provider auth files. It waits for active turns to finish before automatic switching, but users should still avoid manually editing auth files while turns are running.
 
+## Loopback Web Links
+
+CodePilot can proxy `http` and `https` links for `localhost`, `127.0.0.1`, and `::1` through an authenticated, short-lived gateway session. Non-loopback targets are rejected. Treat local page contents, URL paths, and query strings as private because they pass through the gateway and Cloudflare Tunnel to the iPhone.
+
+Do not open local admin panels or dashboards containing credentials through this workflow. Do not share local-web session URLs, page contents, or screenshots in public issues.
+
 ## Remote Desktop
 
 Remote Desktop is not part of the supported public beta while device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable it in beta builds or expose its routes through a tunnel.

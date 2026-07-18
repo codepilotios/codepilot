@@ -40,6 +40,12 @@ Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot st
 
 One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit. These are request limits, not an automatic cleanup policy.
 
+## Can I open a localhost link from the iPhone app?
+
+Yes. When Codex output contains an `http` or `https` link for `localhost`, `127.0.0.1`, or `::1`, CodePilot can open it in an in-app browser through the authenticated Mac gateway. The web server must be running on the Mac, and the short-lived local-web session must still be active.
+
+The page content passes through the Mac gateway and your Cloudflare Tunnel to the iPhone. Treat local dashboards, query strings, and page contents as private, and do not include them in public screenshots or issue reports. CodePilot does not use this workflow to proxy non-loopback websites.
+
 ## Can CodePilot switch accounts while a turn is running?
 
 Automatic switching waits for active turns to finish. Avoid manually changing Codex auth files while turns are running; use CodePilot's account controls so a new profile is applied safely to later turns.

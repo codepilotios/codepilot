@@ -23,10 +23,10 @@ Use the repository bug report template when available.
 
 Include:
 
-- The affected area: Mac app, iPhone app, gateway, Cloudflare setup, account switching, usage status, connector/plugin status, file upload, notifications, docs, or the Remote Desktop availability guard.
+- The affected area: Mac app, iPhone app, gateway, Cloudflare setup, account switching, usage status, connector/plugin status, file upload, localhost link opening, notifications, docs, or the Remote Desktop availability guard.
 - What you expected to happen.
 - What happened instead.
-- Whether setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, file upload, notification delivery, turn control, or an unavailable feature appearing unexpectedly is the failing step.
+- Whether setup, Cloudflare Tunnel, gateway connection, token entry, thread loading, file upload, localhost link opening, notification delivery, turn control, or an unavailable feature appearing unexpectedly is the failing step.
 - The visible recovery message, if one appears.
 - Whether Codex CLI was already working on the Mac before CodePilot setup.
 - macOS version, iOS version, CodePilot build or commit, and Codex CLI version when available.
@@ -39,6 +39,7 @@ Do not include:
 - Codex auth files.
 - Gateway bearer tokens.
 - Private hostnames or Cloudflare tunnel URLs.
+- Localhost URLs, local-web session URLs, or private page contents.
 - Personal account names or email addresses.
 - Apple account, team, signing, or TestFlight identifiers.
 - Screenshots that show private files, paths, accounts, tokens, or hosts.

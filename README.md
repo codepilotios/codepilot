@@ -82,7 +82,7 @@ See:
 - [Report a beta bug](https://github.com/codepilotios/codepilot/issues/new?template=bug_report.md)
 - [Request a beta improvement](https://github.com/codepilotios/codepilot/issues/new?template=feature_request.md)
 
-Remove gateway URLs, tokens, hostnames, account names, local paths, private prompts, uploaded files, and unsanitized screenshots before submitting. For security-sensitive findings, read the [security reporting guidance](docs/SECURITY.md) first and do not post sensitive evidence publicly.
+Remove gateway URLs, tokens, hostnames, localhost or local-web session URLs, local page contents, account names, local paths, private prompts, uploaded files, and unsanitized screenshots before submitting. For security-sensitive findings, read the [security reporting guidance](docs/SECURITY.md) first and do not post sensitive evidence publicly.
 
 ## Features
 
@@ -92,6 +92,7 @@ Remove gateway URLs, tokens, hostnames, account names, local paths, private prom
 - Global iOS credit progress indicator.
 - iOS remote chat and file upload.
 - Conversation steering and stop-turn controls where supported.
+- In-app opening of `localhost`, `127.0.0.1`, and `::1` web links through the authenticated Mac gateway.
 - Thread pinning, renaming, deletion, and project grouping.
 - Connector/plugin status visibility.
 - Turn-finished notifications when APNs is configured for the gateway.

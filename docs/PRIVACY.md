@@ -14,6 +14,7 @@ CodePilot is not an offline coding tool. When you start or continue a Codex turn
 | A Codex turn | Gateway state, thread metadata, and local Codex state | Prompts, conversation context, selected attachments, and related service metadata can be sent to Codex and OpenAI. |
 | The iPhone companion | Gateway settings, uploaded files, and the gateway's copy of notification state | Gateway requests and responses pass through the user-owned Cloudflare Tunnel. |
 | File upload | The uploaded file is saved under the CodePilot state directory | The file passes through Cloudflare when uploaded from iPhone and can be sent to Codex and OpenAI when selected for a turn. |
+| A loopback web link | The local web server and short-lived proxy-session state remain on the Mac | Requested page content, URL paths, and query strings pass through the gateway and Cloudflare Tunnel to the iPhone. |
 | Notifications or Live Activities | The gateway stores registered device and activity tokens | Apple can process device tokens and the notification or Live Activity payload described below. |
 
 CodePilot does not operate an account, analytics, or relay service for the current repository beta. This does not remove the data handling performed by Codex, OpenAI, Cloudflare, or Apple when you enable workflows that use those services.
@@ -56,6 +57,12 @@ Notification payloads do not intentionally include auth files, gateway bearer to
 During the public beta, remote iPhone access uses a user-owned Cloudflare Tunnel. Gateway requests and responses pass through Cloudflare, including thread data, prompts, turn output, usage and account status, and uploaded file contents when those features are used. Cloudflare also processes connection metadata for tunnel operation according to your Cloudflare account configuration and Cloudflare's own terms and policies.
 
 Use an HTTPS tunnel URL. CodePilot still requires the gateway bearer token when using Cloudflare Tunnel. Treat temporary TryCloudflare URLs, permanent tunnel hostnames, and the gateway token as private support data.
+
+## Loopback Web Links
+
+When the iPhone app opens an `http` or `https` link to `localhost`, `127.0.0.1`, or `::1`, the authenticated Mac gateway creates a short-lived proxy session and requests that page from the Mac. Page bodies, URL paths, and query strings then pass through the gateway and the user-owned Cloudflare Tunnel to the iPhone. Local dashboards can contain source code, logs, filenames, prompts, or development data even when the link itself looks generic.
+
+The local-web workflow accepts only loopback hosts; it is not a general website proxy. Session identifiers expire, response sizes are bounded, and the gateway bearer token is not placed in the proxied page URL. These limits reduce exposure but do not make page contents public-safe. Close sensitive local pages when finished and remove local-web URLs, contents, and screenshots from public reports.
 
 ## External Services
 

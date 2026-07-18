@@ -23,6 +23,7 @@ Recommended beta screenshot set:
 - iPhone thread list with demo thread names.
 - iPhone usage and connector/plugin status with demo account names.
 - File upload confirmation using non-private sample files.
+- In-app local web preview from a purpose-built demo page with no source code, logs, paths, query values, or development data.
 
 ## Demo Capture Brief
 
@@ -44,6 +45,7 @@ Before committing or attaching an image:
 - Confirm every visible account, hostname, thread, file, repository, prompt, connector, and notification matches the fictional capture brief.
 - Confirm no bearer token, auth value, QR payload, local path, Apple identifier, device name, personal service, or private desktop content is visible.
 - Confirm Remote Desktop is absent from the entire set while it remains outside the supported public beta.
+- Confirm any local web preview uses only the purpose-built demo page and reveals no local URL, session URL, source code, logs, paths, or query values.
 - Write concise alt text that explains the beta workflow without repeating private or hidden values.
 - Run `scripts/privacy-audit.sh` after adding the image files and their surrounding copy.
 

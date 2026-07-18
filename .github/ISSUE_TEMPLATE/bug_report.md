@@ -17,6 +17,7 @@ assignees: ""
 - [ ] Connector/plugin status
 - [ ] Remote Desktop availability guard (feature appeared or could be enabled)
 - [ ] File upload
+- [ ] Localhost link opening
 - [ ] Notifications
 - [ ] Documentation
 
@@ -36,6 +37,7 @@ Check the closest match:
 - [ ] Thread loading
 - [ ] Usage or connector status
 - [ ] File upload
+- [ ] Localhost link opening
 - [ ] Steering or stop-turn control
 - [ ] Notification delivery
 - [ ] Remote Desktop appeared or could be enabled
@@ -64,6 +66,6 @@ Paste the visible recovery message or status text, with private values removed.
 
 Attach only sanitized logs or screenshots when they materially help reproduce the issue.
 
-Do not include Codex auth files, gateway bearer tokens, private hostnames, tunnel URLs, personal account names, email addresses, Apple identifiers, local file paths, private prompts, uploaded files, repository names, or live desktop contents.
+Do not include Codex auth files, gateway bearer tokens, private hostnames, tunnel URLs, localhost or local-web session URLs, local page contents, personal account names, email addresses, Apple identifiers, local file paths, private prompts, uploaded files, repository names, or live desktop contents.
 
 Remote Desktop is outside the supported public beta. Report only if it appears or can be enabled; do not test its routes or attach desktop captures.

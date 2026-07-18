@@ -44,6 +44,7 @@
 - Added notification and file-upload recovery checklists to the public iPhone, FAQ, and troubleshooting guidance.
 - Aligned Fastlane's default privacy and marketing URLs with the canonical lowercase public repository path and the prepared GitHub Pages privacy page.
 - Added a safe source-build update path that preserves active turns and separates Mac updates from approved iPhone beta distribution.
+- Documented localhost link opening as a supported beta workflow, including its loopback-only gateway boundary, Cloudflare data flow, privacy guidance, and public-safe reporting and screenshot rules.
 
 ### Recent Product Work
 
