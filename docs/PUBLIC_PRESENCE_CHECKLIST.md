@@ -47,6 +47,7 @@ Maintainer approval is required before publishing or submitting:
 
 ## Publishing Readiness
 
+- Run `scripts/public-presence-audit.sh` and `scripts/privacy-audit.sh` before committing public-content changes.
 - Confirm GitHub Pages is enabled from the approved `main` branch `docs/` source and the site returns successfully.
 - Add the live Pages URL to the repository website field and resolve the App Store support and privacy URL drafts to live pages.
 - Keep the repository description beta-focused and specific to the current audience. Recommended copy: `Public beta Mac and iPhone companion for Codex CLI workflows.`
