@@ -3876,8 +3876,14 @@ class GatewayState:
 
         auth_url = str(session.get("authUrl") or "")
         auth_query = urllib.parse.parse_qs(urllib.parse.urlparse(auth_url).query)
-        expected_redirect = (auth_query.get("redirect_uri") or [""])[0]
-        expected_state = (auth_query.get("state") or [""])[0]
+        redirect_values = auth_query.get("redirect_uri") or []
+        state_values = auth_query.get("state") or []
+        if len(redirect_values) != 1 or not redirect_values[0]:
+            raise ValueError("Remote login redirect URL is invalid")
+        if len(state_values) != 1 or not state_values[0]:
+            raise ValueError("Remote login authorization state is invalid")
+        expected_redirect = redirect_values[0]
+        expected_state = state_values[0]
         redirect = urllib.parse.urlparse(expected_redirect)
         if redirect.scheme != "http" or redirect.hostname not in {"localhost", "127.0.0.1"}:
             raise ValueError("Remote login redirect URL is invalid")
@@ -3887,8 +3893,8 @@ class GatewayState:
             raise ValueError("Remote login callback path is invalid")
 
         callback_query = urllib.parse.parse_qs(parsed.query)
-        callback_state = (callback_query.get("state") or [""])[0]
-        if expected_state and callback_state != expected_state:
+        callback_state_values = callback_query.get("state") or []
+        if len(callback_state_values) != 1 or callback_state_values[0] != expected_state:
             raise ValueError("Remote login callback state does not match")
         if callback_query.get("error"):
             error = (callback_query.get("error_description") or callback_query.get("error") or ["Login failed"])[0]

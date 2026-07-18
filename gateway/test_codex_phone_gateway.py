@@ -2434,6 +2434,34 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                     state.cancel_remote_account_login(started["sessionId"])
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
+    def test_remote_login_callback_requires_unique_authorization_state(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        callback_url = "http://localhost:1455/auth/callback?code=abc&state=expected-state"
+        redirect = "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+
+        for auth_url in (
+            f"https://auth.openai.com/oauth/authorize?{redirect}",
+            f"https://auth.openai.com/oauth/authorize?{redirect}&state=first&state=second",
+        ):
+            with self.subTest(auth_url=auth_url), self.assertRaisesRegex(ValueError, "state"):
+                state.validated_remote_login_callback_url({"authUrl": auth_url}, callback_url)
+
+    def test_remote_login_callback_rejects_duplicate_callback_state(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        session = {
+            "authUrl": (
+                "https://auth.openai.com/oauth/authorize?"
+                "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&"
+                "state=expected-state"
+            )
+        }
+
+        with self.assertRaisesRegex(ValueError, "state"):
+            state.validated_remote_login_callback_url(
+                session,
+                "http://localhost:1455/auth/callback?code=abc&state=expected-state&state=other",
+            )
+
     def test_expired_remote_login_session_terminates_process_and_removes_temp_home(self):
         with tempfile.TemporaryDirectory() as tmp:
             temp_home = Path(tmp) / "remote-login"
