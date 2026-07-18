@@ -49,5 +49,6 @@ Maintainer approval is required before publishing or submitting:
 
 - Confirm GitHub Pages is enabled from the approved `main` branch `docs/` source and the site returns successfully.
 - Add the live Pages URL to the repository website field and resolve the App Store support and privacy URL drafts to live pages.
+- Keep the repository description beta-focused and specific to the current audience. Recommended copy: `Public beta Mac and iPhone companion for Codex CLI workflows.`
 - Confirm a private security-reporting channel is enabled and linked from `SECURITY.md` before broader beta promotion.
 - Keep sensitive vulnerability details out of public issues, even when asking for private coordination.

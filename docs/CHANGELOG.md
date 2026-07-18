@@ -39,6 +39,7 @@
 - Added FAQ and installation guidance for upload retention and safe account switching during active turns.
 - Clarified that notifications are optional, require gateway APNs configuration for background delivery, and use iOS controls separate from Live Activities.
 - Removed implied future-provider promises from public copy and focused the App Store promotional draft on current Codex CLI beta workflows.
+- Added beta-focused repository description guidance so the GitHub header matches the approved audience and release status.
 
 ### Recent Product Work
 
