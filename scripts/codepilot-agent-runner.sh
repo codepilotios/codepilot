@@ -92,8 +92,10 @@ fi
 
 REAL_GIT="$(command -v git)"
 REAL_GH="$(command -v gh 2>/dev/null || true)"
+REAL_ASC="$(command -v asc 2>/dev/null || true)"
 export CODEPILOT_AGENT_REAL_GIT="$REAL_GIT"
 export CODEPILOT_AGENT_REAL_GH="$REAL_GH"
+export CODEPILOT_AGENT_REAL_ASC="$REAL_ASC"
 export CODEPILOT_AGENT_PUBLIC_AUTONOMY="$PUBLIC_AUTONOMY"
 export CODEPILOT_REPO_ROOT="$ROOT"
 export PATH="$GUARD_BIN:$PATH"

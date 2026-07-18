@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 GUARD_BIN="$ROOT/scripts/agent-guard-bin"
 TMP_ROOT="$(mktemp -d)"
+export CODEPILOT_AGENT_PUBLIC_AUTONOMY="review"
 
 cleanup() {
   rm -rf "$TMP_ROOT"
@@ -78,8 +79,31 @@ export CODEPILOT_AGENT_REAL_FASTLANE="$TMP_ROOT/fastlane"
 export CODEPILOT_AGENT_REAL_ASC="$TMP_ROOT/asc"
 export CODEPILOT_AGENT_REAL_XCRUN="$TMP_ROOT/xcrun"
 
+"$GUARD_BIN/asc" appstore list --output json
+grep -qx 'appstore' "$TMP_ROOT/capture"
+
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/fastlane" upload_to_testflight; then
   echo "Launch autonomy allowed fastlane upload" >&2
+  exit 1
+fi
+
+timeout_marker="$TMP_ROOT/asc-timeout"
+env -u CODEPILOT_AGENT_REAL_ASC PATH="$GUARD_BIN:$PATH" \
+  "$GUARD_BIN/asc" appstore list --output json &
+asc_pid="$!"
+(
+  sleep 2
+  if kill -0 "$asc_pid" 2>/dev/null; then
+    touch "$timeout_marker"
+    kill -TERM "$asc_pid" 2>/dev/null || true
+  fi
+) &
+watchdog_pid="$!"
+wait "$asc_pid" || true
+kill "$watchdog_pid" 2>/dev/null || true
+wait "$watchdog_pid" 2>/dev/null || true
+if [[ -f "$timeout_marker" ]]; then
+  echo "asc guard recursed when the real executable was not exported" >&2
   exit 1
 fi
 
