@@ -15,7 +15,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - Unsigned generic-device iOS Release archive compile: passed with Xcode 26.5.
 - iOS simulator tests: passed; 37 tests, 0 failures.
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
-- Fastlane Ruby syntax, iOS `Info.plist`, entitlements, and version metadata JSON validation passed. The release-agent runtime now selects Ruby 4.0.4 with Bundler 4.0.11; `bundle check` passes, so the prior local Fastlane toolchain blocker is resolved. No signed archive or upload lane was run.
+- Fastlane Ruby syntax, iOS `Info.plist`, entitlements, and version metadata JSON validation passed. With the supported Ruby 4.0.4 and Bundler 4.0.11 selected explicitly, `bundle check` and Fastlane lane discovery pass. The default unattended working-directory environment still selects system Ruby 2.6 and cannot start the lockfile-required Bundler, so the release entrypoint is not yet deterministic. No signed archive or upload lane was run.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
 - A July 18 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403. No OTA build or external-state mutation was performed in this run.
 
@@ -26,6 +26,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The latest OTA build is stale relative to current source and has no recorded source commit. No OTA build was triggered because this run is not authorized to mutate external distribution systems.
 - The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
 - App Store Connect inspection was unavailable in this run. The Apple developer team setting is empty, and the launch guard blocked even `asc auth status`; the app record, processed builds, availability, version attachment, and strict validation therefore could not be checked without maintainer-provided release access.
+- The unattended Fastlane entrypoint does not select the supported Ruby/Bundler toolchain deterministically. Add a repository-owned release wrapper or equivalent environment setup before relying on a scheduled TestFlight build.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
 - Public Git history contains 11 legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
