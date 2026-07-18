@@ -35,5 +35,7 @@ One new GitHub issue was opened after the earlier 2026-07-18 triage pass. The th
 
 - No new GitHub issues or issue updates appeared after the preceding pass. The open queue remains #27, #25, and #8.
 - The proposed labels and existing blocker assessments remain unchanged.
-- Draft PRs #17, #22, and #26 remain open, mergeable, and passing `Test and Audit`.
+- `origin/main` remains unchanged. GitHub Pages still returns 404, the repository website field remains empty, and private vulnerability reporting remains disabled.
+- Draft PR #17 received public-metadata and documentation updates, and draft PR #22 received agent-write audit hardening. Neither update changes the #27 maintainer steps or resolves #25's paired-device lease requirements.
+- Draft PRs #17, #22, and #26 remain open, mergeable, and passing `Test and Audit` on their latest commits.
 - No additional issue comment, branch, or code fix was needed. The existing escalation covers the two maintainer actions that remain necessary.
