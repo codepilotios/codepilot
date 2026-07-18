@@ -32,7 +32,7 @@ end
 metadata_path = "docs/APP_STORE_METADATA_DRAFT.md"
 metadata = File.read(metadata_path)
 
-{"Promotional Text" => 170, "Keywords" => 100}.each do |heading, field_limit|
+{"App Name" => 30, "Subtitle" => 30, "Promotional Text" => 170, "Keywords" => 100}.each do |heading, field_limit|
   value = metadata[/^## #{Regexp.escape(heading)}\n\n([^\n]+)/, 1]
   count_match = metadata.match(
     /^## #{Regexp.escape(heading)}\n\n[^\n]+\n\nCharacter count: (\d+) of (\d+)\./
@@ -47,6 +47,20 @@ metadata = File.read(metadata_path)
   if value.length != declared_count || declared_limit != field_limit || value.length > field_limit
     warn "public presence audit failed: #{heading} is #{value.length} characters, " \
          "but the draft declares #{declared_count} of #{declared_limit} (limit #{field_limit})"
+    exit 1
+  end
+end
+
+{"Description" => 4_000, "What To Test" => 4_000}.each do |heading, field_limit|
+  value = metadata[/^## #{Regexp.escape(heading)}\n\n(.*?)(?=\n## |\z)/m, 1]&.strip
+
+  unless value
+    warn "public presence audit failed: #{heading} is missing"
+    exit 1
+  end
+
+  if value.length > field_limit
+    warn "public presence audit failed: #{heading} is #{value.length} characters (limit #{field_limit})"
     exit 1
   end
 end

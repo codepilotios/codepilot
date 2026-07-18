@@ -6,9 +6,13 @@ This draft is for TestFlight and App Store Connect preparation only. Do not subm
 
 CodePilot
 
+Character count: 9 of 30.
+
 ## Subtitle
 
 Codex companion for your Mac
+
+Character count: 28 of 30.
 
 ## Promotional Text
 
