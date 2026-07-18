@@ -73,6 +73,37 @@ class DesktopSyncSecurityTests(unittest.TestCase):
                 importer.safe_extract(bundle, destination)
             self.assertEqual((destination / "manifest.json").read_bytes(), b"first")
 
+    def test_import_rejects_too_many_archive_members(self):
+        importer = load_import_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_path = Path(temporary)
+            bundle = temporary_path / "bundle.tgz"
+            with tarfile.open(bundle, "w:gz") as archive:
+                for index in range(importer.MAX_ARCHIVE_MEMBERS + 1):
+                    archive.addfile(tarfile.TarInfo(f"empty-{index}"), io.BytesIO())
+
+            with self.assertRaisesRegex(RuntimeError, "more than"):
+                importer.safe_extract(bundle, temporary_path / "extract")
+
+    def test_import_rejects_excessive_declared_extract_size(self):
+        importer = load_import_module()
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_path = Path(temporary)
+            bundle = temporary_path / "bundle.tgz"
+            content = b"oversized"
+            with tarfile.open(bundle, "w:gz") as archive:
+                member = tarfile.TarInfo("oversized")
+                member.size = len(content)
+                archive.addfile(member, io.BytesIO(content))
+
+            original_limit = importer.MAX_ARCHIVE_BYTES
+            importer.MAX_ARCHIVE_BYTES = len(content) - 1
+            try:
+                with self.assertRaisesRegex(RuntimeError, "archive larger than"):
+                    importer.safe_extract(bundle, temporary_path / "extract")
+            finally:
+                importer.MAX_ARCHIVE_BYTES = original_limit
+
     def test_export_bundle_is_owner_only(self):
         with tempfile.TemporaryDirectory() as temporary:
             temporary_path = Path(temporary)
