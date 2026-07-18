@@ -13,6 +13,7 @@ in every post or comment that mentions the project.
 - [Research and posting queue](2026-07-18-community-research.md)
 - [Tailored posts and comments](2026-07-18-draft-posts-and-comments.md)
 - [Profile and reusable replies](profile-and-response-library.md)
+- [Comprehensive research and held-draft archive](../../ops/agents/community-drafts/2026-07-01-codepilot-beta-drafts.md)
 
 ## Before any approved post
 
@@ -27,4 +28,3 @@ in every post or comment that mentions the project.
 6. Obtain explicit maintainer approval for the final post and destination.
 7. Post once. Do not coordinate votes, repeat the same promotion across threads,
    or use automated posting.
-

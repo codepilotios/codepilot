@@ -7,10 +7,13 @@ immediately before requesting approval to post.
 
 | Priority | Community | Fit | Current constraints | Approval state |
 | --- | --- | --- | --- | --- |
-| 1 | r/TestFlight | Direct access to beta testers | Link posts must point only to TestFlight; title should be the app name with at most a short message; use the app flair; keep comments on the beta; avoid repeat posts. | Hold until a public TestFlight link is tested, then maintainer approves the exact post. |
-| 2 | r/ChatGPTCoding | AI coding users and agent-tool builders | Promotion belongs in the designated self-promotion thread; flair is required for main posts; promote a project only once in the thread's stated policy. Main-feed promotion requires moderator sponsorship through modmail. | Maintainer approval required. Use only the current self-promotion thread, not the main feed. |
-| 3 | r/Codex | Best audience match for the Codex-focused beta | Content must be directly related to Codex, use the right flair, and avoid bots. The rules do not explicitly permit self-promotion. | Moderator approval and maintainer approval required before any promotional post. A human must post; do not automate. |
-| 4 | r/iOSProgramming | Useful for a technical build retrospective | App promotion is allowed only on Saturday, limited to one app once per year, and discouraged without previous community activity. The post should contain technical substance rather than an advertisement. | Maintainer approval required after confirming account history, Saturday timing, and unused annual allowance. |
+| 1 | r/GenAiApps | Direct fit for a generative-AI iPhone workflow | Self-promotion must be contextual and useful, use the appropriate flair, and avoid duplicate or unsafe links. | Maintainer approves the exact link-free post and `iOS` flair. Add a beta link only after separate verification and approval. |
+| 2 | r/TestFlight | Direct access to beta testers | Link posts must point only to TestFlight; title should be the app name with at most a short message; use the app flair; keep comments on the beta; avoid repeat posts. | Hold until a public TestFlight link is tested, then maintainer approves the exact post. |
+| 3 | r/BetaTests | Focused product-beta feedback | Posting identities must be at least 24 hours old with at least 2 combined karma. Posts should explain the product and ask specific feedback questions. | Maintainer approves the exact post and confirms identity eligibility. Keep it link-free until a direct beta URL is verified. |
+| 4 | r/alphaandbetausers | Broad alpha/beta tester recruitment | No community-specific rules are visible, but recent moderation behavior and Reddit-wide authenticity rules still apply. | Maintainer approves the exact link-free post after a same-day rules and removals check. |
+| 5 | r/ChatGPTCoding | AI coding users and agent-tool builders | Promotion belongs in the designated self-promotion thread; flair is required for main posts; promote a project only once in the thread's stated policy. Main-feed promotion requires moderator sponsorship through modmail. | Maintainer approval required. Use only the current self-promotion thread, not the main feed. |
+| 6 | r/Codex | Best audience match for the Codex-focused beta | Content must be directly related to Codex, use the right flair, and avoid bots. The rules do not explicitly permit self-promotion. | Moderator approval and maintainer approval required before any promotional post. A human must post; do not automate. |
+| 7 | r/iOSProgramming | Useful for a technical build retrospective | App promotion is allowed only on Saturday, limited to one app once per year, and discouraged without previous community activity. The post should contain technical substance rather than an advertisement. | Maintainer approval required after confirming account history, Saturday timing, and unused annual allowance. |
 
 ## Secondary or hold destinations
 
@@ -25,7 +28,11 @@ immediately before requesting approval to post.
 
 ## Rule sources
 
+- [r/GenAiApps rules](https://www.reddit.com/r/GenAiApps/about/rules)
 - [r/TestFlight rules](https://www.reddit.com/r/TestFlight/about/rules)
+- [r/BetaTests rules](https://www.reddit.com/r/BetaTests/about/rules)
+- [r/BetaTests posting guidance](https://www.reddit.com/r/BetaTests/comments/1ufs2a9/community_rules/)
+- [r/alphaandbetausers rules](https://www.reddit.com/r/alphaandbetausers/about/rules)
 - [r/ChatGPTCoding rules](https://www.reddit.com/r/ChatGPTCoding/about/rules)
 - [r/ChatGPTCoding promotion thread example](https://www.reddit.com/r/ChatGPTCoding/comments/1ryqth6/self_promotion_thread/)
 - [r/Codex rules](https://www.reddit.com/r/codex/about/rules)
@@ -42,6 +49,13 @@ immediately before requesting approval to post.
 
 - Every public post or comment requires final maintainer approval under the
   CodePilot launch policy.
+- r/GenAiApps requires approval of the exact text and `iOS` flair. Any later
+  beta link requires separate verification and approval.
+- r/BetaTests requires confirmation that the identity is at least 24 hours old
+  and has at least 2 combined karma; do not create or manufacture activity to
+  qualify.
+- r/alphaandbetausers requires a same-day check of its live rules and recent
+  removals because it publishes no community-specific rules.
 - r/Codex requires moderator confirmation because its published rules do not
   explicitly authorize project promotion.
 - r/iOSProgramming requires confirmation of Saturday timing, genuine prior
@@ -52,3 +66,6 @@ immediately before requesting approval to post.
   for a main-feed transparency path.
 - r/OpenAI requires genuine prior participation before self-promotion.
 - r/iOSApps is excluded from the posting queue while its no-AI rule remains.
+
+The broader research archive, including held and excluded destinations, is in
+[`ops/agents/community-drafts/2026-07-01-codepilot-beta-drafts.md`](../../ops/agents/community-drafts/2026-07-01-codepilot-beta-drafts.md).

@@ -3,6 +3,110 @@
 All copy below is unposted. Bracketed values must be replaced and verified during
 final approval. Every draft uses the public `codepilotios` identity.
 
+## r/GenAiApps
+
+**Status:** Preferred first placement. Use the `iOS` flair and keep the post
+link-free until a public beta URL is separately verified and approved.
+
+**Title**
+
+> I built an iPhone companion for Codex sessions running on your Mac — looking for beta workflow feedback
+
+**Body**
+
+> Disclosure: we build CodePilot; this is the project's account.
+>
+> CodePilot is a beta Mac + iPhone companion for people who already run Codex on
+> a Mac they control.
+>
+> The idea is to leave the coding-agent session, credentials, and project files
+> on the Mac while giving the iPhone a focused view of session status, threads,
+> file uploads, notifications, and controls to steer or stop an active turn. The
+> Mac runs a token-protected local gateway; remote access in the current beta
+> uses a Cloudflare Tunnel controlled by the tester.
+>
+> We are trying to learn whether this solves a real generative-AI workflow
+> problem or just moves a terminal-shaped problem onto a smaller screen. The
+> feedback that would help most is:
+>
+> - when you would actually check or control a coding-agent session from your phone;
+> - which remote actions feel useful versus risky;
+> - whether the Mac gateway and iPhone connection model is understandable; and
+> - what trust or setup concern would stop you from trying the beta.
+>
+> This is a feedback request, not an upvote request. Please do not share
+> credentials, gateway tokens, private hostnames, private logs, screenshots, or
+> project files. We will add an approved beta link only when public distribution
+> is ready.
+
+## r/BetaTests
+
+**Status:** Use only after a maintainer confirms the identity is at least 24
+hours old with at least 2 combined karma. Keep the post link-free until a direct
+public beta URL is verified and approved.
+
+**Title**
+
+> Looking for setup feedback on CodePilot, an iPhone companion for Codex sessions on a Mac
+
+**Body**
+
+> Disclosure: we build CodePilot; this is the project's account.
+>
+> We are looking for a small number of beta testers who already run Codex on
+> macOS and can give specific setup feedback.
+>
+> CodePilot leaves the Codex session, credentials, and project files on the Mac.
+> A token-protected local gateway gives the iPhone companion narrow access to
+> session status, threads, file uploads, notifications, and controls to steer or
+> stop an active turn. For the current public-beta remote path, the tester
+> connects through a Cloudflare Tunnel they control.
+>
+> The beta questions we most need answered are:
+>
+> - Is the Mac gateway and iPhone pairing flow understandable without live help?
+> - Is it clear what the gateway token protects and how to recover from a rejected token?
+> - Does checking or steering a coding-agent turn from a phone solve a real workflow problem?
+> - Which trust or setup concern would make you stop testing?
+>
+> This is a feedback request, not an upvote request. Please do not share
+> credentials, gateway tokens, private hostnames, private logs, screenshots
+> containing private project data, or project files in replies.
+
+## r/alphaandbetausers
+
+**Status:** Use only after a same-day review of the live rules and recent
+removals. Do not promise reciprocal testing or incentives. Keep the post
+link-free until a direct public beta URL is verified and approved.
+
+**Title**
+
+> Looking for Mac-based Codex users to test an iPhone companion setup
+
+**Body**
+
+> Disclosure: we build CodePilot; this is the project's account.
+>
+> We are looking for a small number of beta testers who already run Codex on
+> macOS and can give specific feedback on a Mac-to-iPhone setup.
+>
+> CodePilot keeps the Codex session, credentials, and project files on the Mac.
+> A token-protected local gateway gives the iPhone companion narrow access to
+> session status, threads, file uploads, notifications, and controls to steer or
+> stop an active turn. For remote access in the current beta, testers use a
+> Cloudflare Tunnel they control.
+>
+> The questions we most need answered are:
+>
+> - Can you complete the Mac gateway and iPhone connection flow without live help?
+> - Is it clear what the gateway token protects and how to recover from a rejected connection?
+> - Does checking or steering a coding-agent turn from a phone solve a real workflow problem?
+> - Which setup or trust concern would make you stop testing?
+>
+> This is a feedback request, not an upvote request. Please do not share
+> credentials, gateway tokens, private hostnames, private logs, screenshots
+> containing private project data, or project files in replies.
+
 ## r/TestFlight
 
 **Status:** Preferred first post after `[TESTFLIGHT_URL]` is publicly reachable.
