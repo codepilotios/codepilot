@@ -1,5 +1,11 @@
 # Troubleshooting
 
+## iPhone Cannot Reach The Gateway
+
+Confirm the iPhone has an internet or local-network connection and the Mac is awake. On the Mac, open CodePilot and choose **Restart Gateway When Idle**. For Cloudflare connections, also restart the tunnel from **Setup CodePilot... > Cloudflare Remote Access**.
+
+If the connection test still cannot find the host, confirm the iPhone gateway URL exactly matches the verified remote access URL from the Mac setup screen. Do not use the Mac gateway's `127.0.0.1` address on the iPhone.
+
 ## iPhone Shows 502
 
 Cloudflare reached your hostname, but the Mac gateway was not reachable. Open CodePilot on the Mac and choose **Restart Gateway When Idle**.

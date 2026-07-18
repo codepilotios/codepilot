@@ -447,6 +447,18 @@ struct EmptySettingsView: View {
     }
 
     private func connectionFailureMessage(_ error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet:
+                return "This iPhone is offline. Reconnect to the internet or local network, then retry."
+            case .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .dnsLookupFailed:
+                return "Could not reach the gateway. Confirm the Mac is awake, the gateway is running, and the tunnel or local network is available."
+            case .timedOut:
+                return "The gateway connection timed out. Confirm the Mac and tunnel are online, then retry."
+            default:
+                break
+            }
+        }
         if let gatewayError = error as? GatewayError {
             switch gatewayError {
             case .invalidURL:
@@ -2377,6 +2389,18 @@ struct SettingsView: View {
     }
 
     private func connectionFailureMessage(_ error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet:
+                return "This iPhone is offline. Reconnect to the internet or local network, then retry."
+            case .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .dnsLookupFailed:
+                return "Could not reach the gateway. Confirm the Mac is awake, the gateway is running, and the tunnel or local network is available."
+            case .timedOut:
+                return "The gateway connection timed out. Confirm the Mac and tunnel are online, then retry."
+            default:
+                break
+            }
+        }
         if let gatewayError = error as? GatewayError {
             switch gatewayError {
             case .invalidURL:
