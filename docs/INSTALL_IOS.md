@@ -43,7 +43,7 @@ App Store Connect setup is maintainer-only and is not required to connect the iO
 
 The iOS app can register for turn-finished notifications. APNs certificates or keys must be configured in the gateway environment before background notifications can be delivered reliably.
 
-Notification permission and Live Activities are separate iOS settings. Enable only the features you want, and see [Troubleshooting](TROUBLESHOOTING.md#turn-finished-notifications-do-not-arrive) if a completed turn does not produce a notification.
+CodePilot asks for notification permission when it observes the first running turn. If permission was denied, open iOS **Settings > Notifications > CodePilot**, allow notifications, then start another turn so the device can register with the gateway. The Mac setup checklist reports whether its gateway is configured for background delivery.
 
 ## File Uploads
 

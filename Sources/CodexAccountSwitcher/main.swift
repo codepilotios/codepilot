@@ -2574,14 +2574,33 @@ enum CodePilotGatewayHealthProbe {
     }
 
     static func requirement(from data: Data?) -> CodePilotSetupRequirement {
+        status(from: data).gatewayRequirement
+    }
+
+    static func status(from data: Data?) -> CodePilotGatewayHealthStatus {
         guard let data,
               let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let gateway = object["gateway"] as? [String: Any],
               gateway["running"] as? Bool == true else {
-            return .gatewayStopped
+            return CodePilotGatewayHealthStatus(
+                gatewayRequirement: .gatewayStopped,
+                notificationsRequirement: .notificationsUnknown
+            )
         }
-        return .gatewayRunning
+        let notifications = object["notifications"] as? [String: Any]
+        let notificationsConfigured = notifications?["configured"] as? Bool
+        return CodePilotGatewayHealthStatus(
+            gatewayRequirement: .gatewayRunning,
+            notificationsRequirement: notificationsConfigured == true
+                ? .notificationsReady
+                : .notificationsUnavailable
+        )
     }
+}
+
+struct CodePilotGatewayHealthStatus: Equatable {
+    let gatewayRequirement: CodePilotSetupRequirement
+    let notificationsRequirement: CodePilotSetupRequirement
 }
 
 struct CodePilotSetupStatus {
@@ -2618,7 +2637,8 @@ struct CodePilotSetupStatus {
             cloudflareRequirement = .cloudflareNeedsConfiguration
             cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
         }
-        let gatewayRequirement = gatewayHealthRequirement()
+        let gatewayHealth = gatewayHealthStatus()
+        let gatewayRequirement = gatewayHealth.gatewayRequirement
         let gatewayTokenRequirement = gatewayTokenRequirement(at: tokenPath)
         return CodePilotSetupStatus(rows: [
             CodePilotSetupRow(
@@ -2667,8 +2687,8 @@ struct CodePilotSetupStatus {
             ),
             CodePilotSetupRow(
                 title: "Notifications",
-                requirement: .notificationsOptional,
-                detail: "Optional for turn-finished alerts"
+                requirement: gatewayHealth.notificationsRequirement,
+                detail: notificationsDetail(for: gatewayHealth.notificationsRequirement)
             )
         ])
     }
@@ -2704,8 +2724,8 @@ struct CodePilotSetupStatus {
         return nil
     }
 
-    private static func gatewayHealthRequirement() -> CodePilotSetupRequirement {
-        CodePilotGatewayHealthProbe.requirement(from: synchronousData(for: CodePilotGatewayHealthProbe.request()))
+    private static func gatewayHealthStatus() -> CodePilotGatewayHealthStatus {
+        CodePilotGatewayHealthProbe.status(from: synchronousData(for: CodePilotGatewayHealthProbe.request()))
     }
 
     private static func synchronousData(for request: URLRequest) -> Data? {
@@ -2724,6 +2744,17 @@ struct CodePilotSetupStatus {
         requirement == .gatewayRunning
             ? "Reachable on 127.0.0.1:18790"
             : "Start or restart the gateway from the setup window"
+    }
+
+    static func notificationsDetail(for requirement: CodePilotSetupRequirement) -> String {
+        switch requirement {
+        case .notificationsReady:
+            return "Gateway ready for background turn-finished alerts"
+        case .notificationsUnavailable:
+            return "Optional; gateway APNs delivery is not configured"
+        default:
+            return "Start the gateway to check background alert readiness"
+        }
     }
 
     static func codexCLIDetail(installed: Bool) -> String {
@@ -2875,11 +2906,13 @@ enum CodePilotSetupRequirement: Equatable {
     case screenRecordingMissing
     case accessibilityReady
     case accessibilityMissing
-    case notificationsOptional
+    case notificationsReady
+    case notificationsUnavailable
+    case notificationsUnknown
 
     var statusLabel: String {
         switch self {
-        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady, .screenRecordingReady, .accessibilityReady:
+        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady, .screenRecordingReady, .accessibilityReady, .notificationsReady:
             return "Ready"
         case .cloudflareNeedsConfiguration:
             return "Needs setup"
@@ -2889,8 +2922,10 @@ enum CodePilotSetupRequirement: Equatable {
             return "Stopped"
         case .gatewayBlockedByActiveTurn:
             return "Blocked by active turn"
-        case .cloudflareOptional, .notificationsOptional:
+        case .cloudflareOptional, .notificationsUnavailable:
             return "Optional"
+        case .notificationsUnknown:
+            return "Unknown"
         case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing, .screenRecordingMissing, .accessibilityMissing:
             return "Missing"
         }

@@ -54,7 +54,9 @@ final class SetupStatusTests: XCTestCase {
         XCTAssertEqual(CodePilotSetupRequirement.screenRecordingMissing.statusLabel, "Missing")
         XCTAssertEqual(CodePilotSetupRequirement.accessibilityReady.statusLabel, "Ready")
         XCTAssertEqual(CodePilotSetupRequirement.accessibilityMissing.statusLabel, "Missing")
-        XCTAssertEqual(CodePilotSetupRequirement.notificationsOptional.statusLabel, "Optional")
+        XCTAssertEqual(CodePilotSetupRequirement.notificationsReady.statusLabel, "Ready")
+        XCTAssertEqual(CodePilotSetupRequirement.notificationsUnavailable.statusLabel, "Optional")
+        XCTAssertEqual(CodePilotSetupRequirement.notificationsUnknown.statusLabel, "Unknown")
     }
 
     func testCloudflareStatusLabelsAreUserFacing() {
@@ -86,6 +88,40 @@ final class SetupStatusTests: XCTestCase {
         let stoppedPayload = #"{"gateway":{"running":false}}"#.data(using: .utf8)
         XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: stoppedPayload), .gatewayStopped)
         XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: Data("not json".utf8)), .gatewayStopped)
+    }
+
+    func testGatewayHealthProbeReportsNotificationReadiness() {
+        let configuredPayload = #"{"gateway":{"running":true},"notifications":{"configured":true}}"#.data(using: .utf8)
+        XCTAssertEqual(
+            CodePilotGatewayHealthProbe.status(from: configuredPayload).notificationsRequirement,
+            .notificationsReady
+        )
+
+        let unavailablePayload = #"{"gateway":{"running":true},"notifications":{"configured":false}}"#.data(using: .utf8)
+        XCTAssertEqual(
+            CodePilotGatewayHealthProbe.status(from: unavailablePayload).notificationsRequirement,
+            .notificationsUnavailable
+        )
+
+        XCTAssertEqual(
+            CodePilotGatewayHealthProbe.status(from: Data("not json".utf8)).notificationsRequirement,
+            .notificationsUnknown
+        )
+    }
+
+    func testNotificationReadinessCopyExplainsRecovery() {
+        XCTAssertEqual(
+            CodePilotSetupStatus.notificationsDetail(for: .notificationsReady),
+            "Gateway ready for background turn-finished alerts"
+        )
+        XCTAssertEqual(
+            CodePilotSetupStatus.notificationsDetail(for: .notificationsUnavailable),
+            "Optional; gateway APNs delivery is not configured"
+        )
+        XCTAssertEqual(
+            CodePilotSetupStatus.notificationsDetail(for: .notificationsUnknown),
+            "Start the gateway to check background alert readiness"
+        )
     }
 
     func testGatewayHealthDetailGivesRecoveryActionWhenStopped() {

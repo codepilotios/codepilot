@@ -24,6 +24,6 @@ Permissions are only visible from the separate **Remote Desktop...** window, and
 
 Add setup rows for Screen Recording, Accessibility, and notification delivery readiness with direct recovery copy.
 
-## Local Audit Progress
+## Local Audit Fix
 
-The `agent/setup-audit` branch adds Screen Recording and Accessibility rows to the Mac setup checklist and a setup action that opens the existing permission controls. Notification delivery is surfaced as optional, but the row does not yet distinguish configured APNs delivery from an unconfigured gateway. APNs credential setup and production verification still require maintainer-owned credentials.
+The `agent/setup-audit` branch adds Screen Recording and Accessibility rows to the Mac setup checklist and a setup action that opens the existing permission controls. The Notifications row now reads the gateway's public health response and distinguishes configured background delivery, an unconfigured optional service, and an unknown state while the gateway is stopped. APNs credential setup and production verification still require maintainer-owned credentials.
