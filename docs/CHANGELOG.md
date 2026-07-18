@@ -48,6 +48,7 @@
 - Removed the FAQ's implied future-provider promise and stated that the current beta supports Codex CLI only.
 - Added a single retention and deletion summary for local uploads, connection settings, notification state, and data handled separately by enabled providers.
 - Added an automated public-presence audit for broken relative documentation links and App Store metadata field-count drift.
+- Aligned the GitHub Pages metadata description with the approved Mac-and-iPhone public beta positioning for Codex CLI users.
 
 ### Recent Product Work
 
