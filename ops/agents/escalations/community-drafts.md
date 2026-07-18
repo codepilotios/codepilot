@@ -42,6 +42,16 @@ Status: maintainer action required before any public posting.
 - Do not use `r/iPhoneApps` for a standalone launch post. Its Developer flair was
   removed on 2026-07-16, and maker mentions now require genuine participation,
   contextual value, an App Store listing, and approved status/cost details.
+- Hold `r/indiehackers` until a maintainer confirms whether the required live
+  flair is `SHOW IH` or `Self Promotion` and the approved identity has genuine
+  non-promotional participation. Approve the one-time, link-free validation
+  draft before a human posts it; do not make revenue claims or manufacture
+  engagement.
+- Treat `r/macosprogramming` as moderator-first. CodePilot is source-available
+  under a noncommercial license, not OSI open source, so its open-source posting
+  exception must not be assumed. A maintainer must approve and manually send the
+  prepared moderator note, then review/rewrite any technical discussion before
+  posting.
 - Hold `r/vibecoding`: its developer-tool approval flow requires a public X
   community post and moderator DM. That external account action is outside this
   agent's authority and should not be performed solely for promotion.
