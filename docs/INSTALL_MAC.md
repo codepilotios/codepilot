@@ -51,12 +51,11 @@ scripts/install-switcher-agent.sh
 
 ## Add Accounts
 
-Use the CodePilot menu bar app:
+Use **Log In New Account...** from either **Setup CodePilot...** or the CodePilot menu:
 
-1. Choose **Log In New Account...**.
-2. Complete the Codex login flow.
-3. Choose **Save Logged-In Account...**.
-4. Give the profile a clear name.
+1. Complete the Codex login flow.
+2. Return to the CodePilot menu and choose **Save Logged-In Account...**.
+3. Give the profile a clear name.
 
 Profiles are stored under:
 

@@ -17,10 +17,14 @@ The Mac setup window's **Open Codex Login** button runs a plain `codex login`, b
 
 The setup action should start CodePilot's profile-capture workflow and lead the user through naming and saving the authenticated account.
 
-## Actual
+## Actual Before The Audit Fix
 
 The action launches `codex login` directly. It does not set CodePilot's login-capture state or expose the save step from the setup window.
 
 ## Suggested Fix
 
 Route the setup button through the same account workflow as **Log In New Account...**, then surface the save action and completion status in the setup window.
+
+## Local Audit Fix
+
+The `agent/setup-audit` branch routes the setup-window action through CodePilot's existing login-capture workflow, renames it to match the menu action, and tells the user to save the logged-in account after authentication. The Mac install guide now documents the same path.

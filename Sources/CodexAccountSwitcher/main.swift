@@ -2894,9 +2894,10 @@ enum CodePilotSetupRequirement: Equatable {
 private final class CodePilotSetupWindowController: NSWindowController {
     private let statusStack = NSStackView()
     private let outputLabel = NSTextField(labelWithString: "")
+    private var beginAccountLogin: (() -> Void)?
     private var cloudflareWizardController: CodePilotCloudflareWizardController?
 
-    convenience init() {
+    convenience init(beginAccountLogin: @escaping () -> Void) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -2905,6 +2906,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         )
         window.title = "Setup CodePilot"
         self.init(window: window)
+        self.beginAccountLogin = beginAccountLogin
         buildUI()
         refreshStatus()
     }
@@ -2949,7 +2951,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         root.addArrangedSubview(section(
             title: "Codex",
             buttons: [
-                button("Open Codex Login", #selector(openCodexLogin)),
+                button("Log In New Account...", #selector(openCodexLogin)),
                 button("Open Accounts Folder", #selector(openAccountsFolder))
             ]
         ))
@@ -3024,7 +3026,8 @@ private final class CodePilotSetupWindowController: NSWindowController {
     }
 
     @objc private func openCodexLogin() {
-        runInTerminal("codex login")
+        beginAccountLogin?()
+        outputLabel.stringValue = "Finish Codex login, then choose Save Logged-In Account... from the CodePilot menu."
     }
 
     @objc private func openAccountsFolder() {
@@ -3610,7 +3613,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSetup() {
         if setupWindowController == nil {
-            setupWindowController = CodePilotSetupWindowController()
+            setupWindowController = CodePilotSetupWindowController { [weak self] in
+                self?.switcher.beginManualLogin()
+            }
         }
         setupWindowController?.showWindow(nil)
         setupWindowController?.window?.makeKeyAndOrderFront(nil)
