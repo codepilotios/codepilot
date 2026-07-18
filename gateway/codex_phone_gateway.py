@@ -4447,44 +4447,59 @@ class GatewayState:
         ensure_private_upload_directory(thread_upload_dir)
         upload_dir = thread_upload_dir / f"{int(time.time())}-{safe_filename(job_id, 'job')}"
         ensure_private_upload_directory(upload_dir)
-        for index, attachment in enumerate(raw_attachments, 1):
-            if not isinstance(attachment, dict):
-                raise ValueError("Attachment is invalid")
+        created_paths = []
+        try:
+            for index, attachment in enumerate(raw_attachments, 1):
+                if not isinstance(attachment, dict):
+                    raise ValueError("Attachment is invalid")
 
-            encoded = attachment.get("dataBase64")
-            if not isinstance(encoded, str) or not encoded:
-                raise ValueError("Attachment data is missing")
+                encoded = attachment.get("dataBase64")
+                if not isinstance(encoded, str) or not encoded:
+                    raise ValueError("Attachment data is missing")
 
+                try:
+                    data = base64.b64decode(encoded, validate=True)
+                except Exception as exc:
+                    raise ValueError("Attachment is not valid base64") from exc
+
+                size = len(data)
+                if size > MAX_ATTACHMENT_BYTES:
+                    raise ValueError("Attachment is too large")
+                total_size += size
+                if total_size > MAX_TOTAL_ATTACHMENT_BYTES:
+                    raise ValueError("Total attachment size is too large")
+
+                filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
+                path = upload_dir / filename
+                if path.exists():
+                    stem = path.stem or "attachment"
+                    suffix = path.suffix
+                    path = upload_dir / f"{stem}-{index}{suffix}"
+                descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                created_paths.append(path)
+                with os.fdopen(descriptor, "wb") as handle:
+                    handle.write(data)
+
+                mime_type = str(attachment.get("mimeType") or "application/octet-stream")
+                saved.append({
+                    "filename": path.name,
+                    "mimeType": mime_type,
+                    "size": size,
+                    "path": path,
+                    "isImage": is_image_attachment(path, mime_type),
+                })
+        except Exception:
+            for path in created_paths:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
             try:
-                data = base64.b64decode(encoded, validate=True)
-            except Exception as exc:
-                raise ValueError("Attachment is not valid base64") from exc
-
-            size = len(data)
-            if size > MAX_ATTACHMENT_BYTES:
-                raise ValueError("Attachment is too large")
-            total_size += size
-            if total_size > MAX_TOTAL_ATTACHMENT_BYTES:
-                raise ValueError("Total attachment size is too large")
-
-            filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
-            path = upload_dir / filename
-            if path.exists():
-                stem = path.stem or "attachment"
-                suffix = path.suffix
-                path = upload_dir / f"{stem}-{index}{suffix}"
-            descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            with os.fdopen(descriptor, "wb") as handle:
-                handle.write(data)
-
-            mime_type = str(attachment.get("mimeType") or "application/octet-stream")
-            saved.append({
-                "filename": path.name,
-                "mimeType": mime_type,
-                "size": size,
-                "path": path,
-                "isImage": is_image_attachment(path, mime_type),
-            })
+                upload_dir.rmdir()
+                thread_upload_dir.rmdir()
+            except OSError:
+                pass
+            raise
 
         return saved
 

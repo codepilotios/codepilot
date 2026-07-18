@@ -1106,6 +1106,29 @@ class GatewayStateTests(unittest.TestCase):
 
         self.assertEqual(list(outside.iterdir()), [])
 
+    def test_rejected_attachment_batch_removes_partial_private_files(self):
+        original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
+        gateway.DEFAULT_UPLOADS_DIR = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        try:
+            state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+            with self.assertRaisesRegex(ValueError, "valid base64"):
+                state.save_attachments("thread", "job", [
+                    {
+                        "filename": "private.txt",
+                        "mimeType": "text/plain",
+                        "dataBase64": "c2VjcmV0",
+                    },
+                    {
+                        "filename": "invalid.txt",
+                        "mimeType": "text/plain",
+                        "dataBase64": "not-base64!",
+                    },
+                ])
+        finally:
+            gateway.DEFAULT_UPLOADS_DIR = original_uploads_dir
+
+        self.assertEqual(list((gateway.DEFAULT_SWITCHER_HOME / "uploads").rglob("*")), [])
+
     def test_cached_thread_messages_are_private(self):
         original_cache_dir = gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR
         gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR = gateway.DEFAULT_SWITCHER_HOME / "message-cache"
