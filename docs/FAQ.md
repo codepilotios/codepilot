@@ -32,6 +32,8 @@ Yes. The CodePilot gateway, Codex CLI, and Cloudflare Tunnel run from your Mac. 
 
 Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot state directory on the Mac. They are not removed automatically after a turn. Delete files you no longer need, and remember that a selected attachment can be sent to Codex and OpenAI when you use it in a turn. See [Privacy](PRIVACY.md) for the full beta data flow.
 
+One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit. These are request limits, not an automatic cleanup policy.
+
 ## Can CodePilot switch accounts while a turn is running?
 
 Automatic switching waits for active turns to finish. Avoid manually changing Codex auth files while turns are running; use CodePilot's account controls so a new profile is applied safely to later turns.
@@ -39,6 +41,8 @@ Automatic switching waits for active turns to finish. Avoid manually changing Co
 ## Are notifications required?
 
 No. Turn-finished notifications and Live Activities are optional. Background delivery requires APNs to be configured for the gateway, and notification permission and Live Activities are separate iOS controls.
+
+If notifications do not arrive, confirm notification permission is enabled for CodePilot, the Mac gateway and Cloudflare Tunnel are still reachable, and APNs is configured for the gateway. See [Troubleshooting](TROUBLESHOOTING.md#turn-finished-notifications-do-not-arrive).
 
 ## Is Remote Desktop included in the public beta?
 

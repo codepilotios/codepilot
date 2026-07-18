@@ -40,6 +40,8 @@
 - Clarified that notifications are optional, require gateway APNs configuration for background delivery, and use iOS controls separate from Live Activities.
 - Removed implied future-provider promises from public copy and focused the App Store promotional draft on current Codex CLI beta workflows.
 - Added beta-focused repository description guidance so the GitHub header matches the approved audience and release status.
+- Documented the iPhone attachment count and size limits so beta users can recover from rejected uploads without sharing private files.
+- Added notification and file-upload recovery checklists to the public iPhone, FAQ, and troubleshooting guidance.
 
 ### Recent Product Work
 

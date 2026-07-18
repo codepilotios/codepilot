@@ -34,8 +34,12 @@ The gateway URL must include `http://` or `https://`.
 
 The iOS app can register for turn-finished notifications. APNs certificates or keys must be configured in the gateway environment before background notifications can be delivered reliably.
 
+Notification permission and Live Activities are separate iOS settings. Enable only the features you want, and see [Troubleshooting](TROUBLESHOOTING.md#turn-finished-notifications-do-not-arrive) if a completed turn does not produce a notification.
+
 ## File Uploads
 
 Files selected in the iOS app are uploaded to the Mac gateway and saved under the CodePilot state directory. Image attachments can be passed into Codex turns when supported by the current runner.
+
+One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit. If an upload is rejected, reduce the number or size of the selected files and retry.
 
 Uploads are not removed automatically after a turn. Delete files you no longer need from the Mac, and review the [privacy data-flow summary](PRIVACY.md#beta-data-flow-at-a-glance) before sharing sensitive attachments.
