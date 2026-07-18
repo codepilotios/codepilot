@@ -7,7 +7,6 @@ This guide configures a beta build that a tester has already received. A public 
 ## Requirements
 
 - An iPhone running iOS 17 or later.
-- Access to an approved CodePilot beta build.
 - A Mac running the CodePilot gateway.
 - A reachable gateway URL.
 - The iOS connection token from the Mac setup screen.
