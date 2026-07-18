@@ -127,6 +127,11 @@ if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" -C "$ROOT" push ori
   exit 1
 fi
 
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" -c alias.publish=push publish origin main; then
+  echo "Launch autonomy allowed a command-line alias to bypass the push guard" >&2
+  exit 1
+fi
+
 if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" send-pack origin main; then
   echo "Launch autonomy allowed direct send-pack remote writes" >&2
   exit 1
@@ -143,26 +148,36 @@ fi
 CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/gh" pr create --draft --title "Docs update" --body "Prepared by agent"
 grep -qx 'create' "$TMP_ROOT/capture"
 
-CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:agent/presence-maintenance
+CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance
 grep -qx 'push' "$TMP_ROOT/capture"
 
-if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:agent/presence-maintenance HEAD:main; then
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:refs/heads/agent/presence-maintenance HEAD:refs/heads/main; then
   echo "Launch autonomy allowed a protected refspec beside an agent refspec" >&2
   exit 1
 fi
 
-if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push --all origin HEAD:agent/presence-maintenance; then
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push --all origin HEAD:refs/heads/agent/presence-maintenance; then
   echo "Launch autonomy allowed a broad push mode" >&2
   exit 1
 fi
 
-if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push --follow-tags origin HEAD:agent/presence-maintenance; then
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push --follow-tags origin HEAD:refs/heads/agent/presence-maintenance; then
   echo "Launch autonomy allowed an implicit tag push" >&2
   exit 1
 fi
 
-if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push upstream HEAD:agent/presence-maintenance; then
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push upstream HEAD:refs/heads/agent/presence-maintenance; then
   echo "Launch autonomy allowed a push outside the CodePilot origin" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin HEAD:agent/presence-maintenance; then
+  echo "Launch autonomy allowed an ambiguous short destination ref" >&2
+  exit 1
+fi
+
+if CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch" "$GUARD_BIN/git" push origin agent/presence-maintenance; then
+  echo "Launch autonomy allowed a tag-like short refspec" >&2
   exit 1
 fi
 

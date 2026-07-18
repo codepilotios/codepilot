@@ -6,14 +6,24 @@ ROOT="${CODEPILOT_REPO_ROOT:-$(pwd)}"
 AUTONOMY="${CODEPILOT_AGENT_PUBLIC_AUTONOMY:-draft}"
 
 if [[ "${1:-}" == -* ]]; then
+  previous_arg=""
   for arg in "$@"; do
+    if [[ "$previous_arg" == "-c" || "$previous_arg" == "--config-env" ]] && [[ "$arg" == alias.* ]]; then
+      echo "CodePilot agent guard blocked a command-line git alias." >&2
+      exit 77
+    fi
     case "$arg" in
+      -calias.*|-c=alias.*|--config=alias.*|--config-env=alias.*)
+        echo "CodePilot agent guard blocked a command-line git alias." >&2
+        exit 77
+        ;;
       commit|merge|rebase|cherry-pick|reset|checkout|switch|push|send-pack|http-push)
         echo "CodePilot agent guard blocked git $arg with global options." >&2
         echo "Run guarded mutation commands from the target worktree without git global options." >&2
         exit 77
         ;;
     esac
+    previous_arg="$arg"
   done
 fi
 
@@ -69,13 +79,13 @@ if [[ "${1:-}" == "push" ]]; then
 
           refspec_count=$((refspec_count + 1))
           refspec="${arg#+}"
-          if [[ "$refspec" == *:* ]]; then
-            destination="${refspec##*:}"
-          else
-            destination="$refspec"
+          if [[ "$refspec" != *:* ]]; then
+            reject_push=1
+            continue
           fi
+          destination="${refspec##*:}"
           case "$destination" in
-            agent/*|refs/heads/agent/*)
+            refs/heads/agent/*)
               ;;
             *)
               reject_push=1
