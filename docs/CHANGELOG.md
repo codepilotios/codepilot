@@ -37,6 +37,7 @@
 - Added a public beta data-flow map showing what stays on the Mac and what can be processed by Codex, OpenAI, Cloudflare, or Apple.
 - Clarified that iPhone access depends on an awake, online Mac running the gateway and Cloudflare Tunnel, with no hosted relay or remote wake promise in the current beta.
 - Added FAQ and installation guidance for upload retention and safe account switching during active turns.
+- Clarified that notifications are optional, require gateway APNs configuration for background delivery, and use iOS controls separate from Live Activities.
 
 ### Recent Product Work
 

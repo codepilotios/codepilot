@@ -65,7 +65,7 @@ The repository beta does not require a CodePilot-operated analytics or account s
 - Cloudflare processes tunneled gateway traffic and connection metadata when you use the supported remote iPhone path.
 - Apple Push Notification service processes device tokens and notification or Live Activity payloads when those features are enabled.
 
-Review the settings and policies for each service you enable. Disabling notifications stops new CodePilot notification and Live Activity delivery, but it does not remove data already retained by Codex, OpenAI, Cloudflare, Apple, or the local Mac state.
+Review the settings and policies for each service you enable. Notification permission and Live Activities are separate iOS controls; turn off each feature separately if you do not want its content displayed. These changes do not remove data already retained by Codex, OpenAI, Cloudflare, Apple, or the local Mac state.
 
 ## Remote Desktop
 

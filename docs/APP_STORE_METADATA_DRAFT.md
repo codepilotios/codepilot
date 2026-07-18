@@ -12,15 +12,15 @@ Codex companion for your Mac
 
 ## Promotional Text
 
-Public beta for Codex CLI users who want iPhone access to thread status, file uploads, turn controls, notifications, and coding-agent sessions on their own Mac.
+Public beta for Codex CLI users who want iPhone access to thread status, file uploads, turn controls, and coding-agent sessions on their own Mac.
 
-Character count: 160 of 170.
+Character count: 145 of 170.
 
 ## Description
 
 CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI coding users who already run Codex CLI on a Mac.
 
-Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
+Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive optional turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
 
 The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use Codex-specific names while the public CodePilot product surface is prepared for broader provider support later.
 
@@ -34,7 +34,7 @@ Character count: 88 of 100.
 
 ## What To Test
 
-Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, notifications, and setup recovery messages.
+Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, and setup recovery messages. If APNs is configured for the gateway, also verify turn-finished notifications.
 
 Please report whether Cloudflare Tunnel setup, gateway connection, or token entry was the step that failed. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
 

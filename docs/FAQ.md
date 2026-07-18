@@ -36,6 +36,10 @@ Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot st
 
 Automatic switching waits for active turns to finish. Avoid manually changing Codex auth files while turns are running; use CodePilot's account controls so a new profile is applied safely to later turns.
 
+## Are notifications required?
+
+No. Turn-finished notifications and Live Activities are optional. Background delivery requires APNs to be configured for the gateway, and notification permission and Live Activities are separate iOS controls.
+
 ## Is Remote Desktop included in the public beta?
 
 No. Remote Desktop remains outside the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable it in beta builds yet.
