@@ -89,6 +89,12 @@ Status: maintainer action required before any public posting.
   promotion-only account; re-check the live About page and thread first.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
+- Hold `r/ChatGPTPro` until the approved identity has genuine non-promotional
+  technical participation and a CodePilot post would remain at or below 10% of
+  its community activity. A maintainer must re-check recent enforcement,
+  approve and manually send the prepared moderator note, then approve and post
+  the exact link-free technical discussion. Do not manufacture participation or
+  use the community as a tester-recruitment feed.
 
 No post, comment, profile change, account action, or moderator message was made
 by the community-drafts agent.
