@@ -15,7 +15,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - Unsigned generic-device iOS Release archive compile: passed with Xcode 26.5.
 - iOS simulator tests: passed; 37 tests, 0 failures.
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
-- Fastlane Ruby syntax, iOS `Info.plist`, and version metadata JSON validation passed. The current release-agent runtime selects system Ruby 2.6 with Bundler 1.17.2, so the lockfile-required Bundler 4.0.11 cannot start; `bundle check` and lane discovery are blocked until the release environment provides the supported Ruby/Bundler toolchain. No signed archive or upload lane was run.
+- Fastlane Ruby syntax, iOS `Info.plist`, entitlements, and version metadata JSON validation passed. The release-agent runtime now selects Ruby 4.0.4 with Bundler 4.0.11; `bundle check` passes, so the prior local Fastlane toolchain blocker is resolved. No signed archive or upload lane was run.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
 - A July 18 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403. No OTA build or external-state mutation was performed in this run.
 
@@ -26,7 +26,6 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - The latest OTA build is stale relative to current source and has no recorded source commit. No OTA build was triggered because this run is not authorized to mutate external distribution systems.
 - The public OTA install page currently returns HTTP 403. Restore unauthenticated install-page access and verify it from a real iPhone before treating OTA distribution as release-ready.
 - App Store Connect inspection was unavailable in this run. The Apple developer team setting is empty, and the launch guard blocked even `asc auth status`; the app record, processed builds, availability, version attachment, and strict validation therefore could not be checked without maintainer-provided release access.
-- The local Fastlane preflight cannot load the lockfile-required Bundler version with the currently selected Ruby runtime. Provide a supported release Ruby/Bundler entrypoint before attempting a signed build or TestFlight lane.
 - The project-specific private-identifier denylist is unavailable in this release worktree. Restore the ignored local denylist before treating the public-content privacy audit as complete.
 - Public Git history contains 11 legacy commits authored with a non-CodePilot identity. Review the redacted author metadata and decide whether it is intentionally public before treating repository-history privacy as complete.
 - No signed device archive/export was run. TestFlight upload, group distribution, build processing, and App Store submission were intentionally not run.
@@ -51,7 +50,6 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 1. Confirm the canonical iOS bundle identifier and align Xcode, OTA, signing, and the App Store Connect record before another distributed build.
 2. Approve and verify an end-to-end Remote Desktop trust boundary that requires a paired device and active signed lease for capture, signaling, and input.
 3. Provide an authorized release environment for a signed archive and read-only App Store Connect validation.
-4. Provide or approve a supported Ruby/Bundler entrypoint for the locked Fastlane toolchain.
-5. Approve the support/privacy URLs, review contact and gateway-access instructions, privacy answers, age rating, content-rights answer, and export-compliance answer.
-6. Supply a sanitized 6.9-inch iPhone screenshot set and approve remediation of the token-storage/privacy-manifest issues.
-7. Review the redacted legacy Git author metadata and confirm whether it may remain in public history.
+4. Approve the support/privacy URLs, review contact and gateway-access instructions, privacy answers, age rating, content-rights answer, and export-compliance answer.
+5. Supply a sanitized 6.9-inch iPhone screenshot set and approve remediation of the token-storage/privacy-manifest issues.
+6. Review the redacted legacy Git author metadata and confirm whether it may remain in public history.
