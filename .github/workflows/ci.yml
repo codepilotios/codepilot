@@ -48,6 +48,9 @@ jobs:
       - name: Desktop sync security tests
         run: python3 -m unittest scripts/tests/test_desktop_sync_security.py
 
+      - name: Desktop sync transport security tests
+        run: scripts/tests/push-desktop-sync-security-test.sh
+
       - name: Fastlane syntax
         run: ruby -c ios/CodexPhone/fastlane/Fastfile
 

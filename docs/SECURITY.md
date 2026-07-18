@@ -38,6 +38,8 @@ Remote file previews are restricted to files uploaded through CodePilot by defau
 
 Uploaded attachment batches are retained for seven days. The gateway removes expired batches at startup and before saving another upload. Storage and cleanup stay within a private CodePilot upload directory and refuse symbolic links.
 
+Desktop sync transfers accept only a plain host or `user@host` destination. SSH options, remote paths, and whitespace are rejected before CodePilot exports project metadata.
+
 Remote account-login sessions expire after ten minutes, are limited to four at a time, and terminate their temporary login process when they expire or fail.
 The temporary iOS OAuth callback listener binds only to IPv4 loopback and accepts a callback only when its path and single, non-empty OAuth state exactly match the active login request.
 
