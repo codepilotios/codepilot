@@ -90,6 +90,30 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertNil(gatewaySetupValidationMessage(url: "https://codepilot.example.com", token: "token", connectionKind: .cloudflare))
     }
 
+    func testGatewaySetupValidationRequiresServerAddressWithoutURLExtras() {
+        let message = "Gateway URL must be the server address only, without credentials, a path, query, or fragment."
+
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://user:password@codepilot.example.com", token: "token", connectionKind: .cloudflare),
+            message
+        )
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://codepilot.example.com/api/health", token: "token", connectionKind: .cloudflare),
+            message
+        )
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://codepilot.example.com?source=setup", token: "token", connectionKind: .cloudflare),
+            message
+        )
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "https://codepilot.example.com#setup", token: "token", connectionKind: .cloudflare),
+            message
+        )
+        XCTAssertNil(
+            gatewaySetupValidationMessage(url: "https://codepilot.example.com/", token: "token", connectionKind: .cloudflare)
+        )
+    }
+
     func testGatewaySetupValidationRejectsLoopbackForCloudflare() {
         XCTAssertEqual(
             gatewaySetupValidationMessage(url: "https://127.0.0.1:18790", token: "token", connectionKind: .cloudflare),

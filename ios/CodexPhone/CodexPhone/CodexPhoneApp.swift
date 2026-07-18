@@ -1922,6 +1922,13 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
     guard let url = try? gatewayRootURL(from: trimmedURL) else {
         return "Gateway URL must start with http:// or https:// and include a host."
     }
+    if url.user != nil
+        || url.password != nil
+        || !url.path.isEmpty && url.path != "/"
+        || url.query != nil
+        || url.fragment != nil {
+        return "Gateway URL must be the server address only, without credentials, a path, query, or fragment."
+    }
     let scheme = url.scheme?.lowercased()
     let host = url.host?.lowercased() ?? ""
     switch connectionKind {
