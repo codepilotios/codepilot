@@ -18,8 +18,8 @@ The setup flow should clearly communicate the trust boundary. If Mac-side approv
 
 ## Actual
 
-The iOS flow pairs automatically after signing the challenge. Copy cleanup removed an unused manual pairing-code field, but the approval policy still needs maintainer review before public beta.
+The Mac Remote Desktop window now shows **Approve** and **Reject** for the pending challenge, but the happy path does not wait for either action. The `pairing.complete` RPC verifies the iPhone signature and immediately persists the device as trusted. The coordinator's separate pending state remains visible until someone approves or rejects it, so the Mac can simultaneously show the device as trusted and still awaiting approval.
 
 ## Suggested Fix
 
-Decide the public beta policy, then either add explicit Mac-side approval or update setup/security docs to state that a valid gateway token authorizes pairing.
+Decide the public beta policy, then either make `pairing.complete` return a pending state until the Mac approves the verified challenge, or remove the non-enforcing approval UI and update setup/security docs to state that a valid gateway token authorizes pairing. Add an integration test that proves the selected trust boundary and keeps the pending/trusted states consistent.
