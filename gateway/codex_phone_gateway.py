@@ -92,6 +92,8 @@ LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 10 * 60
 LOCAL_WEB_MAX_ACTIVE_SESSIONS = 8
 LOCAL_WEB_MAX_REQUESTS_PER_SESSION = 256
 LOCAL_WEB_MAX_BYTES = 25 * 1024 * 1024
+GATEWAY_MAX_CONCURRENT_REQUESTS = 64
+GATEWAY_REQUEST_TIMEOUT_SECONDS = 30.0
 
 JOBS = {}
 JOB_PROCESSES = {}
@@ -5132,10 +5134,43 @@ class Handler(BaseHTTPRequestHandler):
 
 class GatewayServer(ThreadingHTTPServer):
     allow_reuse_address = True
+    daemon_threads = True
+    block_on_close = False
+    request_queue_size = GATEWAY_MAX_CONCURRENT_REQUESTS
 
-    def __init__(self, address, state: GatewayState):
+    def __init__(
+        self,
+        address,
+        state: GatewayState,
+        *,
+        max_concurrent_requests: int = GATEWAY_MAX_CONCURRENT_REQUESTS,
+        request_timeout_seconds: float = GATEWAY_REQUEST_TIMEOUT_SECONDS,
+    ):
+        self._request_slots = threading.BoundedSemaphore(max(1, int(max_concurrent_requests)))
+        self.request_timeout_seconds = max(1.0, float(request_timeout_seconds))
         super().__init__(address, Handler)
         self.state = state
+
+    def get_request(self):
+        request, client_address = super().get_request()
+        request.settimeout(self.request_timeout_seconds)
+        return request, client_address
+
+    def process_request(self, request, client_address):
+        if not self._request_slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._request_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._request_slots.release()
 
 
 def main():

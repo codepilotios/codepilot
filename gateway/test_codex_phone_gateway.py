@@ -2,6 +2,7 @@ import json
 import sqlite3
 import io
 import os
+import socket
 import subprocess
 import tempfile
 import tomllib
@@ -28,6 +29,43 @@ class FakeAppServerProcess:
 
     def wait(self, timeout=None):
         return self.returncode
+
+
+class GatewayServerHardeningTests(unittest.TestCase):
+    def test_accepted_connections_receive_a_read_timeout(self):
+        server = gateway.GatewayServer(
+            ("127.0.0.1", 0),
+            mock.Mock(),
+            request_timeout_seconds=2.5,
+        )
+        client = socket.create_connection(server.server_address)
+        accepted = None
+        try:
+            accepted, _ = server.get_request()
+            self.assertEqual(accepted.gettimeout(), 2.5)
+        finally:
+            client.close()
+            if accepted is not None:
+                accepted.close()
+            server.server_close()
+
+    def test_connections_over_the_concurrency_limit_are_closed(self):
+        server = gateway.GatewayServer(
+            ("127.0.0.1", 0),
+            mock.Mock(),
+            max_concurrent_requests=1,
+        )
+        request = mock.Mock()
+        self.assertTrue(server._request_slots.acquire(blocking=False))
+        try:
+            with mock.patch.object(gateway.ThreadingHTTPServer, "process_request") as process_request:
+                server.process_request(request, ("127.0.0.1", 12345))
+            process_request.assert_not_called()
+            request.shutdown.assert_called_once_with(socket.SHUT_WR)
+            request.close.assert_called_once_with()
+        finally:
+            server._request_slots.release()
+            server.server_close()
 
 
 class FailingAppServerClient:
