@@ -24,7 +24,7 @@ No. CodePilot uses Codex on your Mac. The iPhone app talks to the CodePilot gate
 
 ## Does it support Claude Code or other coding agents?
 
-Not yet. The name is provider-neutral, but the first beta is Codex-focused. Future provider work should wait until the Codex setup, gateway, and support path are stable.
+No. The current beta supports Codex CLI only. CodePilot does not promise support for other coding agents as part of this beta.
 
 ## Do I need Cloudflare?
 
