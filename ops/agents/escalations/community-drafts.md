@@ -62,6 +62,12 @@ Status: maintainer action required before any public posting.
   this launch. Reconsider only if an existing approved public identity is
   eligible, the beta is directly usable, and a maintainer manually rewrites the
   prepared outline.
+- Hold `r/apple` unless the approved identity already has at least 5 unrelated
+  contributions there during the previous month and remains at or below the
+  community's one-in-ten self-promotion ratio. Developer promotion is limited
+  to substantive self-posts on Sunday in California time and requires a direct
+  link. Approve the exact copy, timing, and official URL before a maintainer
+  posts manually; do not manufacture participation to qualify.
 - Treat `r/macosprogramming` as moderator-first. CodePilot is source-available
   under a noncommercial license, not OSI open source, so its open-source posting
   exception must not be assumed. A maintainer must approve and manually send the
