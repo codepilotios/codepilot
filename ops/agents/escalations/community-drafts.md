@@ -73,6 +73,11 @@ Status: maintainer action required before any public posting.
 - For `r/github`, approve an accessible, privacy-audited public repository URL
   before using the prepared self-promotion megathread comment. Do not post the
   placeholder or use a standalone feed post.
+- For `r/LLMDevs`, confirm that its live noncommercial-license exception covers
+  the PolyForm Noncommercial License, then approve the exact technical draft
+  and an accessible, privacy-audited public repository URL. Describe CodePilot
+  as source-available, not open source, and do not use disguised discussion
+  framing.
 - For `r/SideProject`, approve the prepared no-link comment and have a human use
   the current self-promotion thread. Do not use a standalone launch post or a
   promotion-only account; re-check the live About page and thread first.
