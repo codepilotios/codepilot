@@ -2895,9 +2895,13 @@ private final class CodePilotSetupWindowController: NSWindowController {
     private let statusStack = NSStackView()
     private let outputLabel = NSTextField(labelWithString: "")
     private var beginAccountLogin: (() -> Void)?
+    private var openRemoteDesktopPermissions: (() -> Void)?
     private var cloudflareWizardController: CodePilotCloudflareWizardController?
 
-    convenience init(beginAccountLogin: @escaping () -> Void) {
+    convenience init(
+        beginAccountLogin: @escaping () -> Void,
+        openRemoteDesktopPermissions: @escaping () -> Void
+    ) {
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -2907,6 +2911,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         window.title = "Setup CodePilot"
         self.init(window: window)
         self.beginAccountLogin = beginAccountLogin
+        self.openRemoteDesktopPermissions = openRemoteDesktopPermissions
         buildUI()
         refreshStatus()
     }
@@ -2976,6 +2981,12 @@ private final class CodePilotSetupWindowController: NSWindowController {
                 button("Verify Remote Access", #selector(verifyRemoteAccess)),
                 button("Restart Tunnel", #selector(restartCloudflareTunnel)),
                 button("Open Cloudflare Guide", #selector(openCloudflareGuide))
+            ]
+        ))
+        root.addArrangedSubview(section(
+            title: "Remote Desktop Permissions",
+            buttons: [
+                button("Open Permission Setup...", #selector(openRemoteDesktopPermissionSetup))
             ]
         ))
 
@@ -3058,6 +3069,10 @@ private final class CodePilotSetupWindowController: NSWindowController {
             self?.cloudflareWizardController = nil
             self?.refreshStatus()
         }
+    }
+
+    @objc private func openRemoteDesktopPermissionSetup() {
+        openRemoteDesktopPermissions?()
     }
 
     @objc private func restartCloudflareTunnel() {
@@ -3613,9 +3628,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSetup() {
         if setupWindowController == nil {
-            setupWindowController = CodePilotSetupWindowController { [weak self] in
-                self?.switcher.beginManualLogin()
-            }
+            setupWindowController = CodePilotSetupWindowController(
+                beginAccountLogin: { [weak self] in
+                    self?.switcher.beginManualLogin()
+                },
+                openRemoteDesktopPermissions: { [weak self] in
+                    self?.openRemoteDesktop()
+                }
+            )
         }
         setupWindowController?.showWindow(nil)
         setupWindowController?.window?.makeKeyAndOrderFront(nil)

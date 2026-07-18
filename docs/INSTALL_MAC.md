@@ -97,4 +97,4 @@ For access away from the local network, open **Setup CodePilot...** in the Mac m
 
 ## Remote Desktop Permissions
 
-Open **Remote Desktop...** from the Mac menu bar app to check Screen Recording and Accessibility. Screen Recording is required to view the Mac, and Accessibility is required for pointer and keyboard control. Use **Allow Screen Recording** or **Allow Accessibility** when the corresponding permission is missing, then restart CodePilot after granting either macOS privacy permission.
+Open **Setup CodePilot... > Remote Desktop Permissions > Open Permission Setup...** (or **Remote Desktop...** from the Mac menu) to check Screen Recording and Accessibility. Screen Recording is required to view the Mac, and Accessibility is required for pointer and keyboard control. Use **Allow Screen Recording** or **Allow Accessibility** when the corresponding permission is missing, then restart CodePilot after granting either macOS privacy permission.
