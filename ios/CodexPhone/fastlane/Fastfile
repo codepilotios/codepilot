@@ -82,8 +82,8 @@ platform :ios do
       "default" => {
         feedback_email: codex_phone_feedback_email,
         description: codex_phone_beta_description,
-        privacy_policy_url: ENV.fetch("APP_PRIVACY_POLICY_URL"),
-        marketing_url: ENV.fetch("APP_MARKETING_URL", "https://github.com/codepilotios/CodePilot")
+        privacy_policy_url: ENV.fetch("APP_PRIVACY_POLICY_URL", "https://codepilotios.github.io/codepilot/PRIVACY.html"),
+        marketing_url: ENV.fetch("APP_MARKETING_URL", "https://github.com/codepilotios/codepilot")
       }
     }
   end

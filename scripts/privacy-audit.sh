@@ -66,4 +66,10 @@ if LC_ALL=C grep -nI -E "$secret_pattern" -- "${audit_files[@]}"; then
   exit 1
 fi
 
+noncanonical_public_url_pattern='https://(codepilotios\.github\.io|github\.com/codepilotios)/CodePilot'
+if git grep -n -I -E "$noncanonical_public_url_pattern" -- "${audit_files[@]}"; then
+  echo "privacy audit failed: tracked files contain noncanonical public CodePilot URLs" >&2
+  exit 1
+fi
+
 echo "privacy audit passed"

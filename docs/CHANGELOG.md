@@ -42,6 +42,7 @@
 - Added beta-focused repository description guidance so the GitHub header matches the approved audience and release status.
 - Documented the iPhone attachment count and size limits so beta users can recover from rejected uploads without sharing private files.
 - Added notification and file-upload recovery checklists to the public iPhone, FAQ, and troubleshooting guidance.
+- Aligned Fastlane's default privacy and marketing URLs with the canonical lowercase public repository path and the prepared GitHub Pages privacy page.
 
 ### Recent Product Work
 
