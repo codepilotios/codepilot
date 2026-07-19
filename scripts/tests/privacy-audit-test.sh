@@ -55,7 +55,7 @@ assert_rejected_without_echo "Supabase secret key" "sb_secret_0123456789abcdefgh
 assert_rejected_without_echo "RSA private key" "-----BEGIN RSA PRIVATE KEY-----"
 assert_rejected_without_echo "EC private key" "-----BEGIN EC PRIVATE KEY-----"
 assert_rejected_without_echo "cloud access key" "AKIAABCDEFGHIJKLMNOP"
-assert_rejected_without_echo "Google API key" "AIza01234567890123456789012345678901234"
+assert_rejected_without_echo "Google API key" "AI""za01234567890123456789012345678901234"
 assert_rejected_without_echo "Slack token" "xox""b-1234567890-abcdefghijklmnop"
 assert_rejected_without_echo "Slack app token" "xapp-1-0123456789-abcdefghijklmnop"
 assert_rejected_without_echo "live payment key" "s""k_live_0123456789abcdefghijklmnop"
