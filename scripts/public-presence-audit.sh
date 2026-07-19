@@ -6,6 +6,7 @@ cd "$ROOT"
 
 ruby <<'RUBY'
 require "pathname"
+require "json"
 
 markdown_files = ["README.md"] + Dir.glob("docs/**/*.md") + Dir.glob(".github/**/*.md")
 missing_links = []
@@ -31,6 +32,7 @@ end
 
 metadata_path = "docs/APP_STORE_METADATA_DRAFT.md"
 metadata = File.read(metadata_path)
+metadata_values = {}
 
 {"App Name" => 30, "Subtitle" => 30, "Promotional Text" => 170, "Keywords" => 100}.each do |heading, field_limit|
   value = metadata[/^## #{Regexp.escape(heading)}\n\n([^\n]+)/, 1]
@@ -49,6 +51,8 @@ metadata = File.read(metadata_path)
          "but the draft declares #{declared_count} of #{declared_limit} (limit #{field_limit})"
     exit 1
   end
+
+  metadata_values[heading] = value
 end
 
 {"Description" => 4_000, "What To Test" => 4_000}.each do |heading, field_limit|
@@ -63,6 +67,40 @@ end
     warn "public presence audit failed: #{heading} is #{value.length} characters (limit #{field_limit})"
     exit 1
   end
+
+
+  metadata_values[heading] = value
+end
+
+
+version_metadata = JSON.parse(File.read("metadata/version/0.1/en-US.json"))
+{
+  "App Name" => "name",
+  "Subtitle" => "subtitle",
+  "Promotional Text" => "promotionalText",
+  "Description" => "description",
+  "Keywords" => "keywords"
+}.each do |heading, json_key|
+  next if version_metadata[json_key] == metadata_values[heading]
+
+  warn "public presence audit failed: versioned #{json_key} does not match #{heading} in #{metadata_path}"
+  exit 1
+end
+
+
+remote_desktop_setup_files = ["docs/INSTALL_MAC.md", "docs/INSTALL_IOS.md", "docs/TROUBLESHOOTING.md"]
+remote_desktop_enablement_patterns = [
+  /Allow Screen Recording/,
+  /Screen Recording is required/,
+  /Accessibility is required/
+]
+
+remote_desktop_setup_files.each do |file|
+  copy = File.read(file)
+  next unless remote_desktop_enablement_patterns.any? { |pattern| copy.match?(pattern) }
+
+  warn "public presence audit failed: #{file} contains Remote Desktop enablement steps while the feature is beta-blocked"
+  exit 1
 end
 
 puts "public presence audit passed"

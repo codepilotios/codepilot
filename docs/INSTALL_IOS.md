@@ -48,6 +48,8 @@ CodePilot asks for notification permission when it observes the first running tu
 
 Files selected in the iOS app are uploaded to the Mac gateway and saved under the CodePilot state directory. Image attachments can be passed into Codex turns when supported by the current runner.
 
+One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit. Uploaded attachment batches are retained for up to seven days; the gateway removes expired batches when it starts and before it saves another upload.
+
 ## Remote Desktop
 
-Remote Desktop requires the Mac app to show Screen Recording as granted before viewing and Accessibility as granted before control. If pairing reports missing permissions, open **Remote Desktop...** on the Mac, use the matching **Allow** action, restart CodePilot, then retry pairing from the iOS app.
+Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not enable or test it in beta builds.
