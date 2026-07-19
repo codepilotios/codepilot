@@ -9,7 +9,7 @@ Before public launch, maintainer coordination is still required for:
 - A confidential review before any currently disabled privileged remote-access feature is re-enabled.
 - A credential and edge-access architecture review for the remotely reachable gateway.
 - Sanitizing historical private identifiers and commit metadata, followed by coordinated clone migration.
-- Enabling dependency alerts and security updates, plus non-provider secret patterns and validity checks, then reviewing the initial results.
+- Enabling dependency alerts and security updates, code scanning, plus non-provider secret patterns and validity checks, then reviewing the initial results.
 - Shipping pending credential-storage changes through an authorized build channel and rotating affected beta credentials.
 
 Keep fail-closed controls enabled until the corresponding private review is complete. Do not copy private findings into public issues or pull requests.

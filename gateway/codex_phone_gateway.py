@@ -4881,7 +4881,10 @@ class GatewayState:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "CodexPhoneGateway/0.1"
+    server_version = "CodePilotGateway"
+
+    def version_string(self) -> str:
+        return self.server_version
 
     def state(self) -> GatewayState:
         return self.server.state

@@ -1316,6 +1316,7 @@ class GatewayStateTests(unittest.TestCase):
                 url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
                 with urllib.request.urlopen(url, timeout=2) as response:
                     status = response.status
+                    server_header = response.headers.get("Server")
                     payload = json.loads(response.read().decode("utf-8"))
             finally:
                 if server is not None:
@@ -1326,6 +1327,7 @@ class GatewayStateTests(unittest.TestCase):
                 gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
 
             self.assertEqual(status, 200)
+            self.assertEqual(server_header, "CodePilotGateway")
             self.assertTrue(payload["gateway"]["running"])
             self.assertEqual(set(payload), {"gateway"})
             self.assertNotIn("secret-token", json.dumps(payload))
