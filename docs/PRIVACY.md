@@ -36,13 +36,13 @@ Sensitive local files include:
 
 Do not commit these files, include them in public issues, or show them in screenshots.
 
-Uploaded files remain under the CodePilot state directory after a turn finishes. The current beta does not automatically remove them; delete uploads from the Mac when they are no longer needed.
+Uploaded attachment batches remain under the CodePilot state directory after a turn finishes for up to seven days. The gateway removes expired batches when it starts and before it saves another upload. Delete sensitive uploads from the Mac sooner when needed.
 
 ## Retention And Deletion
 
 CodePilot does not operate a hosted account, analytics, or relay service for the current repository beta, so there is no separate hosted CodePilot copy to request from the project maintainers. Data stored by the beta remains on the Mac or iPhone until you remove it, reset it, or uninstall the relevant app. In particular:
 
-- Uploaded files remain in `~/.codex-account-switcher/phone-uploads/` until you delete them on the Mac.
+- Uploaded attachment batches remain in `~/.codex-account-switcher/phone-uploads/` for up to seven days unless you delete them sooner. Cleanup runs when the gateway starts and before it saves another upload, so an expired batch can remain on disk until one of those events occurs.
 - Saved account profiles, gateway configuration, registered notification devices, and Live Activity registrations remain in the CodePilot state directory until you remove or replace them.
 - The iPhone app keeps its gateway URL, bearer token, and app preferences in local app storage. Clear or replace the connection values before giving the device to someone else; deleting the app removes its local app container according to iOS behavior.
 

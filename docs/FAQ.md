@@ -36,13 +36,13 @@ Yes. The CodePilot gateway, Codex CLI, and Cloudflare Tunnel run from your Mac. 
 
 ## What happens to files I upload from iPhone?
 
-Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot state directory on the Mac. They are not removed automatically after a turn. Delete files you no longer need, and remember that a selected attachment can be sent to Codex and OpenAI when you use it in a turn. See [Privacy](PRIVACY.md) for the full beta data flow.
+Uploads pass through your Cloudflare Tunnel and are saved under the CodePilot state directory on the Mac. Uploaded attachment batches are retained for up to seven days; the gateway removes expired batches when it starts and before it saves another upload. Delete sensitive files sooner when needed, and remember that a selected attachment can be sent to Codex and OpenAI when you use it in a turn. See [Privacy](PRIVACY.md) for the full beta data flow.
 
-One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit. These are request limits, not an automatic cleanup policy.
+One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit.
 
 ## How do I remove beta data?
 
-Delete unneeded uploads from `~/.codex-account-switcher/phone-uploads/` on the Mac. Other saved profiles, gateway settings, notification registrations, and Live Activity registrations remain in the CodePilot state directory until you remove or replace them. On iPhone, clear or replace the saved gateway URL and token before handing the device to someone else; deleting the app removes its local app container according to iOS behavior.
+Delete uploads sooner than the seven-day cleanup window from `~/.codex-account-switcher/phone-uploads/` on the Mac when needed. Other saved profiles, gateway settings, notification registrations, and Live Activity registrations remain in the CodePilot state directory until you remove or replace them. On iPhone, clear or replace the saved gateway URL and token before handing the device to someone else; deleting the app removes its local app container according to iOS behavior.
 
 Removing local CodePilot data does not delete information retained separately by Codex, OpenAI, Cloudflare, or Apple. See [Privacy](PRIVACY.md#retention-and-deletion) for the full retention and deletion summary, and back up any account profile you still need before removing CodePilot state.
 
