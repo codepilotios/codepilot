@@ -4,6 +4,8 @@ The full open GitHub issue queue was reviewed after the 2026-07-19 launch-readin
 
 A later 2026-07-19 refresh again found no new or updated issues. Draft PR #33 has passing CI and improves public-beta access copy, but it does not change the three-issue queue or complete the repository-administration work tracked by #27.
 
+A subsequent refresh found the queue unchanged after draft PRs #34 and #35 opened. Both are cleanly mergeable with passing CI: #34 narrows unauthenticated health diagnostics, while #35 records a community-promotion restriction. Neither changes the classification or next action for #27, #25, or #8.
+
 ## Reviewed Issues
 
 - #27 Complete public beta repository settings
@@ -27,6 +29,7 @@ A later 2026-07-19 refresh again found no new or updated issues. Draft PR #33 ha
 - Reproduced the remaining #27 repository-setting gaps using read-only GitHub API queries.
 - Confirmed the linked preparation, containment, and triage pull requests are merged.
 - Reviewed draft PR #33 and confirmed its documentation changes do not alter the current issue classifications or blockers.
+- Reviewed draft PRs #34 and #35 and confirmed that their security-health and community-policy changes do not resolve or reclassify an open issue.
 - Did not change issue labels or comments because the queue has no new evidence beyond the already published blocker updates.
 - Did not change product code: #25 requires a coordinated security implementation, while #8 requires controlled visual capture rather than a code patch.
 
