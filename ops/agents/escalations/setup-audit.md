@@ -1,6 +1,6 @@
 # Setup Audit Escalation
 
-Date: 2026-07-18
+Date: 2026-07-19
 
 Remote Desktop pairing needs maintainer review before public beta. The Mac window displays Approve/Reject controls, but `pairing.complete` already trusts the device after verifying its signature and does not wait for either action; the pending UI can then remain visible beside the trusted device. Because Remote Desktop can control the Mac, decide whether bearer-token possession is sufficient for pairing or whether pairing must require explicit Mac-side approval.
 

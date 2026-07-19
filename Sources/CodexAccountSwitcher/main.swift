@@ -2676,14 +2676,14 @@ struct CodePilotSetupStatus {
                 requirement: remoteDesktopPermissions.screenRecordingGranted ? .screenRecordingReady : .screenRecordingMissing,
                 detail: remoteDesktopPermissions.screenRecordingGranted
                     ? "Ready for Remote Desktop viewing"
-                    : "Grant Screen Recording in System Settings"
+                    : "Optional; grant in System Settings to view this Mac remotely"
             ),
             CodePilotSetupRow(
                 title: "Accessibility",
                 requirement: remoteDesktopPermissions.accessibilityGranted ? .accessibilityReady : .accessibilityMissing,
                 detail: remoteDesktopPermissions.accessibilityGranted
                     ? "Ready for Remote Desktop control"
-                    : "Grant Accessibility in System Settings"
+                    : "Optional; grant in System Settings to control this Mac remotely"
             ),
             CodePilotSetupRow(
                 title: "Notifications",
@@ -2922,11 +2922,11 @@ enum CodePilotSetupRequirement: Equatable {
             return "Stopped"
         case .gatewayBlockedByActiveTurn:
             return "Blocked by active turn"
-        case .cloudflareOptional, .notificationsUnavailable:
+        case .cloudflareOptional, .screenRecordingMissing, .accessibilityMissing, .notificationsUnavailable:
             return "Optional"
         case .notificationsUnknown:
             return "Unknown"
-        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing, .screenRecordingMissing, .accessibilityMissing:
+        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing:
             return "Missing"
         }
     }

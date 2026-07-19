@@ -26,4 +26,4 @@ Add setup rows for Screen Recording, Accessibility, and notification delivery re
 
 ## Local Audit Fix
 
-The `agent/setup-audit` branch adds Screen Recording and Accessibility rows to the Mac setup checklist and a setup action that opens the existing permission controls. The Notifications row now reads the gateway's public health response and distinguishes configured background delivery, an unconfigured optional service, and an unknown state while the gateway is stopped. APNs credential setup and production verification still require maintainer-owned credentials.
+The `agent/setup-audit` branch adds Screen Recording and Accessibility rows to the Mac setup checklist and a setup action that opens the existing permission controls. Ungranted Remote Desktop permissions are identified as optional in this general setup checklist. The Notifications row now reads the gateway's public health response and distinguishes configured background delivery, an unconfigured optional service, and an unknown state while the gateway is stopped. APNs credential setup and production verification still require maintainer-owned credentials.
