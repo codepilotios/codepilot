@@ -2306,7 +2306,6 @@ class GatewayState:
         return {
             "gateway": {
                 "running": True,
-                "version": read_marker(DEFAULT_SWITCHER_HOME / "gateway-version", "dev"),
             },
         }
 
@@ -4931,15 +4930,15 @@ class Handler(BaseHTTPRequestHandler):
                     self,
                     404,
                     "local_web_unavailable",
-                    str(exc),
+                    "Local web session not found or expired",
                     "Open the localhost link again from CodePilot; local web sessions expire after a short time.",
                 )
-            except Exception as exc:
+            except Exception:
                 json_error(
                     self,
                     502,
                     "local_web_unavailable",
-                    str(exc),
+                    "The selected local web server is unavailable",
                     "Make sure the local web server is running on the Mac, then reopen the link.",
                 )
             return

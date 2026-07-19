@@ -6,9 +6,9 @@ import socket
 import subprocess
 import tempfile
 import threading
+import urllib.error
 import urllib.request
 import unittest
-import urllib.request
 from unittest import mock
 from pathlib import Path
 
@@ -1272,6 +1272,7 @@ class GatewayStateTests(unittest.TestCase):
 
             self.assertTrue(health["gateway"]["running"])
             self.assertEqual(set(health), {"gateway"})
+            self.assertEqual(set(health["gateway"]), {"running"})
             self.assertNotIn("secret-token", json.dumps(health))
 
     def test_diagnostic_health_retains_authenticated_setup_status(self):
@@ -1330,7 +1331,34 @@ class GatewayStateTests(unittest.TestCase):
             self.assertEqual(server_header, "CodePilotGateway")
             self.assertTrue(payload["gateway"]["running"])
             self.assertEqual(set(payload), {"gateway"})
+            self.assertEqual(set(payload["gateway"]), {"running"})
             self.assertNotIn("secret-token", json.dumps(payload))
+
+    def test_local_web_endpoint_hides_backend_failure_details(self):
+        state = GatewayState(
+            Path("/tmp/codex"),
+            "secret-token",
+            Path("/missing-codex"),
+            False,
+            local_web_fetcher=mock.Mock(side_effect=RuntimeError("private backend detail")),
+        )
+        session = state.start_local_web_session("http://localhost:3000/")
+        server = gateway.GatewayServer(("127.0.0.1", 0), state)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            url = f"http://127.0.0.1:{server.server_address[1]}{session['path']}"
+            with self.assertRaises(urllib.error.HTTPError) as raised:
+                urllib.request.urlopen(url, timeout=2)
+            payload = json.loads(raised.exception.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+        self.assertEqual(raised.exception.code, 502)
+        self.assertEqual(payload["error"]["message"], "The selected local web server is unavailable")
+        self.assertNotIn("private backend detail", json.dumps(payload))
 
     def test_health_endpoint_returns_diagnostics_with_bearer_token(self):
         with tempfile.TemporaryDirectory() as tmp:
