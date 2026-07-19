@@ -161,7 +161,7 @@ actor LiveActivityGatewayRegistrar {
 
     private func endpoint(path: String, context: LiveActivityRegistrationContext) -> URL? {
         guard !context.token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let root = URL(string: context.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+              let root = GatewayEndpoint.baseURL(from: context.baseURL) else {
             return nil
         }
         return URL(string: path, relativeTo: root)?.absoluteURL
@@ -180,7 +180,7 @@ actor LiveActivityGatewayRegistrar {
     }
 
     private func send(_ request: URLRequest) async throws {
-        let (_, response) = try await URLSession.shared.data(for: request)
+        let (_, response) = try await GatewayURLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw URLError(.badServerResponse)
         }

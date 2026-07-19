@@ -7,11 +7,11 @@ struct RemoteDesktopView: View {
         case pan
     }
 
+    let gatewayURL: String
+    let gatewayToken: String
     @Environment(\.dismiss) private var dismiss
     @FocusState private var keyboardFocused: Bool
     @StateObject private var peer = RemotePeerConnection()
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var session = RemoteDesktopSessionState(leaseID: "preview")
     @State private var mapper = RemoteInputMapper(sessionID: "preview")
     @State private var frameImage: UIImage?
@@ -208,7 +208,7 @@ struct RemoteDesktopView: View {
 
     private func startFrameLoop() {
         stopFrameLoop()
-        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             frameError = "Gateway is not configured."
             return
@@ -255,7 +255,7 @@ struct RemoteDesktopView: View {
 
     private func startWebRTC() {
         stopWebRTC()
-        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
         webRTCTask = Task {
@@ -291,7 +291,7 @@ struct RemoteDesktopView: View {
         if peer.sendInput(event) {
             return
         }
-        guard let baseURL = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let baseURL = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let api = RemoteDesktopAPI(baseURL: baseURL, token: gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))
         let previous = inputTask

@@ -150,7 +150,7 @@ struct RemoteDesktopAPI {
     }
 
     private static func defaultTransport(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await GatewayURLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw RemoteDesktopAPIError.invalidResponse
         }

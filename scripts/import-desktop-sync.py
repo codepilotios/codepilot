@@ -12,6 +12,10 @@ import tempfile
 import time
 
 
+MAX_ARCHIVE_MEMBERS = 10_000
+MAX_ARCHIVE_BYTES = 2 * 1024 * 1024 * 1024
+
+
 def ordered(values):
     seen = set()
     result = []
@@ -26,14 +30,49 @@ def ordered(values):
 def safe_extract(bundle, destination):
     with tarfile.open(bundle, "r:gz") as archive:
         root = os.path.abspath(destination)
-        for member in archive.getmembers():
+        members = archive.getmembers()
+        if len(members) > MAX_ARCHIVE_MEMBERS:
+            raise RuntimeError(
+                f"Refusing archive with more than {MAX_ARCHIVE_MEMBERS} members"
+            )
+
+        total_size = 0
+        for member in members:
             target = os.path.abspath(os.path.join(destination, member.name))
             if target != root and not target.startswith(root + os.sep):
                 raise RuntimeError(f"Refusing unsafe archive member: {member.name}")
-        try:
-            archive.extractall(destination, filter="data")
-        except TypeError:
-            archive.extractall(destination)
+            if not (member.isdir() or member.isreg()):
+                raise RuntimeError(f"Refusing non-file archive member: {member.name}")
+
+            if member.isreg():
+                total_size += member.size
+                if total_size > MAX_ARCHIVE_BYTES:
+                    raise RuntimeError(
+                        f"Refusing archive larger than {MAX_ARCHIVE_BYTES} bytes"
+                    )
+
+            if member.isdir():
+                os.makedirs(target, mode=0o700, exist_ok=True)
+                os.chmod(target, 0o700)
+                continue
+
+            parent = os.path.dirname(target)
+            os.makedirs(parent, mode=0o700, exist_ok=True)
+            source = archive.extractfile(member)
+            if source is None:
+                raise RuntimeError(f"Could not read archive member: {member.name}")
+            flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+            if hasattr(os, "O_NOFOLLOW"):
+                flags |= os.O_NOFOLLOW
+            with source:
+                descriptor = os.open(target, flags, 0o600)
+                try:
+                    with os.fdopen(descriptor, "wb") as output:
+                        descriptor = -1
+                        shutil.copyfileobj(source, output)
+                finally:
+                    if descriptor >= 0:
+                        os.close(descriptor)
 
 
 def load_json(path):

@@ -213,9 +213,29 @@ class FakeNativeHostClient:
 
 
 class RemoteDesktopGatewayTests(unittest.TestCase):
-    def test_rejects_unknown_body_keys_and_malformed_identifiers(self):
+    def test_remote_control_routes_fail_closed_by_default(self):
         host = FakeNativeHostClient()
         gateway = RemoteDesktopGateway(host_client=host)
+
+        status, payload = gateway.handle("GET", ["frame"], {}, None)
+
+        self.assertEqual(status, 503)
+        self.assertEqual(payload["error"], "remote_desktop_disabled")
+        self.assertEqual(host.calls, [])
+
+    def test_status_reports_remote_control_unavailable_by_default(self):
+        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient())
+
+        status, payload = gateway.handle("GET", ["status"], {}, None)
+
+        self.assertEqual(status, 200)
+        self.assertFalse(payload["capabilities"]["remoteControlAvailable"])
+        self.assertFalse(payload["capabilities"]["relayAvailable"])
+        self.assertEqual(payload["iceServers"], [])
+
+    def test_rejects_unknown_body_keys_and_malformed_identifiers(self):
+        host = FakeNativeHostClient()
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
 
         status, payload = gateway.handle("POST", ["pairing", "start"], {}, {"deviceId": "phone-1", "extra": True})
         self.assertEqual(status, 400)
@@ -229,7 +249,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
     def test_maps_native_errors_to_stable_public_statuses(self):
         host = FakeNativeHostClient()
         host.fail_code = "controller_busy"
-        gateway = RemoteDesktopGateway(host_client=host)
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
 
         status, payload = gateway.handle("POST", ["sessions"], {}, {
             "deviceId": "phone-1",
@@ -243,7 +263,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
 
     def test_pairing_and_session_routes_forward_validated_payloads(self):
         host = FakeNativeHostClient()
-        gateway = RemoteDesktopGateway(host_client=host)
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
 
         status, payload = gateway.handle("POST", ["pairing", "complete"], {}, {
             "challengeId": "challenge-1",
@@ -257,7 +277,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         self.assertEqual(host.calls[0][1]["signature"], base64.b64encode(b"proof").decode("ascii"))
 
     def test_rejects_invalid_signature_base64(self):
-        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient())
+        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient(), remote_control_enabled=True)
 
         status, payload = gateway.handle("POST", ["sessions"], {}, {
             "deviceId": "phone-1",
@@ -269,7 +289,11 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         self.assertEqual(payload["error"], "invalid_base64")
 
     def test_signal_queue_is_bounded_monotonic_and_cleared_on_disconnect(self):
-        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient(), signal_queue_limit=2)
+        gateway = RemoteDesktopGateway(
+            host_client=FakeNativeHostClient(),
+            signal_queue_limit=2,
+            remote_control_enabled=True,
+        )
 
         for sequence in [1, 2, 3]:
             status, payload = gateway.handle("POST", ["sessions", "session-1", "signal"], {}, {
@@ -299,7 +323,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
 
     def test_clipboard_requires_explicit_text_under_size_limit(self):
         host = FakeNativeHostClient()
-        gateway = RemoteDesktopGateway(host_client=host)
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
 
         status, payload = gateway.handle("POST", ["sessions", "session-1", "clipboard"], {}, {
             "direction": "send",
@@ -327,7 +351,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         try:
             os.environ.pop("CODEPILOT_TURN_KEY_ID", None)
             os.environ.pop("CODEPILOT_TURN_API_TOKEN", None)
-            gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient())
+            gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient(), remote_control_enabled=True)
 
             status, payload = gateway.handle("GET", ["status"], {}, None)
 
@@ -345,7 +369,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
             "payload": b"\xff\xd8jpeg\xff\xd9",
             "errorCode": None,
         }
-        gateway = RemoteDesktopGateway(host_client=host)
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
 
         status, payload = gateway.handle("GET", ["frame"], {}, None)
 
@@ -355,7 +379,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
 
     def test_input_forwards_validated_event_to_native_host(self):
         host = FakeNativeHostClient()
-        gateway = RemoteDesktopGateway(host_client=host)
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
         event = {
             "sessionId": "gateway-session",
             "sequence": 7,
@@ -377,7 +401,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
 
     def test_input_accepts_swift_payload_with_omitted_optional_fields(self):
         host = FakeNativeHostClient()
-        gateway = RemoteDesktopGateway(host_client=host)
+        gateway = RemoteDesktopGateway(host_client=host, remote_control_enabled=True)
         event = {
             "sessionId": "swift-session",
             "sequence": 1,
@@ -393,7 +417,7 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         self.assertEqual(host.calls[-1], ("input.inject", event))
 
     def test_input_rejects_unknown_fields(self):
-        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient())
+        gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient(), remote_control_enabled=True)
 
         status, payload = gateway.handle("POST", ["input"], {}, {
             "sessionId": "gateway-session",
@@ -442,7 +466,11 @@ class RemoteDesktopGatewayTests(unittest.TestCase):
         try:
             os.environ["CODEPILOT_TURN_KEY_ID"] = "turn-key-id"
             os.environ["CODEPILOT_TURN_API_TOKEN"] = "secret-token"
-            gateway = RemoteDesktopGateway(host_client=FakeNativeHostClient(), turn_urlopen=fake_urlopen)
+            gateway = RemoteDesktopGateway(
+                host_client=FakeNativeHostClient(),
+                turn_urlopen=fake_urlopen,
+                remote_control_enabled=True,
+            )
 
             status, payload = gateway.handle("GET", ["status"], {}, None)
 

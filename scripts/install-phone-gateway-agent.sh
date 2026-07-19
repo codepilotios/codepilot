@@ -45,6 +45,7 @@ fi
 
 /usr/bin/python3 - "$ROOT" "$PLIST" "$LABEL" "$gateway_python" <<'PY'
 import plistlib
+import os
 import sys
 from pathlib import Path
 
@@ -60,10 +61,11 @@ allowed_env_keys = {
     "CODEX_PHONE_APNS_KEY_ID",
     "CODEX_PHONE_APNS_KEY_PATH",
     "CODEX_PHONE_APNS_TOPIC",
-    "SUPABASE_ACCESS_TOKEN",
+    "CODEPILOT_FILE_DOWNLOAD_ROOTS",
 }
 environment = {}
 if env_path.is_file():
+    os.chmod(env_path, 0o600)
     for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
@@ -86,6 +88,7 @@ plist = {
     ],
     "RunAtLoad": True,
     "KeepAlive": True,
+    "Umask": 0o077,
     "WorkingDirectory": str(root),
     "StandardOutPath": str(Path.home() / "Library" / "Logs" / "codex-phone-gateway.out.log"),
     "StandardErrorPath": str(Path.home() / "Library" / "Logs" / "codex-phone-gateway.err.log"),
@@ -93,6 +96,7 @@ plist = {
 if environment:
     plist["EnvironmentVariables"] = environment
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
+os.chmod(plist_path, 0o600)
 PY
 
 gateway_jobs_state() {
@@ -108,11 +112,15 @@ gateway_jobs_state() {
     echo "unknown"
     return 0
   }
+  if [[ "$token" == *[^A-Za-z0-9_-]* ]]; then
+    echo "unknown"
+    return 0
+  fi
 
   local response
-  response="$(/usr/bin/curl -fsS --max-time 2 \
-    -H "Authorization: Bearer $token" \
-    "http://127.0.0.1:18790/api/jobs/active" 2>/dev/null || true)"
+  response="$(printf 'header = "Authorization: Bearer %s"\n' "$token" | \
+    /usr/bin/curl -fsS --max-time 2 --config - \
+      "http://127.0.0.1:18790/api/jobs/active" 2>/dev/null || true)"
   [[ -n "$response" ]] || {
     echo "unknown"
     return 0

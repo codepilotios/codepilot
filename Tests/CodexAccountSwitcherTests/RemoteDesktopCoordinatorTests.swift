@@ -4,6 +4,10 @@ import XCTest
 @testable import CodexAccountSwitcher
 
 final class RemoteDesktopCoordinatorTests: XCTestCase {
+    func testUnsafeNativeRemoteDesktopHostIsDisabled() {
+        XCTAssertFalse(RemoteDesktopHostPolicy.isEnabled)
+    }
+
     func testSnapshotReflectsPermissionState() throws {
         let permissions = FakeRemoteDesktopPermissions(
             screenRecordingGranted: false,

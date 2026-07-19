@@ -6,19 +6,22 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Test and Audit
     runs-on: macos-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Privacy audit
         run: scripts/privacy-audit.sh
 
-      - name: Public presence audit
-        run: scripts/public-presence-audit.sh
+      - name: Privacy audit regression tests
+        run: scripts/tests/privacy-audit-test.sh
 
       - name: SwiftPM tests
         run: swift test
@@ -26,6 +29,27 @@ jobs:
       - name: Gateway tests
         working-directory: gateway
         run: python3 -m unittest test_codex_phone_gateway.py test_remote_desktop_gateway.py
+
+      - name: Gateway token process-argument guard
+        run: scripts/tests/gateway-token-argv-test.sh
+
+      - name: LaunchAgent owner-only umask guard
+        run: scripts/tests/launch-agent-umask-test.sh
+
+      - name: Cloudflare setup security tests
+        run: scripts/test-cloudflare-setup.sh
+
+      - name: Background-agent opt-in guard
+        run: scripts/tests/background-agent-opt-in-test.sh
+
+      - name: Continuous-agent public-write guard
+        run: scripts/tests/codepilot-agent-public-write-guard-test.sh
+
+      - name: Desktop sync security tests
+        run: python3 -m unittest scripts/tests/test_desktop_sync_security.py
+
+      - name: Desktop sync transport security tests
+        run: scripts/tests/push-desktop-sync-security-test.sh
 
       - name: Fastlane syntax
         run: ruby -c ios/CodexPhone/fastlane/Fastfile

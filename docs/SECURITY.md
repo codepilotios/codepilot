@@ -20,10 +20,30 @@ Recommended:
 
 - Use HTTPS when remote.
 - Use a long random bearer token.
+- The gateway refuses existing tokens shorter than 32 characters or containing non-URL-safe characters.
 - Rotate the token if a device is lost.
 - Restrict Cloudflare access where practical.
 
+The iOS client refuses non-HTTPS gateway URLs except for `localhost`, `::1`, and syntactically valid `127.x.x.x` loopback addresses. DNS names that merely begin with `127.` are not loopback exceptions and still require HTTPS. The client also rejects gateway URLs containing user information, query strings, or fragments, and credential-bearing requests do not follow cross-origin redirects.
+
 The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
+
+Do not place infrastructure or connector management tokens in `phone-gateway.env`. The gateway service deliberately does not load `SUPABASE_ACCESS_TOKEN`, and gateway-launched Codex processes scrub gateway-only credentials from their environment. Configure sensitive connectors in a separately trusted local Codex session instead of exposing their bearer tokens to remotely initiated turns.
+
+Cloudflare remote verification sends the gateway token only to the HTTPS origin stored by the permanent-tunnel setup. It rejects alternate hosts, URL credentials, nonstandard ports, and URL extras. Reconfigure the permanent tunnel instead of overriding verification with another URL.
+
+Localhost web sessions use short-lived capability URLs so WebView subresources can load without exposing the gateway bearer token to page content. Do not share those URLs. Sessions are restricted to the selected loopback origin, expire after ten minutes, and have bounded request counts.
+
+Remote file previews are restricted to files uploaded through CodePilot by default. Advanced local setups can add explicit roots with the `CODEPILOT_FILE_DOWNLOAD_ROOTS` environment variable, using the platform path separator between roots. Never add a credential, SSH, cloud configuration, or account-auth directory.
+
+Uploaded attachment batches are retained for seven days. The gateway removes expired batches at startup and before saving another upload. Storage and cleanup stay within a private CodePilot upload directory and refuse symbolic links.
+
+Desktop sync transfers accept only a plain host or `user@host` destination. SSH options, remote paths, and whitespace are rejected before CodePilot exports project metadata.
+
+Remote account-login sessions expire after ten minutes, are limited to four at a time, and terminate their temporary login process when they expire or fail.
+The temporary iOS OAuth callback listener binds only to IPv4 loopback and accepts a callback only when its path and single, non-empty OAuth state exactly match the active login request.
+
+The native remote-desktop host is disabled while screen capture, input injection, and signaling still lack end-to-end lease authorization. CodePilot does not request Screen Recording permission at launch. Do not re-enable the host until the documented trusted-device and active-lease checks are enforced on every privileged operation.
 
 ## Account Switching
 

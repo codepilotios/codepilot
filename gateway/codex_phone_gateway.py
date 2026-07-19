@@ -7,6 +7,7 @@ import contextlib
 from datetime import datetime, timezone
 import fcntl
 import hashlib
+import ipaddress
 import json
 import mimetypes
 import os
@@ -15,6 +16,7 @@ import re
 import secrets
 import shutil
 import sqlite3
+import stat
 import subprocess
 import tempfile
 import threading
@@ -37,6 +39,7 @@ DEFAULT_CODEX_HOME = HOME / ".codex"
 DEFAULT_SWITCHER_HOME = HOME / ".codex-account-switcher"
 DEFAULT_TOKEN_FILE = DEFAULT_SWITCHER_HOME / "phone-gateway-token"
 DEFAULT_UPLOADS_DIR = DEFAULT_SWITCHER_HOME / "phone-uploads"
+MIN_GATEWAY_TOKEN_LENGTH = 32
 DEFAULT_THREAD_MESSAGE_CACHE_DIR = DEFAULT_SWITCHER_HOME / "phone-thread-message-cache"
 DEFAULT_NOTIFICATION_DEVICES_FILE = DEFAULT_SWITCHER_HOME / "phone-notification-devices.json"
 DEFAULT_LIVE_ACTIVITIES_FILE = DEFAULT_SWITCHER_HOME / "phone-live-activities.json"
@@ -46,9 +49,24 @@ CODEX_CHILD_PATH_PREFIXES = (
     "/opt/homebrew/sbin",
     "/usr/local/bin",
 )
+GATEWAY_ONLY_CHILD_ENV_KEYS = {
+    "CODEPILOT_FILE_DOWNLOAD_ROOTS",
+    "CODEPILOT_TURN_API_TOKEN",
+    "CODEPILOT_TURN_KEY_ID",
+    "CODEX_PHONE_APNS_CERT_KEY_PATH",
+    "CODEX_PHONE_APNS_CERT_PATH",
+    "CODEX_PHONE_APNS_KEY_ID",
+    "CODEX_PHONE_APNS_KEY_PATH",
+    "CODEX_PHONE_APNS_TEAM_ID",
+    "CODEX_PHONE_APNS_TOPIC",
+    "SUPABASE_ACCESS_TOKEN",
+}
 MAX_ATTACHMENTS = 8
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_ATTACHMENT_BYTES = 50 * 1024 * 1024
+MAX_JSON_BODY_BYTES = 1 * 1024 * 1024
+MAX_ATTACHMENT_REQUEST_BYTES = 72 * 1024 * 1024
+UPLOAD_RETENTION_SECONDS = 7 * 24 * 60 * 60
 VALID_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 PUBLIC_JOB_TEXT_LIMIT = 4_000
 PUBLIC_EVENT_BODY_LIMIT = 12_000
@@ -70,8 +88,14 @@ REMOTE_LOGIN_AUTH_URL_RE = re.compile(r"https://auth\.openai\.com/oauth/authoriz
 REMOTE_LOGIN_URL_RE = re.compile(r"https?://\S+")
 REMOTE_LOGIN_URL_TIMEOUT_SECONDS = 15
 REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS = 30
-LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 60 * 60
+REMOTE_LOGIN_SESSION_TIMEOUT_SECONDS = 10 * 60
+REMOTE_LOGIN_MAX_ACTIVE_SESSIONS = 4
+LOCAL_WEB_SESSION_TIMEOUT_SECONDS = 10 * 60
+LOCAL_WEB_MAX_ACTIVE_SESSIONS = 8
+LOCAL_WEB_MAX_REQUESTS_PER_SESSION = 256
 LOCAL_WEB_MAX_BYTES = 25 * 1024 * 1024
+GATEWAY_MAX_CONCURRENT_REQUESTS = 64
+GATEWAY_REQUEST_TIMEOUT_SECONDS = 30.0
 
 JOBS = {}
 JOB_PROCESSES = {}
@@ -81,6 +105,8 @@ RUN_LOCK = threading.Lock()
 
 def codex_child_env(codex_home: Path) -> dict:
     env = os.environ.copy()
+    for key in GATEWAY_ONLY_CHILD_ENV_KEYS:
+        env.pop(key, None)
     env["CODEX_HOME"] = str(codex_home)
     existing_path = env.get("PATH") or os.defpath
     path_parts = [part for part in existing_path.split(os.pathsep) if part]
@@ -250,9 +276,9 @@ class CodexAppServerClient:
         params = {
             "threadId": thread_id,
             "input": [self.text_input(text)],
-            "approvalPolicy": "never",
+            "approvalPolicy": "never" if self.allow_dangerous else "on-request",
             "sandboxPolicy": {
-                "type": "dangerFullAccess",
+                "type": "dangerFullAccess" if self.allow_dangerous else "workspaceWrite",
             },
         }
         if reasoning_effort:
@@ -380,12 +406,35 @@ class CodexAppServerClient:
 
 def read_or_create_token(path: Path) -> str:
     if path.exists():
-        return path.read_text(encoding="utf-8").strip()
-    path.parent.mkdir(parents=True, exist_ok=True)
+        metadata = path.lstat()
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            raise RuntimeError("Gateway token path must be a regular file")
+        os.chmod(path, 0o600)
+        token = path.read_text(encoding="utf-8").strip()
+        if not token:
+            raise RuntimeError("Gateway token file is empty")
+        if len(token) < MIN_GATEWAY_TOKEN_LENGTH or re.fullmatch(r"[A-Za-z0-9_-]+", token) is None:
+            raise RuntimeError(
+                f"Gateway token must contain at least {MIN_GATEWAY_TOKEN_LENGTH} URL-safe characters; rotate it before restarting"
+            )
+        return token
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path.parent, 0o700)
     token = secrets.token_urlsafe(32)
-    path.write_text(token + "\n", encoding="utf-8")
-    os.chmod(path, 0o600)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(token + "\n")
     return token
+
+
+def is_loopback_host(host: str) -> bool:
+    value = str(host or "").strip().strip("[]")
+    if value.casefold() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(value).is_loopback
+    except ValueError:
+        return False
 
 
 def base64url(data: bytes) -> str:
@@ -447,21 +496,17 @@ class APNsCertificatePushNotifier:
         host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
         bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
         payload = live_activity_payload(content_state)
-        process = subprocess.run(
+        process = run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl", "--http2", "-sS", "-X", "POST",
-                "--cert", str(self.cert_path), "--key", str(self.key_path),
-                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
-                "-H", "apns-push-type: liveactivity",
-                "-H", "apns-priority: 10",
-                "--write-out", "\n%{http_code}",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "apns-push-type: liveactivity",
+                "apns-priority: 10",
             ],
-            input=payload,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
+            payload,
+            cert_path=self.cert_path,
+            key_path=self.key_path,
+            include_status=True,
         )
         return apns_http_status(process.stdout)
 
@@ -483,24 +528,17 @@ class APNsCertificatePushNotifier:
             "threadId": notification.get("threadId", ""),
             "jobId": notification.get("jobId", ""),
         }, separators=(",", ":")).encode("utf-8")
-        subprocess.run(
+        run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl",
-                "--http2",
-                "-fsS",
-                "-X", "POST",
-                "--cert", str(self.cert_path),
-                "--key", str(self.key_path),
-                "-H", f"apns-topic: {topic}",
-                "-H", "apns-push-type: alert",
-                "-H", "apns-priority: 10",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"apns-topic: {topic}",
+                "apns-push-type: alert",
+                "apns-priority: 10",
             ],
-            input=payload,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
+            payload,
+            cert_path=self.cert_path,
+            key_path=self.key_path,
+            fail_on_http_error=True,
         )
 
 
@@ -571,21 +609,16 @@ class APNsPushNotifier:
         environment = str(registration.get("environment") or "production").strip().lower()
         host = "api.sandbox.push.apple.com" if environment == "development" else "api.push.apple.com"
         bundle_id = str(registration.get("bundleId") or self.default_topic).strip() or self.default_topic
-        process = subprocess.run(
+        process = run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl", "--http2", "-sS", "-X", "POST",
-                "-H", f"authorization: bearer {self.jwt()}",
-                "-H", f"apns-topic: {bundle_id}.push-type.liveactivity",
-                "-H", "apns-push-type: liveactivity",
-                "-H", "apns-priority: 10",
-                "--write-out", "\n%{http_code}",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"authorization: bearer {self.jwt()}",
+                f"apns-topic: {bundle_id}.push-type.liveactivity",
+                "apns-push-type: liveactivity",
+                "apns-priority: 10",
             ],
-            input=live_activity_payload(content_state),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
+            live_activity_payload(content_state),
+            include_status=True,
         )
         return apns_http_status(process.stdout)
 
@@ -607,23 +640,16 @@ class APNsPushNotifier:
             "threadId": notification.get("threadId", ""),
             "jobId": notification.get("jobId", ""),
         }, separators=(",", ":")).encode("utf-8")
-        subprocess.run(
+        run_apns_curl(
+            f"https://{host}/3/device/{token}",
             [
-                "curl",
-                "--http2",
-                "-fsS",
-                "-X", "POST",
-                "-H", f"authorization: bearer {self.jwt()}",
-                "-H", f"apns-topic: {topic}",
-                "-H", "apns-push-type: alert",
-                "-H", "apns-priority: 10",
-                "--data-binary", "@-",
-                f"https://{host}/3/device/{token}",
+                f"authorization: bearer {self.jwt()}",
+                f"apns-topic: {topic}",
+                "apns-push-type: alert",
+                "apns-priority: 10",
             ],
-            input=payload,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
+            payload,
+            fail_on_http_error=True,
         )
 
 
@@ -635,6 +661,42 @@ def live_activity_payload(content_state: dict) -> bytes:
             "content-state": content_state,
         }
     }, separators=(",", ":")).encode("utf-8")
+
+
+def run_apns_curl(
+    url: str,
+    headers: list[str],
+    payload: bytes,
+    *,
+    cert_path: Path | None = None,
+    key_path: Path | None = None,
+    include_status: bool = False,
+    fail_on_http_error: bool = False,
+):
+    config_lines = [
+        f'url = "{curl_config_value(url)}"',
+        'request = "POST"',
+    ]
+    if cert_path is not None:
+        config_lines.append(f'cert = "{curl_config_value(str(cert_path))}"')
+    if key_path is not None:
+        config_lines.append(f'key = "{curl_config_value(str(key_path))}"')
+    config_lines.extend(f'header = "{curl_config_value(header)}"' for header in headers)
+    if include_status:
+        config_lines.append('write-out = "\\n%{http_code}"')
+    config_lines.append(f'data-binary = "{curl_config_value(payload.decode("utf-8"))}"')
+    config = "\n".join([*config_lines, ""])
+    command = ["curl", "--http2", "-sS"]
+    if fail_on_http_error:
+        command.append("--fail")
+    command.extend(["--config", "-"])
+    return subprocess.run(
+        command,
+        input=config.encode("utf-8"),
+        stdout=subprocess.PIPE if include_status else subprocess.DEVNULL,
+        stderr=subprocess.PIPE if include_status else subprocess.DEVNULL,
+        check=False,
+    )
 
 
 def apns_http_status(output: bytes) -> int:
@@ -657,6 +719,8 @@ def json_response(handler, status: int, payload: dict):
     handler.send_response(status)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -687,14 +751,20 @@ def decode_body(handler, max_length: int | None = None) -> dict:
     raw_length = handler.headers.get("content-length", "0")
     try:
         length = int(raw_length)
-    except ValueError:
-        length = 0
+    except (TypeError, ValueError) as exc:
+        raise ValueError("invalid_content_length") from exc
+    if length < 0:
+        raise ValueError("invalid_content_length")
     if length <= 0:
         return {}
-    if max_length is not None and length > max_length:
+    effective_max_length = MAX_JSON_BODY_BYTES if max_length is None else max_length
+    if length > effective_max_length:
         raise RequestBodyTooLarge("request_too_large")
     body = handler.rfile.read(length)
-    return json.loads(body.decode("utf-8"))
+    decoded = json.loads(body.decode("utf-8"))
+    if not isinstance(decoded, dict):
+        raise ValueError("request_body_must_be_an_object")
+    return decoded
 
 
 def safe_filename(name: str, fallback: str) -> str:
@@ -712,7 +782,74 @@ def is_image_attachment(path: Path, mime_type: str) -> bool:
     return path.suffix.lower() in {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
 
-def resolve_requested_file_path(raw_path: str) -> Path:
+def cleanup_expired_uploads(
+    root: Path | None = None,
+    *,
+    now: float | None = None,
+    retention_seconds: int = UPLOAD_RETENTION_SECONDS,
+) -> int:
+    """Remove expired upload batches without following links outside the upload root."""
+    if retention_seconds <= 0:
+        raise ValueError("Upload retention must be positive")
+    root = DEFAULT_UPLOADS_DIR if root is None else root
+
+    try:
+        root_stat = root.lstat()
+    except FileNotFoundError:
+        return 0
+    if stat.S_ISLNK(root_stat.st_mode) or not stat.S_ISDIR(root_stat.st_mode):
+        return 0
+
+    cutoff = (time.time() if now is None else now) - retention_seconds
+    removed = 0
+    for thread_dir in root.iterdir():
+        try:
+            thread_stat = thread_dir.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(thread_stat.st_mode) or not stat.S_ISDIR(thread_stat.st_mode):
+            continue
+
+        for upload_dir in thread_dir.iterdir():
+            try:
+                upload_stat = upload_dir.lstat()
+            except FileNotFoundError:
+                continue
+            if (
+                stat.S_ISLNK(upload_stat.st_mode)
+                or not stat.S_ISDIR(upload_stat.st_mode)
+                or upload_stat.st_mtime > cutoff
+            ):
+                continue
+            shutil.rmtree(upload_dir)
+            removed += 1
+
+        try:
+            thread_dir.rmdir()
+        except OSError:
+            pass
+    return removed
+
+
+def ensure_private_upload_directory(path: Path, *, parents: bool = False) -> None:
+    try:
+        path_stat = path.lstat()
+    except FileNotFoundError:
+        path.mkdir(mode=0o700, parents=parents)
+        path_stat = path.lstat()
+    if stat.S_ISLNK(path_stat.st_mode) or not stat.S_ISDIR(path_stat.st_mode):
+        raise RuntimeError("Upload path must be a real directory")
+    os.chmod(path, 0o700)
+
+
+def configured_download_roots() -> list[Path]:
+    roots = [DEFAULT_UPLOADS_DIR]
+    configured = os.environ.get("CODEPILOT_FILE_DOWNLOAD_ROOTS", "")
+    roots.extend(Path(value).expanduser() for value in configured.split(os.pathsep) if value.strip())
+    return [root.resolve(strict=False) for root in roots]
+
+
+def resolve_requested_file_path(raw_path: str, allowed_roots: list[Path] | None = None) -> Path:
     value = str(raw_path or "").strip()
     if not value:
         raise ValueError("Missing file path")
@@ -739,6 +876,11 @@ def resolve_requested_file_path(raw_path: str) -> Path:
     if not resolved.is_file():
         raise LookupError(f"Not a file: {resolved}")
 
+    roots = configured_download_roots() if allowed_roots is None else allowed_roots
+    normalized_roots = [root.expanduser().resolve(strict=False) for root in roots]
+    if not any(resolved == root or root in resolved.parents for root in normalized_roots):
+        raise PermissionError("File is outside the configured CodePilot download roots")
+
     return resolved
 
 
@@ -760,6 +902,8 @@ def file_response(handler: BaseHTTPRequestHandler, path: Path):
     handler.send_response(200)
     handler.send_header("Content-Type", metadata["mimeType"])
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(metadata["size"]))
     handler.send_header("Content-Disposition", f'attachment; filename="{download_name}"')
     handler.end_headers()
@@ -775,6 +919,8 @@ def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
     handler.send_response(status)
     handler.send_header("Content-Type", str(payload.get("contentType") or "application/octet-stream"))
     handler.send_header("Cache-Control", "no-store")
+    handler.send_header("Referrer-Policy", "no-referrer")
+    handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(len(body)))
     handler.end_headers()
     handler.wfile.write(body)
@@ -804,6 +950,21 @@ def compact_json(value, limit: int = 900) -> str:
         return truncate_text(str(value), limit)
 
 
+class LoopbackOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        source = urllib.parse.urlparse(req.full_url)
+        target = urllib.parse.urlparse(urllib.parse.urljoin(req.full_url, newurl))
+        source_port = source.port or (443 if source.scheme == "https" else 80)
+        target_port = target.port or (443 if target.scheme == "https" else 80)
+        if (
+            target.scheme != source.scheme
+            or (target.hostname or "").casefold() not in {"localhost", "127.0.0.1", "::1"}
+            or target_port != source_port
+        ):
+            raise RuntimeError("Local web redirect left the selected loopback origin")
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def fetch_local_web_url(url: str) -> tuple[int, dict, bytes]:
     request = urllib.request.Request(
         url,
@@ -812,8 +973,9 @@ def fetch_local_web_url(url: str) -> tuple[int, dict, bytes]:
             "Accept": "*/*",
         },
     )
+    opener = urllib.request.build_opener(LoopbackOnlyRedirectHandler())
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with opener.open(request, timeout=30) as response:
             body = response.read(LOCAL_WEB_MAX_BYTES + 1)
             if len(body) > LOCAL_WEB_MAX_BYTES:
                 raise RuntimeError("Local web response is too large")
@@ -1728,7 +1890,8 @@ def cache_thread_message(thread_id: str, message_id: str, text: str, timestamp: 
         return
 
     path = message_cache_path(thread_id)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    os.chmod(path.parent, 0o700)
     try:
         payload = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     except (OSError, json.JSONDecodeError):
@@ -1745,9 +1908,8 @@ def cache_thread_message(thread_id: str, message_id: str, text: str, timestamp: 
         "timestamp": datetime.fromtimestamp(event_time, timezone.utc).isoformat(),
         "updatedAt": event_time,
     }
-    tmp_path = path.with_suffix(".tmp")
-    tmp_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-    tmp_path.replace(path)
+    write_json_object_atomic(path, payload)
+    os.chmod(path, 0o600)
 
 
 def message_sort_timestamp(message: dict) -> float | None:
@@ -1948,6 +2110,7 @@ class GatewayState:
         self._local_web_lock = threading.Lock()
         self._remote_login_sessions = {}
         self._remote_login_lock = threading.Lock()
+        self._remote_login_start_lock = threading.Lock()
 
     @property
     def db_path(self) -> Path:
@@ -3262,37 +3425,19 @@ class GatewayState:
         self.push_notifier.send_turn_completion(devices, notification)
 
     def turn_completion_notification(self, job: dict) -> dict:
-        thread_title = str(job.get("threadTitle") or "").strip()
-        if not thread_title:
-            thread_title = self.thread_title_for_notification(str(job.get("threadId") or ""))
-        if not thread_title:
-            thread_title = "Codex thread"
-
         status = str(job.get("status") or "")
         if status == "failed":
             title = "Codex failed"
-            error = str(job.get("error") or "").strip()
-            body = f"{thread_title}: {truncate_text(error, 120)}" if error else f"Turn failed in {thread_title}."
+            body = "Open CodePilot to review the error."
         else:
             title = "Codex finished"
-            body = f"Turn finished in {thread_title}."
+            body = "Open CodePilot to view the result."
         return {
             "title": title,
             "body": body,
             "threadId": str(job.get("threadId") or ""),
             "jobId": str(job.get("id") or ""),
         }
-
-    def thread_title_for_notification(self, thread_id: str) -> str:
-        if not thread_id:
-            return ""
-        try:
-            thread = self.get_thread_state_db(thread_id)
-        except Exception:
-            return ""
-        if not thread:
-            return ""
-        return str(thread.get("title") or "").strip()
 
     def switch_account(self, raw_name: str) -> dict:
         account_name = self.resolve_account_profile_name(raw_name)
@@ -3506,6 +3651,11 @@ class GatewayState:
         return self.start_remote_login_session(account_name, mode="add")
 
     def start_remote_login_session(self, account_name: str, mode: str) -> dict:
+        with self._remote_login_start_lock:
+            self.ensure_remote_login_capacity()
+            return self._start_remote_login_session(account_name, mode)
+
+    def _start_remote_login_session(self, account_name: str, mode: str) -> dict:
         DEFAULT_SWITCHER_HOME.mkdir(parents=True, exist_ok=True)
         session_id = secrets.token_urlsafe(16)
         temp_codex_home = Path(tempfile.mkdtemp(prefix="codex-remote-login-", dir=str(DEFAULT_SWITCHER_HOME)))
@@ -3570,6 +3720,11 @@ class GatewayState:
         raise RuntimeError(f"Codex login did not provide a browser login URL. {truncate_text(output, 500)}")
 
     def start_remote_mcp_login(self, raw_name: str) -> dict:
+        with self._remote_login_start_lock:
+            self.ensure_remote_login_capacity()
+            return self._start_remote_mcp_login(raw_name)
+
+    def _start_remote_mcp_login(self, raw_name: str) -> dict:
         server_name = str(raw_name or "").strip()
         if not server_name:
             raise ValueError("MCP server name is required")
@@ -3658,6 +3813,7 @@ class GatewayState:
         }
 
     def remote_account_login_status(self, session_id: str) -> dict:
+        self.cleanup_expired_remote_login_sessions()
         with self._remote_login_lock:
             session = self._remote_login_sessions.get(str(session_id or "").strip())
             if not session:
@@ -3665,6 +3821,7 @@ class GatewayState:
             return self.public_remote_login_session(session)
 
     def complete_remote_account_login(self, session_id: str, callback_url: str) -> dict:
+        self.cleanup_expired_remote_login_sessions()
         session_id = str(session_id or "").strip()
         with self._remote_login_lock:
             session = self._remote_login_sessions.get(session_id)
@@ -3674,30 +3831,35 @@ class GatewayState:
                 raise ValueError("Remote login session is not an account login")
             session["status"] = "completing"
 
-        local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
-        self.relay_remote_login_callback(local_callback_url)
-
-        process = session["process"]
         try:
+            local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
+            self.relay_remote_login_callback(local_callback_url)
+
+            process = session["process"]
             returncode = process.wait(timeout=REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS)
+            if returncode != 0:
+                output = str(session.get("output") or "").strip()
+                raise RuntimeError(f"Codex login failed: {truncate_text(output or f'exit {returncode}', 500)}")
+
+            generated_auth = Path(session["tempCodexHome"]) / "auth.json"
+            if not generated_auth.is_file():
+                raise RuntimeError("Codex login did not produce auth.json")
+
+            if str(session.get("mode") or "") == "add":
+                self.install_new_account_auth(str(session["accountName"]), generated_auth)
+            else:
+                self.install_refreshed_account_auth(str(session["accountName"]), generated_auth)
         except subprocess.TimeoutExpired as exc:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
             raise RuntimeError("Timed out waiting for Codex login to finish") from exc
-        if returncode != 0:
-            output = str(session.get("output") or "").strip()
-            raise RuntimeError(f"Codex login failed: {truncate_text(output or f'exit {returncode}', 500)}")
-
-        generated_auth = Path(session["tempCodexHome"]) / "auth.json"
-        if not generated_auth.is_file():
-            raise RuntimeError("Codex login did not produce auth.json")
-
-        if str(session.get("mode") or "") == "add":
-            self.install_new_account_auth(str(session["accountName"]), generated_auth)
-        else:
-            self.install_refreshed_account_auth(str(session["accountName"]), generated_auth)
+        except Exception:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+            raise
         self.cleanup_remote_account_login_session(session_id, terminate=False)
         return self.account_status_snapshot()
 
     def complete_remote_mcp_login(self, session_id: str, callback_url: str) -> dict:
+        self.cleanup_expired_remote_login_sessions()
         session_id = str(session_id or "").strip()
         with self._remote_login_lock:
             session = self._remote_login_sessions.get(session_id)
@@ -3707,19 +3869,23 @@ class GatewayState:
                 raise ValueError("Remote login session is not an MCP login")
             session["status"] = "completing"
 
-        local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
-        self.relay_remote_login_callback(local_callback_url)
-
-        process = session["process"]
         try:
-            returncode = process.wait(timeout=REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS)
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError("Timed out waiting for Codex MCP login to finish") from exc
-        if returncode != 0:
-            output = str(session.get("output") or "").strip()
-            raise RuntimeError(f"Codex MCP login failed: {truncate_text(output or f'exit {returncode}', 500)}")
+            local_callback_url = self.validated_remote_login_callback_url(session, callback_url)
+            self.relay_remote_login_callback(local_callback_url)
 
-        self.clear_connector_auth_warning(str(session.get("accountName") or ""))
+            process = session["process"]
+            returncode = process.wait(timeout=REMOTE_LOGIN_CALLBACK_TIMEOUT_SECONDS)
+            if returncode != 0:
+                output = str(session.get("output") or "").strip()
+                raise RuntimeError(f"Codex MCP login failed: {truncate_text(output or f'exit {returncode}', 500)}")
+
+            self.clear_connector_auth_warning(str(session.get("accountName") or ""))
+        except subprocess.TimeoutExpired as exc:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+            raise RuntimeError("Timed out waiting for Codex MCP login to finish") from exc
+        except Exception:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+            raise
         self.cleanup_remote_account_login_session(session_id, terminate=False)
         return self.account_status_snapshot()
 
@@ -3731,8 +3897,14 @@ class GatewayState:
 
         auth_url = str(session.get("authUrl") or "")
         auth_query = urllib.parse.parse_qs(urllib.parse.urlparse(auth_url).query)
-        expected_redirect = (auth_query.get("redirect_uri") or [""])[0]
-        expected_state = (auth_query.get("state") or [""])[0]
+        redirect_values = auth_query.get("redirect_uri") or []
+        state_values = auth_query.get("state") or []
+        if len(redirect_values) != 1 or not redirect_values[0]:
+            raise ValueError("Remote login redirect URL is invalid")
+        if len(state_values) != 1 or not state_values[0]:
+            raise ValueError("Remote login authorization state is invalid")
+        expected_redirect = redirect_values[0]
+        expected_state = state_values[0]
         redirect = urllib.parse.urlparse(expected_redirect)
         if redirect.scheme != "http" or redirect.hostname not in {"localhost", "127.0.0.1"}:
             raise ValueError("Remote login redirect URL is invalid")
@@ -3742,8 +3914,8 @@ class GatewayState:
             raise ValueError("Remote login callback path is invalid")
 
         callback_query = urllib.parse.parse_qs(parsed.query)
-        callback_state = (callback_query.get("state") or [""])[0]
-        if expected_state and callback_state != expected_state:
+        callback_state_values = callback_query.get("state") or []
+        if len(callback_state_values) != 1 or callback_state_values[0] != expected_state:
             raise ValueError("Remote login callback state does not match")
         if callback_query.get("error"):
             error = (callback_query.get("error_description") or callback_query.get("error") or ["Login failed"])[0]
@@ -3763,6 +3935,24 @@ class GatewayState:
         session_id = str(session_id or "").strip()
         self.cleanup_remote_account_login_session(session_id, terminate=True)
         return {"ok": True}
+
+    def ensure_remote_login_capacity(self):
+        self.cleanup_expired_remote_login_sessions()
+        with self._remote_login_lock:
+            if len(self._remote_login_sessions) >= REMOTE_LOGIN_MAX_ACTIVE_SESSIONS:
+                raise ValueError("Too many remote login sessions are active; cancel one and try again")
+
+    def cleanup_expired_remote_login_sessions(self, now: int | None = None) -> int:
+        current_time = int(time.time()) if now is None else int(now)
+        with self._remote_login_lock:
+            expired_ids = [
+                session_id
+                for session_id, session in self._remote_login_sessions.items()
+                if int(session.get("createdAt") or 0) + REMOTE_LOGIN_SESSION_TIMEOUT_SECONDS <= current_time
+            ]
+        for session_id in expired_ids:
+            self.cleanup_remote_account_login_session(session_id, terminate=True)
+        return len(expired_ids)
 
     def cleanup_remote_account_login_session(self, session_id: str, terminate: bool):
         with self._remote_login_lock:
@@ -3796,10 +3986,17 @@ class GatewayState:
             "createdAt": now,
             "expiresAt": expires_at,
             "targetOrigin": target_origin,
+            "requestCount": 0,
         }
         with self._local_web_lock:
-            self._local_web_sessions[session_id] = session
             self.cleanup_expired_local_web_sessions_locked(now)
+            while len(self._local_web_sessions) >= LOCAL_WEB_MAX_ACTIVE_SESSIONS:
+                oldest_session_id = min(
+                    self._local_web_sessions,
+                    key=lambda candidate: int(self._local_web_sessions[candidate].get("createdAt") or 0),
+                )
+                self._local_web_sessions.pop(oldest_session_id, None)
+            self._local_web_sessions[session_id] = session
         path = self.local_web_gateway_path(session_id, parsed.path or "/", parsed.query)
         return {
             "sessionId": session_id,
@@ -3842,6 +4039,11 @@ class GatewayState:
         with self._local_web_lock:
             self.cleanup_expired_local_web_sessions_locked(now)
             session = self._local_web_sessions.get(str(session_id or ""))
+            if session:
+                session["requestCount"] = int(session.get("requestCount") or 0) + 1
+                if session["requestCount"] > LOCAL_WEB_MAX_REQUESTS_PER_SESSION:
+                    self._local_web_sessions.pop(str(session_id or ""), None)
+                    session = None
         if not session:
             raise LookupError("Local web session not found or expired")
 
@@ -4240,46 +4442,69 @@ class GatewayState:
         if len(raw_attachments) > MAX_ATTACHMENTS:
             raise ValueError(f"Too many attachments; maximum is {MAX_ATTACHMENTS}")
 
+        cleanup_expired_uploads()
+        if not raw_attachments:
+            return []
         saved = []
         total_size = 0
-        upload_dir = DEFAULT_UPLOADS_DIR / safe_filename(thread_id, "thread") / f"{int(time.time())}-{job_id}"
-        for index, attachment in enumerate(raw_attachments, 1):
-            if not isinstance(attachment, dict):
-                raise ValueError("Attachment is invalid")
+        ensure_private_upload_directory(DEFAULT_UPLOADS_DIR, parents=True)
+        thread_upload_dir = DEFAULT_UPLOADS_DIR / safe_filename(thread_id, "thread")
+        ensure_private_upload_directory(thread_upload_dir)
+        upload_dir = thread_upload_dir / f"{int(time.time())}-{safe_filename(job_id, 'job')}"
+        ensure_private_upload_directory(upload_dir)
+        created_paths = []
+        try:
+            for index, attachment in enumerate(raw_attachments, 1):
+                if not isinstance(attachment, dict):
+                    raise ValueError("Attachment is invalid")
 
-            encoded = attachment.get("dataBase64")
-            if not isinstance(encoded, str) or not encoded:
-                raise ValueError("Attachment data is missing")
+                encoded = attachment.get("dataBase64")
+                if not isinstance(encoded, str) or not encoded:
+                    raise ValueError("Attachment data is missing")
 
+                try:
+                    data = base64.b64decode(encoded, validate=True)
+                except Exception as exc:
+                    raise ValueError("Attachment is not valid base64") from exc
+
+                size = len(data)
+                if size > MAX_ATTACHMENT_BYTES:
+                    raise ValueError("Attachment is too large")
+                total_size += size
+                if total_size > MAX_TOTAL_ATTACHMENT_BYTES:
+                    raise ValueError("Total attachment size is too large")
+
+                filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
+                path = upload_dir / filename
+                if path.exists():
+                    stem = path.stem or "attachment"
+                    suffix = path.suffix
+                    path = upload_dir / f"{stem}-{index}{suffix}"
+                descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                created_paths.append(path)
+                with os.fdopen(descriptor, "wb") as handle:
+                    handle.write(data)
+
+                mime_type = str(attachment.get("mimeType") or "application/octet-stream")
+                saved.append({
+                    "filename": path.name,
+                    "mimeType": mime_type,
+                    "size": size,
+                    "path": path,
+                    "isImage": is_image_attachment(path, mime_type),
+                })
+        except Exception:
+            for path in created_paths:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
             try:
-                data = base64.b64decode(encoded, validate=True)
-            except Exception as exc:
-                raise ValueError("Attachment is not valid base64") from exc
-
-            size = len(data)
-            if size > MAX_ATTACHMENT_BYTES:
-                raise ValueError("Attachment is too large")
-            total_size += size
-            if total_size > MAX_TOTAL_ATTACHMENT_BYTES:
-                raise ValueError("Total attachment size is too large")
-
-            upload_dir.mkdir(parents=True, exist_ok=True)
-            filename = safe_filename(str(attachment.get("filename", "")), f"attachment-{index}")
-            path = upload_dir / filename
-            if path.exists():
-                stem = path.stem or "attachment"
-                suffix = path.suffix
-                path = upload_dir / f"{stem}-{index}{suffix}"
-            path.write_bytes(data)
-
-            mime_type = str(attachment.get("mimeType") or "application/octet-stream")
-            saved.append({
-                "filename": path.name,
-                "mimeType": mime_type,
-                "size": size,
-                "path": path,
-                "isImage": is_image_attachment(path, mime_type),
-            })
+                upload_dir.rmdir()
+                thread_upload_dir.rmdir()
+            except OSError:
+                pass
+            raise
 
         return saved
 
@@ -4417,7 +4642,10 @@ class GatewayState:
     ):
         env = codex_child_env(self.codex_home)
         codex = str(self.codex_path if self.codex_path.exists() else shutil.which("codex") or DEFAULT_CODEX)
-        output_file = Path(tempfile.gettempdir()) / f"codex-phone-{job_id}.txt"
+        output_descriptor, output_name = tempfile.mkstemp(prefix=f"codex-phone-{job_id}-", suffix=".txt")
+        os.close(output_descriptor)
+        output_file = Path(output_name)
+        os.chmod(output_file, 0o600)
         args = [
             codex,
             "exec",
@@ -4519,6 +4747,11 @@ class GatewayState:
                 push_job = self.prepare_turn_completion_push_locked(job)
             if push_job:
                 self.send_turn_completion_push(push_job)
+        finally:
+            try:
+                output_file.unlink()
+            except FileNotFoundError:
+                pass
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -4529,19 +4762,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(204)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "authorization, content-type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Allow", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
 
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
         super().end_headers()
 
     def authenticate(self) -> bool:
         expected = self.state().token
         header = self.headers.get("authorization", "")
-        if header == f"Bearer {expected}":
+        if secrets.compare_digest(header, f"Bearer {expected}"):
             return True
         json_error(
             self,
@@ -4696,6 +4927,14 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             json_error(self, 404, "gateway_unavailable", "Not found", "Update the app or gateway if this request should be supported.")
+        except PermissionError as exc:
+            json_error(
+                self,
+                403,
+                "file_access_denied",
+                str(exc),
+                "Only preview files from a configured CodePilot download root.",
+            )
         except LookupError as exc:
             json_error(self, 404, "gateway_unavailable", str(exc), "Refresh the app and try again.")
         except Exception as exc:
@@ -4710,7 +4949,7 @@ class Handler(BaseHTTPRequestHandler):
 
         try:
             if len(parts) == 2 and parts[0] == "api" and parts[1] == "threads":
-                body = decode_body(self)
+                body = decode_body(self, max_length=MAX_ATTACHMENT_REQUEST_BYTES)
                 attachments = body.get("attachments")
                 job = self.state().start_new_thread(
                     str(body.get("cwd", "")),
@@ -4812,7 +5051,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
 
             if len(parts) == 4 and parts[0] == "api" and parts[1] == "threads" and parts[3] == "turns":
-                body = decode_body(self)
+                body = decode_body(self, max_length=MAX_ATTACHMENT_REQUEST_BYTES)
                 attachments = body.get("attachments")
                 job = self.state().start_turn(
                     parts[2],
@@ -4890,16 +5129,69 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:
             json_error(self, 500, "gateway_unavailable", str(exc), "Restart CodePilot Gateway if the problem continues.")
 
+    def log_request(self, code="-", size="-"):
+        parsed = urllib.parse.urlsplit(self.path)
+        path = parsed.path
+        if path.startswith("/api/local-web/"):
+            path = "/api/local-web/[redacted]"
+        self.log_message(
+            '"%s %s %s" %s %s',
+            self.command,
+            path,
+            self.request_version,
+            str(code),
+            str(size),
+        )
+
     def log_message(self, format, *args):
-        print(f"{self.address_string()} - {format % args}", flush=True)
+        message = format % args
+        safe_message = re.sub(
+            r"[\x00-\x1f\x7f-\x9f]",
+            lambda match: f"\\x{ord(match.group(0)):02x}",
+            message,
+        )
+        print(f"{self.client_address[0]} - {safe_message}", flush=True)
 
 
 class GatewayServer(ThreadingHTTPServer):
     allow_reuse_address = True
+    daemon_threads = True
+    block_on_close = False
+    request_queue_size = GATEWAY_MAX_CONCURRENT_REQUESTS
 
-    def __init__(self, address, state: GatewayState):
+    def __init__(
+        self,
+        address,
+        state: GatewayState,
+        *,
+        max_concurrent_requests: int = GATEWAY_MAX_CONCURRENT_REQUESTS,
+        request_timeout_seconds: float = GATEWAY_REQUEST_TIMEOUT_SECONDS,
+    ):
+        self._request_slots = threading.BoundedSemaphore(max(1, int(max_concurrent_requests)))
+        self.request_timeout_seconds = max(1.0, float(request_timeout_seconds))
         super().__init__(address, Handler)
         self.state = state
+
+    def get_request(self):
+        request, client_address = super().get_request()
+        request.settimeout(self.request_timeout_seconds)
+        return request, client_address
+
+    def process_request(self, request, client_address):
+        if not self._request_slots.acquire(blocking=False):
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except Exception:
+            self._request_slots.release()
+            raise
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._request_slots.release()
 
 
 def main():
@@ -4910,9 +5202,18 @@ def main():
     parser.add_argument("--codex-path", default=str(DEFAULT_CODEX))
     parser.add_argument("--token-file", default=str(DEFAULT_TOKEN_FILE))
     parser.add_argument("--allow-dangerous", action=argparse.BooleanOptionalAction, default=False)
+    parser.add_argument(
+        "--allow-non-loopback",
+        action="store_true",
+        help="Allow direct binding outside loopback. Use only behind a trusted TLS/authentication proxy.",
+    )
     args = parser.parse_args()
 
+    if not is_loopback_host(args.host) and not args.allow_non_loopback:
+        parser.error("Refusing a non-loopback bind without --allow-non-loopback")
+
     token = read_or_create_token(Path(args.token_file))
+    cleanup_expired_uploads()
     state = GatewayState(
         codex_home=Path(args.codex_home),
         token=token,

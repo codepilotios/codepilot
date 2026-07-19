@@ -23,6 +23,7 @@ fi
 
 python3 - "$ENV_FILE" "$tmp" <<'PY'
 from pathlib import Path
+import os
 import sys
 
 env_path = Path(sys.argv[1])
@@ -47,6 +48,7 @@ if not updated:
     out.append(line)
 
 env_path.write_text("\n".join(out) + "\n", encoding="utf-8")
+os.chmod(env_path, 0o600)
 PY
 
 echo "Saved FASTLANE_SESSION to $ENV_FILE"

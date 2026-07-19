@@ -2,9 +2,9 @@ import SwiftUI
 import UIKit
 
 struct RemotePairingView: View {
+    let gatewayURL: String
+    let gatewayToken: String
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var statusText = "Not paired"
     @State private var isLoading = false
     @State private var identity = SoftwareRemoteDeviceIdentity(deviceID: UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString)
@@ -24,7 +24,7 @@ struct RemotePairingView: View {
 
                 Section {
                     NavigationLink {
-                        RemoteDesktopView()
+                        RemoteDesktopView(gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                     } label: {
                         Label("Start Session", systemImage: "play.rectangle")
                     }
@@ -113,7 +113,7 @@ struct RemotePairingView: View {
     }
 
     private func api() -> RemoteDesktopAPI? {
-        guard let url = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+        guard let url = GatewayEndpoint.baseURL(from: gatewayURL),
               !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return nil
         }
