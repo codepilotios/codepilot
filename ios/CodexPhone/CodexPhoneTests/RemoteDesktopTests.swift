@@ -44,6 +44,13 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertTrue(GatewayConnectionKind.cloudflare.helpText.contains("Cloudflare Tunnel"))
     }
 
+    func testRemoteDesktopStartRequiresPairedStatus() {
+        XCTAssertTrue(canStartRemoteDesktop(statusText: "Paired with Office Mac"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Not paired"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Waiting for approval on Office Mac"))
+        XCTAssertFalse(canStartRemoteDesktop(statusText: "Host reachable, relay available"))
+    }
+
     func testGatewayRootURLRequiresHTTPOrHTTPSWithHost() throws {
         let url = try gatewayRootURL(from: " https://codepilot.example.com ")
 

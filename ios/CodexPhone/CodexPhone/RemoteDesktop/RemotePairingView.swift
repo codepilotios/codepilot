@@ -120,6 +120,10 @@ struct RemotePairingView: View {
     }
 }
 
+func canStartRemoteDesktop(statusText: String) -> Bool {
+    statusText.hasPrefix("Paired with ")
+}
+
 func remotePairingRecoveryMessage(_ error: Error) -> String {
     if let urlError = error as? URLError {
         switch urlError.code {
