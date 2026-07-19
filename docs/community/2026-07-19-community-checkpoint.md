@@ -22,7 +22,7 @@ the first beta placements. The broader community survey remains in
 | `r/alphaandbetausers` | Good secondary tester pool | Its rules endpoint currently publishes no community-specific rules. Use only after a same-day review of rules and recent removals; do not offer incentives or reciprocal testing. |
 | `r/AI_Agents` | Good agent-workflow feedback pool, participation-gated | Project promotion belongs in the current weekly Project Display thread. The community permits limited self-promotion at roughly one in ten contributions, requires substantive context, and routes project links to that thread. Use the prepared no-link comment only after genuine non-promotional participation and a same-day thread check. |
 | `r/SideProject` | Broad secondary feedback pool | Its About page still publishes no community-specific rules, and a current thread explicitly invites projects and feedback. Prefer one prepared no-link comment in that thread over a standalone post, and use only after genuine participation plus a same-day thread and removal check. |
-| `r/ChatGPTCoding` | Good audience, gated placement | Maker-authored service promotion belongs in the designated self-promotion thread. The currently visible thread still receives comments, but its automated moderation actively removes or holds comments based on account karma. Main-feed placement requires moderator sponsorship. Confirm thread status and identity eligibility before a human posts one approved comment. |
+| `r/ChatGPTCoding` | Good audience, restricted and gated | The community is restricted to approved contributors. Maker-authored service promotion belongs in the designated self-promotion thread, which still receives comments, but automated moderation removes or holds comments based on account karma. Main-feed placement requires moderator sponsorship. Do not request contributor status or sponsorship solely for this launch; use the thread only if the existing identity is already eligible. |
 | `r/Codex` | Best topical match, moderator-first | Posts must be directly about Codex, use the right flair, and must not use bots. The published rules do not explicitly authorize maker promotion, so send the prepared permission request manually and post only if moderators and a maintainer approve. |
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | App promotion is limited to Saturday and one app per year. Current enforcement requires labeled Tech Stack, Development Challenge, and AI Disclosure sections. Use the revised technical draft only after account eligibility, timing, and the annual allowance are confirmed. |
 | `r/MacApps` | Relevant but currently held | Requires 10 local karma, official distribution links, relationship disclosure, no more than one developer promotion in 30 days, and either main-feed qualification or the current promotion megathread. Do not manufacture eligibility or disclose a private identity. |
@@ -70,9 +70,10 @@ plan. The following destinations add a community-specific gate:
 - `r/SideProject`: confirm genuine participation and that the current
   self-promotion thread remains open; use the approved no-link comment only,
   not a standalone launch post.
-- `r/ChatGPTCoding`: confirm the designated thread is still open and the
-  identity can participate without an account-karma removal or manual-review
-  hold; main-feed placement additionally requires moderator sponsorship.
+- `r/ChatGPTCoding`: confirm the existing identity is already an approved
+  contributor, the designated thread is still open, and the identity can
+  participate without an account-karma removal or manual-review hold. Do not
+  request contributor status or main-feed sponsorship solely for this launch.
 - `r/Codex`: moderator permission, correct flair, maintainer approval, and a
   human-authored manual post with no automation.
 - `r/iOSProgramming`: Saturday timing, current account eligibility, genuine
