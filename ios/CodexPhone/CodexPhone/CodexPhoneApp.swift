@@ -321,7 +321,7 @@ struct RootView: View {
 struct EmptySettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     private let client = CodexGatewayClient()
@@ -383,7 +383,7 @@ struct EmptySettingsView: View {
         .navigationTitle("CodePilot")
         .onAppear {
             if !selectedConnectionKind.isPublicBetaAvailable {
-                gatewayConnectionKind = GatewayConnectionKind.cloudflare.rawValue
+                gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
             }
         }
     }
@@ -441,6 +441,14 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
 
     static var publicBetaCases: [GatewayConnectionKind] {
         allCases.filter(\.isPublicBetaAvailable)
+    }
+
+    static var selectableCases: [GatewayConnectionKind] {
+        publicBetaCases
+    }
+
+    static var defaultPublicBetaCase: GatewayConnectionKind {
+        .cloudflare
     }
 
     var isPublicBetaAvailable: Bool {
@@ -2110,7 +2118,7 @@ struct SettingsView: View {
     @ObservedObject var model: CodexPhoneModel
     @Binding var liveActivityError: String
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.local.rawValue
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
@@ -2122,7 +2130,7 @@ struct SettingsView: View {
             Form {
                 Section("Gateway") {
                     Picker("Connection", selection: $gatewayConnectionKind) {
-                        ForEach(GatewayConnectionKind.allCases) { kind in
+                        ForEach(GatewayConnectionKind.selectableCases) { kind in
                             Text(kind.title).tag(kind.rawValue)
                         }
                     }
@@ -2194,6 +2202,11 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
+                }
+            }
+            .onAppear {
+                if !selectedConnectionKind.isPublicBetaAvailable {
+                    gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
                 }
             }
         }
