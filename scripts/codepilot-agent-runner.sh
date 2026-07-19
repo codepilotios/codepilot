@@ -190,6 +190,9 @@ fi
 prompt_file="$(mktemp "${TMPDIR:-/tmp}/codepilot-agent-prompt.XXXXXX")"
 trap 'rm -f "$prompt_file" 2>/dev/null || true; rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
 
+prompt_file="$(mktemp "${TMPDIR:-/tmp}/codepilot-agent-prompt.XXXXXX")"
+trap 'rm -f "$prompt_file" 2>/dev/null || true; rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
+
 {
   printf '%s\n\n' "$PUBLIC_WRITE_POLICY"
   cat "$PROMPT"
