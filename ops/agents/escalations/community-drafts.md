@@ -14,6 +14,8 @@ Status: maintainer action required before any public posting.
   Re-check that the currently visible self-promotion thread remains open,
   confirm that `codepilotios` can comment without an account-karma removal or
   manual-review hold, and approve the exact comment before a human posts it.
+  The thread allows only one promotion per project, so do not reuse it for a
+  later CodePilot update.
 - For `r/TestFlight`, provide or approve a verified public Apple TestFlight link;
   the draft must contain no other link.
 - For `r/BetaTests`, approve the no-link tester-feedback draft and confirm that
