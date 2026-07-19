@@ -9,6 +9,7 @@ enum GatewayEndpoint {
               var components = URLComponents(string: value),
               components.user == nil,
               components.password == nil,
+              components.path.isEmpty || components.path == "/",
               components.query == nil,
               components.fragment == nil,
               let scheme = components.scheme?.lowercased(),
