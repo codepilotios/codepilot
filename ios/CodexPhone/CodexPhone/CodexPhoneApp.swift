@@ -116,6 +116,7 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("gatewayURL") private var gatewayURL = ""
     @AppStorage("gatewayToken") private var gatewayToken = ""
+    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @AppStorage("verifiedGatewayConfiguration") private var verifiedGatewayConfiguration = ""
     @State private var showingSettings = false
@@ -221,7 +222,8 @@ struct RootView: View {
                     gatewayURL: $gatewayURL,
                     gatewayToken: $gatewayToken,
                     verifiedGatewayConfiguration: $verifiedGatewayConfiguration,
-                    model: model
+                    model: model,
+                    liveActivityError: $liveActivityError
                 )
                     .presentationDetents([.large])
             }
