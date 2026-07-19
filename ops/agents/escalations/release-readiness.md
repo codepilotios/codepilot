@@ -17,6 +17,7 @@ Status: CodePilot is not ready for a new OTA, TestFlight, or App Store release. 
 - Cloudflare setup-script tests: passed.
 - The iOS build emits one non-blocking compiler warning for an unused `resetRateLimit` return value; release compilation still succeeds.
 - Fastlane Ruby syntax, iOS `Info.plist`, entitlements, and version metadata JSON validation passed. With the supported Ruby 4.0.4 and Bundler 4.0.11 selected explicitly, `bundle check` and Fastlane lane discovery pass. The default unattended working-directory environment still selects system Ruby 2.6 and cannot start the lockfile-required Bundler, so the release entrypoint is not yet deterministic. No signed archive or upload lane was run.
+- Canonical 0.1 App Store copy remains within the local field limits: 9-character name, 28-character subtitle, 55-character keywords, 111-character promotional text, 603-character description, and 770-character What's New text. No user-facing source changes have landed since those release notes were prepared.
 - Public-write guard, agent-runner model-selection, and scheduler-lock tests: passed.
 - A July 19 read-only check of the canonical local OTA status endpoint still points to a July 8 build with no recorded source commit. Its tokenized manifest and IPA both returned HTTP 200, but the manifest does not match the current bundle ID and the public CodePilot install page returned HTTP 403. No OTA build or external-state mutation was performed in this run.
 
