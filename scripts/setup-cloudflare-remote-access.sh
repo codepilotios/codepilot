@@ -66,9 +66,9 @@ if (
     or len(labels) < 2
     or any(not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label) for label in labels)
 ):
-    raise SystemExit("Cloudflare hostname must be a valid fully qualified DNS name")
+    raise SystemExit("Cloudflare hostname must be a valid fully qualified DNS hostname")
 if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,62}", tunnel_name):
-    raise SystemExit("Cloudflare tunnel name may contain only letters, numbers, underscores, and hyphens")
+    raise SystemExit("--tunnel-name may contain only letters, numbers, underscores, and hyphens")
 PY
 }
 
@@ -230,6 +230,10 @@ configure_permanent() {
   }
   create_output="$("$cf" tunnel create "$tunnel_name" 2>&1 || true)"
   tunnel_id="$(printf '%s' "$create_output" | parse_tunnel_id)"
+  [ -n "$tunnel_id" ] || {
+    echo "Could not determine the Cloudflare tunnel ID from cloudflared output." >&2
+    exit 22
+  }
   "$cf" tunnel route dns "$tunnel_name" "$hostname"
 
   cat > "$CONFIG_PATH" <<EOF
@@ -319,19 +323,18 @@ try:
 except (OSError, ValueError, json.JSONDecodeError) as error:
     raise SystemExit(f"Cannot verify an untrusted Cloudflare URL: {error}")
 
-if (
-    metadata.get("mode") != "permanent"
-    or not expected_host
-    or parsed.scheme != "https"
-    or (parsed.hostname or "").casefold() != expected_host
-    or parsed.username is not None
-    or parsed.password is not None
-    or parsed.path not in {"", "/"}
-    or parsed.query
-    or parsed.fragment
-    or port not in {None, 443}
-):
-    raise SystemExit("Verification URL must be the configured Cloudflare HTTPS origin")
+if metadata.get("mode") != "permanent" or not expected_host:
+    raise SystemExit("Cloudflare permanent tunnel metadata is missing. Run configure-permanent first.")
+if parsed.scheme != "https":
+    raise SystemExit("Verification URL must be the configured Cloudflare HTTPS tunnel origin.")
+if (parsed.hostname or "").casefold() != expected_host:
+    raise SystemExit("Verification URL must use the configured Cloudflare hostname.")
+if parsed.username is not None or parsed.password is not None:
+    raise SystemExit("Verification URL must not include credentials.")
+if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+    raise SystemExit("Verification URL must be the Cloudflare origin without a path, query, or fragment.")
+if port not in {None, 443}:
+    raise SystemExit("Verification URL must use the default HTTPS port.")
 
 print(f"https://{expected_host}")
 PY
@@ -346,9 +349,42 @@ PY
     echo "CodePilot gateway token is invalid. Rotate the token before verifying remote access." >&2
     exit 22
   fi
-  printf 'header = "Authorization: Bearer %s"\n' "$token" | \
+  local health_response
+  health_response="$(printf 'header = "Authorization: Bearer %s"\n' "$token" | \
     curl -fsS --proto '=https' --proto-redir '=https' --max-redirs 0 \
-      --connect-timeout 10 --max-time 20 --config - "$url/api/health" >/dev/null
+      --connect-timeout 5 --max-time 15 --config - "$url/api/health" 2>/dev/null)" || {
+    echo "Could not reach the CodePilot gateway through Cloudflare within 15 seconds." >&2
+    exit 22
+  }
+  /usr/bin/python3 - "$health_response" "$METADATA_PATH" <<'PY'
+import json
+import stat
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+response = sys.argv[1]
+metadata_path = Path(sys.argv[2])
+
+try:
+    payload = json.loads(response)
+except json.JSONDecodeError:
+    raise SystemExit("Expected a CodePilot health response from /api/health.")
+
+gateway = payload.get("gateway") if isinstance(payload, dict) else None
+if not isinstance(gateway, dict) or "running" not in gateway:
+    raise SystemExit("Expected a CodePilot health response from /api/health.")
+if gateway.get("running") is not True:
+    raise SystemExit("Cloudflare reached the hostname, but it is not a running CodePilot gateway.")
+
+metadata_stat = metadata_path.lstat()
+if stat.S_ISLNK(metadata_stat.st_mode) or not stat.S_ISREG(metadata_stat.st_mode):
+    raise SystemExit("Cannot update untrusted Cloudflare setup metadata.")
+metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+metadata["lastVerifiedAt"] = datetime.now(timezone.utc).isoformat()
+metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+metadata_path.chmod(0o600)
+PY
   echo "verified $url"
 }
 

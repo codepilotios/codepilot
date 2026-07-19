@@ -9,6 +9,9 @@ trap 'rm -rf "$TMP"' EXIT
 export HOME="$TMP/home"
 export PATH="$TMP/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 mkdir -p "$HOME" "$TMP/bin"
+mkdir -p "$HOME/.codex-account-switcher"
+printf 'test_token_123\n' > "$HOME/.codex-account-switcher/phone-gateway-token"
+chmod 600 "$HOME/.codex-account-switcher/phone-gateway-token"
 
 fail() {
   echo "FAIL: $*" >&2
