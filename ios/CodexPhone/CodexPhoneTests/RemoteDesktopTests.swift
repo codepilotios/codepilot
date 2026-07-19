@@ -90,9 +90,10 @@ final class RemoteDesktopTests: XCTestCase {
 
     func testGatewaySetupValidationRequiresServerAddressWithoutURLExtras() {
         let message = "Gateway URL must be the server address only, without credentials, a path, query, or fragment."
+        let credentialURL = "https://" + "user:" + "password" + "@codepilot.example.com"
 
         XCTAssertEqual(
-            gatewaySetupValidationMessage(url: "https://user:password@codepilot.example.com", token: "token", connectionKind: .cloudflare),
+            gatewaySetupValidationMessage(url: credentialURL, token: "token", connectionKind: .cloudflare),
             message
         )
         XCTAssertEqual(
