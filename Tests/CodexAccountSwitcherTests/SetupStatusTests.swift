@@ -79,7 +79,7 @@ final class SetupStatusTests: XCTestCase {
     }
 
     func testGatewayHealthProbeUsesPublicHealthWithoutBearerToken() {
-        let request = CodePilotGatewayHealthProbe.request()
+        let request = CodePilotGatewayHealthProbe.request(token: nil)
         XCTAssertNil(request.value(forHTTPHeaderField: "Authorization"))
 
         let runningPayload = #"{"gateway":{"running":true}}"#.data(using: .utf8)
@@ -88,6 +88,12 @@ final class SetupStatusTests: XCTestCase {
         let stoppedPayload = #"{"gateway":{"running":false}}"#.data(using: .utf8)
         XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: stoppedPayload), .gatewayStopped)
         XCTAssertEqual(CodePilotGatewayHealthProbe.requirement(from: Data("not json".utf8)), .gatewayStopped)
+    }
+
+    func testGatewayHealthProbeUsesTokenForPrivateDiagnostics() {
+        let request = CodePilotGatewayHealthProbe.request(token: "  private-token\n")
+
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer private-token")
     }
 
     func testGatewayHealthProbeReportsNotificationReadiness() {

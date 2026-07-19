@@ -2303,6 +2303,13 @@ class GatewayState:
         }
 
     def public_health(self) -> dict:
+        return {
+            "gateway": {
+                "running": True,
+            },
+        }
+
+    def diagnostic_health(self) -> dict:
         remote_desktop_status = {"available": False}
         remote_desktop = self.remote_desktop_gateway
         if remote_desktop is not None:
@@ -4873,7 +4880,10 @@ class GatewayState:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "CodexPhoneGateway/0.1"
+    server_version = "CodePilotGateway"
+
+    def version_string(self) -> str:
+        return self.server_version
 
     def state(self) -> GatewayState:
         return self.server.state
@@ -4888,9 +4898,7 @@ class Handler(BaseHTTPRequestHandler):
         super().end_headers()
 
     def authenticate(self) -> bool:
-        expected = self.state().token
-        header = self.headers.get("authorization", "")
-        if secrets.compare_digest(header, f"Bearer {expected}"):
+        if self.is_authenticated():
             return True
         json_error(
             self,
@@ -4900,6 +4908,11 @@ class Handler(BaseHTTPRequestHandler):
             "Update the CodePilot Gateway token in the iPhone app, then try again.",
         )
         return False
+
+    def is_authenticated(self) -> bool:
+        expected = self.state().token
+        header = self.headers.get("authorization", "")
+        return secrets.compare_digest(header, f"Bearer {expected}")
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -4917,21 +4930,26 @@ class Handler(BaseHTTPRequestHandler):
                     self,
                     404,
                     "local_web_unavailable",
-                    str(exc),
+                    "Local web session not found or expired",
                     "Open the localhost link again from CodePilot; local web sessions expire after a short time.",
                 )
-            except Exception as exc:
+            except Exception:
                 json_error(
                     self,
                     502,
                     "local_web_unavailable",
-                    str(exc),
+                    "The selected local web server is unavailable",
                     "Make sure the local web server is running on the Mac, then reopen the link.",
                 )
             return
 
         if path == "/health" or path == "/api/health":
-            json_response(self, 200, self.state().public_health())
+            payload = (
+                self.state().diagnostic_health()
+                if self.is_authenticated()
+                else self.state().public_health()
+            )
+            json_response(self, 200, payload)
             return
 
         if not self.authenticate():
