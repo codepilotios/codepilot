@@ -4,17 +4,19 @@ set -euo pipefail
 unset CODEPILOT_AGENT_MODEL CODEPILOT_AGENT_REASONING_EFFORT
 export CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch"
 
-TEST_ROOT="$(mktemp -d)"
-ROOT="$TEST_ROOT/repo"
-STATE_DIR="$TEST_ROOT/state"
+ROOT="$(mktemp -d)"
+STATE_DIR="$(mktemp -d)"
 LOG_DIR="$ROOT/logs"
 JOB="health-watch"
 CAPTURE="$ROOT/codex-args"
 PROMPT_CAPTURE="$ROOT/codex-prompt"
-ASC_CAPTURE="$ROOT/asc-path"
+WORKTREE_CAPTURE="$ROOT/codex-worktree"
+
+unset CODEPILOT_AGENT_MODEL CODEPILOT_AGENT_REASONING_EFFORT
 
 cleanup() {
-  rm -rf "$TEST_ROOT"
+  rm -rf "$ROOT"
+  rm -rf "$STATE_DIR"
 }
 trap cleanup EXIT
 
@@ -29,7 +31,7 @@ printf 'Check health.\n' > "$ROOT/ops/agents/prompts/$JOB.md"
 cat > "$ROOT/codex-stub" <<'EOF'
 #!/bin/zsh
 printf '%s\n' "$@" > "$CODEPILOT_TEST_CAPTURE"
-printf '%s\n' "${CODEPILOT_AGENT_REAL_ASC:-}" > "$CODEPILOT_TEST_ASC_CAPTURE"
+printf '%s\n%s\n' "$PWD" "$CODEPILOT_REPO_ROOT" > "$CODEPILOT_TEST_WORKTREE_CAPTURE"
 cat > "$CODEPILOT_TEST_PROMPT_CAPTURE"
 EOF
 chmod +x "$ROOT/codex-stub"
@@ -47,7 +49,7 @@ run_runner() {
   CODEPILOT_CODEX_BIN="$ROOT/codex-stub" \
   CODEPILOT_TEST_CAPTURE="$CAPTURE" \
   CODEPILOT_TEST_PROMPT_CAPTURE="$PROMPT_CAPTURE" \
-  CODEPILOT_TEST_ASC_CAPTURE="$ASC_CAPTURE" \
+  CODEPILOT_TEST_WORKTREE_CAPTURE="$WORKTREE_CAPTURE" \
   TMPDIR="$ROOT/tmp" \
   PATH="$ROOT/bin:$PATH" \
     "$PWD/scripts/codepilot-agent-runner.sh" "$JOB"
@@ -57,8 +59,12 @@ mkdir -p "$ROOT/tmp"
 
 run_runner
 
-if [[ "$(<"$ASC_CAPTURE")" != "$ROOT/bin/asc" ]]; then
-  echo "Runner did not export the real asc executable before installing guards" >&2
+expected_worktree="$STATE_DIR/worktrees/$JOB"
+expected_audit_root="$(cd "$expected_worktree" && pwd -P)"
+captured_worktree="$(sed -n '1p' "$WORKTREE_CAPTURE")"
+captured_worktree="$(cd "$captured_worktree" && pwd -P)"
+if [[ "$captured_worktree" != "$expected_audit_root" || "$(sed -n '2p' "$WORKTREE_CAPTURE")" != "$expected_audit_root" ]]; then
+  echo "Runner did not scope the agent and public-write audit to the isolated worktree" >&2
   exit 1
 fi
 

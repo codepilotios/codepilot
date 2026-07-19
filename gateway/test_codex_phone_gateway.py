@@ -1,15 +1,18 @@
 import json
 import sqlite3
 import io
+import os
+import socket
 import subprocess
 import tempfile
 import tomllib
 import unittest
+import urllib.request
 from unittest import mock
 from pathlib import Path
 
 import codex_phone_gateway as gateway
-from codex_phone_gateway import CodexAppServerClient, GatewayState, format_stream_event
+from codex_phone_gateway import CodexAppServerClient, GatewayState, format_stream_event, is_loopback_host
 
 
 class FakeAppServerProcess:
@@ -26,6 +29,43 @@ class FakeAppServerProcess:
 
     def wait(self, timeout=None):
         return self.returncode
+
+
+class GatewayServerHardeningTests(unittest.TestCase):
+    def test_accepted_connections_receive_a_read_timeout(self):
+        server = gateway.GatewayServer(
+            ("127.0.0.1", 0),
+            mock.Mock(),
+            request_timeout_seconds=2.5,
+        )
+        client = socket.create_connection(server.server_address)
+        accepted = None
+        try:
+            accepted, _ = server.get_request()
+            self.assertEqual(accepted.gettimeout(), 2.5)
+        finally:
+            client.close()
+            if accepted is not None:
+                accepted.close()
+            server.server_close()
+
+    def test_connections_over_the_concurrency_limit_are_closed(self):
+        server = gateway.GatewayServer(
+            ("127.0.0.1", 0),
+            mock.Mock(),
+            max_concurrent_requests=1,
+        )
+        request = mock.Mock()
+        self.assertTrue(server._request_slots.acquire(blocking=False))
+        try:
+            with mock.patch.object(gateway.ThreadingHTTPServer, "process_request") as process_request:
+                server.process_request(request, ("127.0.0.1", 12345))
+            process_request.assert_not_called()
+            request.shutdown.assert_called_once_with(socket.SHUT_WR)
+            request.close.assert_called_once_with()
+        finally:
+            server._request_slots.release()
+            server.server_close()
 
 
 class FailingAppServerClient:
@@ -112,6 +152,14 @@ class FakeRemoteLoginProcess:
 
 
 class AppServerClientTests(unittest.TestCase):
+    def test_gateway_bind_host_recognizes_only_loopback_addresses(self):
+        for host in ("localhost", "127.0.0.1", "127.9.8.7", "::1", "[::1]"):
+            with self.subTest(host=host):
+                self.assertTrue(is_loopback_host(host))
+        for host in ("0.0.0.0", "::", "192.0.2.10", "gateway.example.com", ""):
+            with self.subTest(host=host):
+                self.assertFalse(is_loopback_host(host))
+
     def setUp(self):
         self._original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
         self._switcher_home_tempdir = tempfile.TemporaryDirectory()
@@ -133,6 +181,30 @@ class AppServerClientTests(unittest.TestCase):
             self.assertEqual(env["CODEX_HOME"], "/tmp/codex-home")
             self.assertTrue(env["PATH"].startswith("/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:"))
             self.assertIn("/usr/bin:/bin", env["PATH"])
+        finally:
+            gateway.os.environ.clear()
+            gateway.os.environ.update(old_env)
+
+    def test_codex_child_env_removes_gateway_only_credentials(self):
+        old_env = dict(gateway.os.environ)
+        try:
+            gateway.os.environ.clear()
+            gateway.os.environ.update({
+                "PATH": "/usr/bin:/bin",
+                "CODEPILOT_TURN_API_TOKEN": "turn-secret",
+                "CODEPILOT_TURN_KEY_ID": "turn-key",
+                "CODEX_PHONE_APNS_KEY_PATH": "/private/apns-key.p8",
+                "CODEPILOT_FILE_DOWNLOAD_ROOTS": "/private/previews",
+                "SUPABASE_ACCESS_TOKEN": "connector-secret",
+            })
+
+            env = gateway.codex_child_env(Path("/tmp/codex-home"))
+
+            self.assertNotIn("CODEPILOT_TURN_API_TOKEN", env)
+            self.assertNotIn("CODEPILOT_TURN_KEY_ID", env)
+            self.assertNotIn("CODEX_PHONE_APNS_KEY_PATH", env)
+            self.assertNotIn("CODEPILOT_FILE_DOWNLOAD_ROOTS", env)
+            self.assertNotIn("SUPABASE_ACCESS_TOKEN", env)
         finally:
             gateway.os.environ.clear()
             gateway.os.environ.update(old_env)
@@ -527,6 +599,47 @@ class AppServerClientTests(unittest.TestCase):
         self.assertEqual(turn["method"], "turn/start")
         self.assertEqual(turn["params"]["effort"], "medium")
 
+    def test_turn_start_uses_safe_policy_by_default(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "turn-id", "result": {"turn": {"id": "turn-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "turn-id"]).__next__,
+        )
+
+        client.start()
+        client.turn_start("thread-1", "Hello")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        turn = sent[2]
+
+        self.assertEqual(turn["params"]["approvalPolicy"], "on-request")
+        self.assertEqual(turn["params"]["sandboxPolicy"], {"type": "workspaceWrite"})
+
+    def test_turn_start_allows_dangerous_mode_only_when_explicitly_enabled(self):
+        process = FakeAppServerProcess([
+            json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
+            json.dumps({"id": "turn-id", "result": {"turn": {"id": "turn-1"}}}) + "\n",
+        ])
+        client = CodexAppServerClient(
+            codex_path=Path("/usr/local/bin/codex"),
+            cwd=Path("/tmp/workspace"),
+            process_factory=lambda args, **kwargs: process,
+            id_factory=iter(["init-id", "turn-id"]).__next__,
+            allow_dangerous=True,
+        )
+
+        client.start()
+        client.turn_start("thread-1", "Hello")
+        sent = [json.loads(line) for line in process.stdin.getvalue().splitlines()]
+        turn = sent[2]
+
+        self.assertEqual(turn["params"]["approvalPolicy"], "never")
+        self.assertEqual(turn["params"]["sandboxPolicy"], {"type": "dangerFullAccess"})
+
     def test_thread_start_maps_minimal_reasoning_effort_to_medium(self):
         process = FakeAppServerProcess([
             json.dumps({"id": "init-id", "result": {"userAgent": "ua", "codexHome": "/tmp/codex", "platformFamily": "unix", "platformOs": "macos"}}) + "\n",
@@ -896,6 +1009,230 @@ class GatewayStateTests(unittest.TestCase):
         gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
         self._switcher_home_tempdir.cleanup()
 
+    def test_gateway_token_file_permissions_are_repaired(self):
+        token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
+        token = "a" * gateway.MIN_GATEWAY_TOKEN_LENGTH
+        token_path.write_text(token + "\n", encoding="utf-8")
+        token_path.chmod(0o644)
+
+        self.assertEqual(gateway.read_or_create_token(token_path), token)
+        self.assertEqual(token_path.stat().st_mode & 0o777, 0o600)
+
+    def test_gateway_token_rejects_weak_or_malformed_existing_values(self):
+        token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
+
+        for token in ("short", "a" * gateway.MIN_GATEWAY_TOKEN_LENGTH + "+"):
+            with self.subTest(token=token):
+                token_path.write_text(token + "\n", encoding="utf-8")
+                with self.assertRaisesRegex(RuntimeError, "at least 32 URL-safe characters"):
+                    gateway.read_or_create_token(token_path)
+
+    def test_gateway_token_rejects_symlink(self):
+        target = gateway.DEFAULT_SWITCHER_HOME / "target"
+        target.write_text("token\n", encoding="utf-8")
+        token_path = gateway.DEFAULT_SWITCHER_HOME / "gateway-token"
+        token_path.symlink_to(target)
+
+        with self.assertRaisesRegex(RuntimeError, "regular file"):
+            gateway.read_or_create_token(token_path)
+
+    def test_saved_attachments_are_private(self):
+        original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
+        gateway.DEFAULT_UPLOADS_DIR = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        try:
+            state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+            saved = state.save_attachments("thread", "job", [{
+                "filename": "notes.txt",
+                "mimeType": "text/plain",
+                "dataBase64": "c2VjcmV0",
+            }])
+        finally:
+            gateway.DEFAULT_UPLOADS_DIR = original_uploads_dir
+
+        path = saved[0]["path"]
+        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(path.parent.parent.stat().st_mode & 0o777, 0o700)
+
+    def test_expired_upload_batches_are_removed_without_following_symlinks(self):
+        uploads = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        expired = uploads / "thread-a" / "expired-job"
+        current = uploads / "thread-a" / "current-job"
+        outside = gateway.DEFAULT_SWITCHER_HOME / "outside"
+        expired.mkdir(parents=True)
+        current.mkdir(parents=True)
+        outside.mkdir()
+        (expired / "private.txt").write_text("expired", encoding="utf-8")
+        (current / "private.txt").write_text("current", encoding="utf-8")
+        (uploads / "thread-a" / "linked-job").symlink_to(outside, target_is_directory=True)
+        os.utime(expired, (100, 100))
+        os.utime(current, (900, 900))
+
+        removed = gateway.cleanup_expired_uploads(
+            uploads,
+            now=1_000,
+            retention_seconds=500,
+        )
+
+        self.assertEqual(removed, 1)
+        self.assertFalse(expired.exists())
+        self.assertTrue((current / "private.txt").exists())
+        self.assertTrue(outside.exists())
+        self.assertTrue((uploads / "thread-a" / "linked-job").is_symlink())
+
+    def test_upload_cleanup_refuses_symlinked_root(self):
+        outside = gateway.DEFAULT_SWITCHER_HOME / "outside"
+        outside.mkdir()
+        private_file = outside / "private.txt"
+        private_file.write_text("keep", encoding="utf-8")
+        uploads = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        uploads.symlink_to(outside, target_is_directory=True)
+
+        removed = gateway.cleanup_expired_uploads(
+            uploads,
+            now=1_000,
+            retention_seconds=1,
+        )
+
+        self.assertEqual(removed, 0)
+        self.assertTrue(private_file.exists())
+
+    def test_saved_attachments_reject_symlinked_upload_root(self):
+        original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
+        outside = gateway.DEFAULT_SWITCHER_HOME / "outside"
+        outside.mkdir()
+        gateway.DEFAULT_UPLOADS_DIR = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        gateway.DEFAULT_UPLOADS_DIR.symlink_to(outside, target_is_directory=True)
+        try:
+            state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+            with self.assertRaisesRegex(RuntimeError, "real directory"):
+                state.save_attachments("thread", "job", [{
+                    "filename": "notes.txt",
+                    "mimeType": "text/plain",
+                    "dataBase64": "c2VjcmV0",
+                }])
+        finally:
+            gateway.DEFAULT_UPLOADS_DIR = original_uploads_dir
+
+        self.assertEqual(list(outside.iterdir()), [])
+
+    def test_rejected_attachment_batch_removes_partial_private_files(self):
+        original_uploads_dir = gateway.DEFAULT_UPLOADS_DIR
+        gateway.DEFAULT_UPLOADS_DIR = gateway.DEFAULT_SWITCHER_HOME / "uploads"
+        try:
+            state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+            with self.assertRaisesRegex(ValueError, "valid base64"):
+                state.save_attachments("thread", "job", [
+                    {
+                        "filename": "private.txt",
+                        "mimeType": "text/plain",
+                        "dataBase64": "c2VjcmV0",
+                    },
+                    {
+                        "filename": "invalid.txt",
+                        "mimeType": "text/plain",
+                        "dataBase64": "not-base64!",
+                    },
+                ])
+        finally:
+            gateway.DEFAULT_UPLOADS_DIR = original_uploads_dir
+
+        self.assertEqual(list((gateway.DEFAULT_SWITCHER_HOME / "uploads").rglob("*")), [])
+
+    def test_cached_thread_messages_are_private(self):
+        original_cache_dir = gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR
+        gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR = gateway.DEFAULT_SWITCHER_HOME / "message-cache"
+        gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR.mkdir(mode=0o755)
+        try:
+            gateway.cache_thread_message("thread", "message", "private response")
+            cache_path = gateway.message_cache_path("thread")
+            cached = gateway.read_cached_thread_messages("thread")
+        finally:
+            gateway.DEFAULT_THREAD_MESSAGE_CACHE_DIR = original_cache_dir
+
+        self.assertEqual(cache_path.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(cache_path.parent.stat().st_mode & 0o777, 0o700)
+        self.assertEqual(cached[0]["text"], "private response")
+
+    def test_gateway_logs_redact_queries_and_local_web_capabilities(self):
+        handler = object.__new__(gateway.Handler)
+        handler.command = "GET"
+        handler.path = "/api/local-web/private-capability/dashboard?path=/private/file"
+        handler.request_version = "HTTP/1.1"
+
+        with mock.patch.object(handler, "log_message") as log_message:
+            handler.log_request(200, 42)
+
+        format_string, *arguments = log_message.call_args.args
+        rendered = format_string % tuple(arguments)
+        self.assertIn("/api/local-web/[redacted]", rendered)
+        self.assertNotIn("private-capability", rendered)
+        self.assertNotIn("/private/file", rendered)
+
+    def test_gateway_logs_omit_file_path_queries(self):
+        handler = object.__new__(gateway.Handler)
+        handler.command = "GET"
+        handler.path = "/api/files/download?path=/private/file"
+        handler.request_version = "HTTP/1.1"
+
+        with mock.patch.object(handler, "log_message") as log_message:
+            handler.log_request(200, 42)
+
+        format_string, *arguments = log_message.call_args.args
+        rendered = format_string % tuple(arguments)
+        self.assertIn("/api/files/download", rendered)
+        self.assertNotIn("/private/file", rendered)
+
+    def test_gateway_logs_escape_control_characters(self):
+        handler = object.__new__(gateway.Handler)
+        handler.client_address = ("127.0.0.1", 12345)
+
+        with mock.patch("builtins.print") as print_mock:
+            handler.log_message("request %s", "safe\nforged")
+
+        self.assertEqual(print_mock.call_args.args[0], r"127.0.0.1 - request safe\x0aforged")
+
+    def test_exec_fallback_uses_private_temporary_output_and_removes_it(self):
+        captured = {}
+
+        class Process:
+            stdin = io.StringIO()
+            stdout = []
+
+            @staticmethod
+            def wait():
+                return 0
+
+        def process_factory(arguments, **_kwargs):
+            output_path = Path(arguments[arguments.index("-o") + 1])
+            captured["path"] = output_path
+            captured["mode"] = output_path.stat().st_mode & 0o777
+            output_path.write_text("Finished privately", encoding="utf-8")
+            return Process()
+
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        job_id = "private-output-test"
+        gateway.JOBS[job_id] = {
+            "id": job_id,
+            "threadId": "thread-id",
+            "status": "running",
+            "events": [],
+        }
+        try:
+            with mock.patch.object(gateway.subprocess, "Popen", side_effect=process_factory):
+                state.run_turn_exec(
+                    job_id,
+                    {"id": "thread-id", "cwd": "/tmp"},
+                    "prompt",
+                    [],
+                )
+
+            self.assertEqual(captured["mode"], 0o600)
+            self.assertFalse(captured["path"].exists())
+            self.assertEqual(gateway.JOBS[job_id]["lastMessage"], "Finished privately")
+        finally:
+            gateway.JOBS.pop(job_id, None)
+
     def test_public_health_exposes_safe_gateway_status(self):
         with tempfile.TemporaryDirectory() as tmp:
             original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
@@ -931,18 +1268,52 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(payload["error"]["message"], "Only localhost URLs can be opened.")
         self.assertIn("localhost", payload["error"]["recovery"])
 
+    def test_decode_body_rejects_oversized_json_by_default(self):
+        class Handler:
+            headers = {"content-length": str(gateway.MAX_JSON_BODY_BYTES + 1)}
+            rfile = io.BytesIO(b"")
+
+        with self.assertRaises(gateway.RequestBodyTooLarge):
+            gateway.decode_body(Handler())
+
+    def test_decode_body_rejects_invalid_content_length(self):
+        class Handler:
+            headers = {"content-length": "invalid"}
+            rfile = io.BytesIO(b"")
+
+        with self.assertRaisesRegex(ValueError, "invalid_content_length"):
+            gateway.decode_body(Handler())
+
+    def test_decode_body_requires_json_object(self):
+        body = b"[]"
+
+        class Handler:
+            headers = {"content-length": str(len(body))}
+            rfile = io.BytesIO(body)
+
+        with self.assertRaisesRegex(ValueError, "request_body_must_be_an_object"):
+            gateway.decode_body(Handler())
+
     def test_resolve_requested_file_path_accepts_absolute_file_paths(self):
         with tempfile.TemporaryDirectory() as tmp:
             file_path = Path(tmp) / "created-by-codex.txt"
             file_path.write_text("hello", encoding="utf-8")
 
-            resolved = gateway.resolve_requested_file_path(f"{file_path}:12")
+            resolved = gateway.resolve_requested_file_path(f"{file_path}:12", allowed_roots=[Path(tmp)])
 
             self.assertEqual(resolved, file_path.resolve())
 
     def test_resolve_requested_file_path_rejects_relative_paths(self):
         with self.assertRaises(ValueError):
             gateway.resolve_requested_file_path("created-by-codex.txt")
+
+    def test_resolve_requested_file_path_rejects_files_outside_allowed_roots(self):
+        with tempfile.TemporaryDirectory() as tmp, tempfile.TemporaryDirectory() as other:
+            file_path = Path(other) / "private.txt"
+            file_path.write_text("private", encoding="utf-8")
+
+            with self.assertRaisesRegex(PermissionError, "download roots"):
+                gateway.resolve_requested_file_path(str(file_path), allowed_roots=[Path(tmp)])
 
     def test_file_metadata_reports_download_details(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -970,6 +1341,45 @@ class GatewayStateTests(unittest.TestCase):
         self.assertEqual(session["targetOrigin"], "http://127.0.0.1:3000")
         self.assertRegex(session["path"], r"^/api/local-web/[^/]+/dashboard\?tab=logs$")
         self.assertGreater(session["expiresAt"], 0)
+        self.assertLessEqual(
+            session["expiresAt"] - int(gateway.time.time()),
+            gateway.LOCAL_WEB_SESSION_TIMEOUT_SECONDS,
+        )
+
+    def test_local_web_session_evicts_oldest_capability_at_limit(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+
+        sessions = [
+            state.start_local_web_session("http://localhost:3000/")
+            for _ in range(gateway.LOCAL_WEB_MAX_ACTIVE_SESSIONS + 1)
+        ]
+
+        with self.assertRaises(LookupError):
+            state.proxy_local_web_session(sessions[0]["sessionId"], [], "")
+        self.assertEqual(len(state._local_web_sessions), gateway.LOCAL_WEB_MAX_ACTIVE_SESSIONS)
+
+    def test_local_web_session_expires_after_request_limit(self):
+        fetcher = RecordingLocalWebFetcher()
+        state = GatewayState(
+            Path("/tmp/codex"),
+            "token",
+            Path("/missing-codex"),
+            False,
+            local_web_fetcher=fetcher,
+        )
+        session = state.start_local_web_session("http://localhost:3000/")
+        session_id = session["sessionId"]
+        state._local_web_sessions[session_id]["requestCount"] = gateway.LOCAL_WEB_MAX_REQUESTS_PER_SESSION
+
+        with self.assertRaises(LookupError):
+            state.proxy_local_web_session(session_id, [], "")
+
+    def test_local_web_redirect_cannot_leave_selected_loopback_origin(self):
+        handler = gateway.LoopbackOnlyRedirectHandler()
+        request = urllib.request.Request("http://127.0.0.1:3000/")
+
+        with self.assertRaisesRegex(RuntimeError, "selected loopback origin"):
+            handler.redirect_request(request, None, 302, "Found", {}, "https://example.com/")
 
     def test_local_web_session_proxies_localhost_content_and_rewrites_same_origin_links(self):
         fetcher = RecordingLocalWebFetcher()
@@ -1673,9 +2083,15 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             })
 
         command = run.call_args.args[0]
-        payload = json.loads(run.call_args.kwargs["input"])
-        self.assertIn("apns-push-type: liveactivity", command)
-        self.assertIn("apns-topic: io.codepilot.iOS.push-type.liveactivity", command)
+        config = run.call_args.kwargs["input"].decode("utf-8")
+        self.assertNotIn("jwt-token", command)
+        self.assertNotIn("abc123", command)
+        self.assertIn('header = "authorization: bearer jwt-token"', config)
+        self.assertIn('header = "apns-push-type: liveactivity"', config)
+        self.assertIn('header = "apns-topic: io.codepilot.iOS.push-type.liveactivity"', config)
+        payload_line = next(line for line in config.splitlines() if line.startswith('data-binary = "'))
+        payload_text = payload_line.removeprefix('data-binary = "').removesuffix('"')
+        payload = json.loads(payload_text.replace('\\"', '"').replace('\\\\', '\\'))
         self.assertEqual(payload["aps"]["event"], "update")
         self.assertEqual(payload["aps"]["content-state"]["percent"], 68)
         self.assertEqual(invalid, [])
@@ -1723,7 +2139,8 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                     devices, notification = push_notifier.sent[0]
                     self.assertEqual(devices[0]["token"], "abc123")
                     self.assertEqual(notification["title"], "Codex finished")
-                    self.assertIn("Main", notification["body"])
+                    self.assertEqual(notification["body"], "Open CodePilot to view the result.")
+                    self.assertNotIn("Main", json.dumps(notification))
                     self.assertEqual(notification["jobId"], "job-1")
                     public = gateway.public_job(gateway.JOBS["job-1"])
                     self.assertIsInstance(public["completionNotificationSentAt"], int)
@@ -1734,6 +2151,22 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                         gateway.JOBS.update(old_jobs)
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_failure_push_excludes_thread_title_and_error_details(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        notification = state.turn_completion_notification({
+            "id": "job-1",
+            "threadId": "thread-a",
+            "threadTitle": "Private project",
+            "status": "failed",
+            "error": "credential rejected at a private path",
+        })
+
+        self.assertEqual(notification["title"], "Codex failed")
+        self.assertEqual(notification["body"], "Open CodePilot to review the error.")
+        serialized = json.dumps(notification)
+        self.assertNotIn("Private project", serialized)
+        self.assertNotIn("credential rejected", serialized)
 
     def test_completion_push_without_registered_device_does_not_mark_sent(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2108,6 +2541,109 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             finally:
                 if state is not None and started is not None:
                     state.cancel_remote_account_login(started["sessionId"])
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_remote_login_callback_requires_unique_authorization_state(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        callback_url = "http://localhost:1455/auth/callback?code=abc&state=expected-state"
+        redirect = "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback"
+
+        for auth_url in (
+            f"https://auth.openai.com/oauth/authorize?{redirect}",
+            f"https://auth.openai.com/oauth/authorize?{redirect}&state=first&state=second",
+        ):
+            with self.subTest(auth_url=auth_url), self.assertRaisesRegex(ValueError, "state"):
+                state.validated_remote_login_callback_url({"authUrl": auth_url}, callback_url)
+
+    def test_remote_login_callback_rejects_duplicate_callback_state(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        session = {
+            "authUrl": (
+                "https://auth.openai.com/oauth/authorize?"
+                "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&"
+                "state=expected-state"
+            )
+        }
+
+        with self.assertRaisesRegex(ValueError, "state"):
+            state.validated_remote_login_callback_url(
+                session,
+                "http://localhost:1455/auth/callback?code=abc&state=expected-state&state=other",
+            )
+
+    def test_expired_remote_login_session_terminates_process_and_removes_temp_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            temp_home = Path(tmp) / "remote-login"
+            temp_home.mkdir()
+            process = FakeRemoteLoginProcess(temp_home, "https://auth.openai.com/oauth/authorize?state=test")
+            state = GatewayState(Path(tmp), "token", Path("/missing-codex"), False)
+            state._remote_login_sessions["expired"] = {
+                "id": "expired",
+                "createdAt": 100,
+                "tempCodexHome": temp_home,
+                "process": process,
+            }
+
+            removed = state.cleanup_expired_remote_login_sessions(
+                now=100 + gateway.REMOTE_LOGIN_SESSION_TIMEOUT_SECONDS,
+            )
+
+            self.assertEqual(removed, 1)
+            self.assertTrue(process.terminated)
+            self.assertFalse(temp_home.exists())
+            self.assertEqual(state._remote_login_sessions, {})
+
+    def test_remote_login_capacity_is_bounded(self):
+        state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
+        state._remote_login_sessions = {
+            f"session-{index}": {"createdAt": int(gateway.time.time())}
+            for index in range(gateway.REMOTE_LOGIN_MAX_ACTIVE_SESSIONS)
+        }
+
+        with self.assertRaisesRegex(ValueError, "Too many remote login sessions"):
+            state.ensure_remote_login_capacity()
+
+    def test_remote_login_callback_failure_cleans_up_session(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            switcher_home = tmp_path / "switcher"
+            codex_home = tmp_path / "codex"
+            codex_home.mkdir()
+            (switcher_home / "accounts" / "Main").mkdir(parents=True)
+            (switcher_home / "accounts" / "Main" / "auth.json").write_text("{}", encoding="utf-8")
+            auth_url = (
+                "https://auth.openai.com/oauth/authorize?"
+                "redirect_uri=http%3A%2F%2Flocalhost%3A1455%2Fauth%2Fcallback&"
+                "state=expected-state"
+            )
+            processes = []
+
+            def fake_login_process_factory(args, **kwargs):
+                process = FakeRemoteLoginProcess(Path(kwargs["env"]["CODEX_HOME"]), auth_url)
+                processes.append(process)
+                return process
+
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = switcher_home
+            try:
+                state = GatewayState(
+                    codex_home,
+                    "token",
+                    Path("/missing-codex"),
+                    False,
+                    login_process_factory=fake_login_process_factory,
+                )
+                started = state.start_remote_account_login("Main")
+
+                with self.assertRaisesRegex(ValueError, "state"):
+                    state.complete_remote_account_login(
+                        started["sessionId"],
+                        "http://localhost:1455/auth/callback?code=abc&state=wrong-state",
+                    )
+
+                self.assertTrue(processes[0].terminated)
+                self.assertEqual(state._remote_login_sessions, {})
+            finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
     def test_remote_new_account_login_saves_profile_without_switching(self):

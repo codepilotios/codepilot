@@ -38,7 +38,18 @@ esac
 '
 write_stub brew 'echo "brew $*"'
 write_stub launchctl 'echo "launchctl $*"'
-write_stub curl 'echo "{\"ok\":true}"'
+write_stub curl '
+[[ "$*" == *"--config -"* ]] || exit 90
+[[ "$*" == *"--proto =https"* ]] || exit 92
+[[ "$*" == *"--proto-redir =https"* ]] || exit 93
+[[ "$*" == *"--max-redirs 0"* ]] || exit 94
+[[ "$*" == *"https://codepilot.example.com/api/health"* ]] || exit 95
+config="$(cat)"
+[[ "$config" == '\''header = "Authorization: Bearer test-gateway-token"'\'' ]] || exit 91
+echo "{\"ok\":true}"
+'
+mkdir -p "$HOME/.codex-account-switcher"
+printf '%s\n' "test-gateway-token" > "$HOME/.codex-account-switcher/phone-gateway-token"
 
 "$SCRIPT" status >/tmp/codepilot-status.json 2>/tmp/codepilot-status.err || true
 grep -q "No such file" /tmp/codepilot-status.err && fail "status should not crash when config is missing"
@@ -47,14 +58,36 @@ grep -q "No such file" /tmp/codepilot-status.err && fail "status should not cras
 [ -f "$HOME/.cloudflared/codepilot-config.yaml" ] || fail "config file missing"
 grep -q "hostname: codepilot.example.com" "$HOME/.cloudflared/codepilot-config.yaml" || fail "hostname missing from config"
 grep -q "service: http://127.0.0.1:18790" "$HOME/.cloudflared/codepilot-config.yaml" || fail "gateway service missing from config"
+[ "$(stat -f '%Lp' "$HOME/.cloudflared/codepilot-config.yaml")" = "600" ] || fail "config must be owner-only"
 [ -f "$HOME/.codex-account-switcher/cloudflare-setup.json" ] || fail "metadata missing"
 ! grep -qi "token" "$HOME/.codex-account-switcher/cloudflare-setup.json" || fail "metadata must not contain token"
+[ "$(stat -f '%Lp' "$HOME/.codex-account-switcher/cloudflare-setup.json")" = "600" ] || fail "metadata must be owner-only"
+
+if "$SCRIPT" configure-permanent --hostname $'safe.example.com\nservice: http://169.254.169.254' --tunnel-name codepilot >/dev/null 2>&1; then
+  fail "hostname YAML injection was accepted"
+fi
+if "$SCRIPT" configure-permanent --hostname codepilot.example.com --tunnel-name $'codepilot\ningress' >/dev/null 2>&1; then
+  fail "tunnel-name YAML injection was accepted"
+fi
+if CODEPILOT_GATEWAY_URL="http://192.0.2.10:18790" "$SCRIPT" start-trycloudflare >/dev/null 2>&1; then
+  fail "non-loopback tunnel target was accepted"
+fi
 
 "$SCRIPT" install-service
 [ -f "$HOME/Library/LaunchAgents/io.codepilot.phone-cloudflared.plist" ] || fail "LaunchAgent plist missing"
 
 "$SCRIPT" verify --url https://codepilot.example.com >/tmp/codepilot-verify.out
 grep -q "verified" /tmp/codepilot-verify.out || fail "verify output should say verified"
+for unsafe_url in \
+  http://codepilot.example.com \
+  https://other.example.com \
+  https://codepilot.example.com.evil.test \
+  https://user:@codepilot.example.com \
+  'https://codepilot.example.com/?next=https://evil.test'; do
+  if "$SCRIPT" verify --url "$unsafe_url" >/dev/null 2>&1; then
+    fail "unsafe verification URL was accepted"
+  fi
+done
 
 "$SCRIPT" start-trycloudflare >/tmp/codepilot-try.out
 grep -q "temporary.trycloudflare.com" /tmp/codepilot-try.out || fail "temporary URL missing"

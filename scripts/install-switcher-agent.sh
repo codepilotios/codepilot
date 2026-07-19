@@ -15,6 +15,7 @@ mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
 
 /usr/bin/python3 - "$ROOT" "$EXECUTABLE" "$PLIST" "$LABEL" <<'PY'
 import plistlib
+import os
 import sys
 from pathlib import Path
 
@@ -31,6 +32,7 @@ plist = {
     "KeepAlive": {
         "SuccessfulExit": False,
     },
+    "Umask": 0o077,
     "WorkingDirectory": str(root),
     "EnvironmentVariables": {
         "PATH": "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
@@ -40,6 +42,7 @@ plist = {
     "LimitLoadToSessionType": "Aqua",
 }
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
+os.chmod(plist_path, 0o600)
 PY
 
 launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true

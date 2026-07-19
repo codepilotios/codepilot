@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 OUT_DIR="$HOME/.codex-account-switcher/desktop-sync-export"
@@ -143,4 +144,5 @@ fi
 
 bundle="$OUT_DIR/codex-desktop-sync.tgz"
 tar -C "$payload" -czf "$bundle" .
+chmod 600 "$bundle"
 echo "$bundle"

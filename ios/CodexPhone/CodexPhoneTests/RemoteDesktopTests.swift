@@ -3,6 +3,27 @@ import XCTest
 @testable import CodexPhone
 
 final class RemoteDesktopTests: XCTestCase {
+    func testLegacyGatewayTokenMigratesOutOfPreferences() {
+        let defaults = UserDefaults.standard
+        let previousToken = SecureGatewayTokenStore.read()
+        let previousLegacyToken = defaults.string(forKey: "gatewayToken")
+        defer {
+            SecureGatewayTokenStore.save(previousToken)
+            if let previousLegacyToken {
+                defaults.set(previousLegacyToken, forKey: "gatewayToken")
+            } else {
+                defaults.removeObject(forKey: "gatewayToken")
+            }
+        }
+
+        XCTAssertTrue(SecureGatewayTokenStore.save(""))
+        defaults.set("legacy-test-token", forKey: "gatewayToken")
+
+        XCTAssertEqual(SecureGatewayTokenStore.migrateLegacyTokenIfNeeded(), "legacy-test-token")
+        XCTAssertEqual(SecureGatewayTokenStore.read(), "legacy-test-token")
+        XCTAssertNil(defaults.object(forKey: "gatewayToken"))
+    }
+
     func testGatewayErrorRecoveryCopyUsesStablePayload() {
         let error = GatewayErrorPayload.ErrorBody(
             code: "gateway_unavailable",
@@ -22,6 +43,69 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertTrue(GatewayConnectionKind.cloudflare.isPublicBetaAvailable)
         XCTAssertTrue(GatewayConnectionKind.local.helpText.contains("disabled for public beta"))
         XCTAssertTrue(GatewayConnectionKind.cloudflare.helpText.contains("Cloudflare Tunnel"))
+    }
+
+    func testGatewayEndpointRequiresHTTPSExceptForLoopbackDevelopment() throws {
+        XCTAssertEqual(
+            GatewayEndpoint.baseURL(from: "https://gateway.example")?.absoluteString,
+            "https://gateway.example"
+        )
+        XCTAssertNotNil(GatewayEndpoint.baseURL(from: "http://localhost:18790"))
+        XCTAssertNotNil(GatewayEndpoint.baseURL(from: "http://127.0.0.2:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://127.example:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://127.0.0.1.example:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://127.0.0.256:18790"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "http://gateway.example"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "ftp://gateway.example"))
+    }
+
+    func testGatewayEndpointRejectsCredentialAndFragmentAmbiguity() {
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "https://user:password@gateway"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "https://gateway.example?target=elsewhere"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "https://gateway.example/#token"))
+        XCTAssertNil(GatewayEndpoint.baseURL(from: "//gateway.example"))
+    }
+
+    func testLoopbackCallbackRequiresExactPathAndOAuthState() throws {
+        let valid = try XCTUnwrap(loopbackCallbackURL(
+            from: "GET /auth/callback?code=fixture&state=expected HTTP/1.1\r\nHost: localhost\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+
+        XCTAssertEqual(valid.path, "/auth/callback")
+        XCTAssertNil(loopbackCallbackURL(
+            from: "GET /auth/callback/forged?state=expected HTTP/1.1\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+        XCTAssertNil(loopbackCallbackURL(
+            from: "GET /auth/callback?state=wrong HTTP/1.1\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+        XCTAssertNil(loopbackCallbackURL(
+            from: "POST /auth/callback?state=expected HTTP/1.1\r\n\r\n",
+            port: 1455,
+            expectedPath: "/auth/callback",
+            expectedState: "expected"
+        ))
+    }
+
+    func testGatewayOriginsIncludeSchemeHostAndEffectivePort() throws {
+        let standardHTTPS = try XCTUnwrap(URL(string: "https://gateway.example/api/health"))
+        let explicitHTTPS = try XCTUnwrap(URL(string: "https://gateway.example:443/redirect"))
+        let otherHost = try XCTUnwrap(URL(string: "https://other.example/redirect"))
+        let downgrade = try XCTUnwrap(URL(string: "http://gateway.example/redirect"))
+        let otherPort = try XCTUnwrap(URL(string: "https://gateway.example:8443/redirect"))
+
+        XCTAssertTrue(GatewayEndpoint.hasSameOrigin(standardHTTPS, explicitHTTPS))
+        XCTAssertFalse(GatewayEndpoint.hasSameOrigin(standardHTTPS, otherHost))
+        XCTAssertFalse(GatewayEndpoint.hasSameOrigin(standardHTTPS, downgrade))
+        XCTAssertFalse(GatewayEndpoint.hasSameOrigin(standardHTTPS, otherPort))
     }
 
     func testRemotePairingApprovalStatusRoundTrips() throws {

@@ -1,5 +1,6 @@
 #!/bin/zsh
 set -euo pipefail
+umask 077
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_DIR="$HOME/.codex-account-switcher"
@@ -10,8 +11,66 @@ METADATA_PATH="$APP_DIR/cloudflare-setup.json"
 LABEL="${CODEPILOT_CLOUDFLARED_LAUNCHD_LABEL:-io.codepilot.phone-cloudflared}"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 GATEWAY_URL="${CODEPILOT_GATEWAY_URL:-http://127.0.0.1:18790}"
+GATEWAY_TOKEN_PATH="${CODEPILOT_GATEWAY_TOKEN_PATH:-$APP_DIR/phone-gateway-token}"
 
 mkdir -p "$APP_DIR" "$CLOUDFLARED_DIR"
+chmod 700 "$APP_DIR" "$CLOUDFLARED_DIR"
+
+validate_gateway_url() {
+  /usr/bin/python3 - "$GATEWAY_URL" <<'PY'
+import ipaddress
+import sys
+from urllib.parse import urlsplit
+
+value = sys.argv[1]
+try:
+    parsed = urlsplit(value)
+    host = parsed.hostname or ""
+    port = parsed.port
+except ValueError as error:
+    raise SystemExit(f"Invalid CodePilot gateway URL: {error}")
+
+is_loopback = host.casefold() == "localhost"
+if not is_loopback:
+    try:
+        is_loopback = ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        is_loopback = False
+
+if (
+    parsed.scheme != "http"
+    or not is_loopback
+    or parsed.username is not None
+    or parsed.password is not None
+    or parsed.path not in {"", "/"}
+    or parsed.query
+    or parsed.fragment
+    or port is None
+):
+    raise SystemExit("CodePilot gateway URL must be a loopback HTTP origin with an explicit port")
+PY
+}
+
+validate_tunnel_inputs() {
+  local hostname="$1"
+  local tunnel_name="$2"
+  /usr/bin/python3 - "$hostname" "$tunnel_name" <<'PY'
+import re
+import sys
+
+hostname = sys.argv[1]
+tunnel_name = sys.argv[2]
+labels = hostname.split(".")
+if (
+    len(hostname) > 253
+    or len(labels) < 2
+    or any(not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label) for label in labels)
+):
+    raise SystemExit("Cloudflare hostname must be a valid fully qualified DNS name")
+if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,62}", tunnel_name):
+    raise SystemExit("Cloudflare tunnel name may contain only letters, numbers, underscores, and hyphens")
+PY
+}
 
 cloudflared_bin() {
   if command -v cloudflared >/dev/null 2>&1; then
@@ -69,6 +128,7 @@ payload = {
 }
 path.parent.mkdir(parents=True, exist_ok=True)
 path.write_text(json.dumps(payload, indent=2) + "\n")
+path.chmod(0o600)
 PY
 }
 
@@ -160,6 +220,8 @@ configure_permanent() {
     echo "--hostname is required" >&2
     exit 2
   }
+  validate_tunnel_inputs "$hostname" "$tunnel_name"
+  validate_gateway_url
 
   local cf create_output tunnel_id
   cf="$(cloudflared_bin)" || {
@@ -179,6 +241,7 @@ ingress:
     service: $GATEWAY_URL
   - service: http_status:404
 EOF
+  chmod 600 "$CONFIG_PATH"
 
   write_metadata permanent "$hostname" "$tunnel_name" "$tunnel_id"
   echo "Configured Cloudflare Tunnel for https://$hostname"
@@ -188,6 +251,7 @@ install_service() {
   mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs"
   /usr/bin/python3 - "$ROOT" "$PLIST" "$LABEL" <<'PY'
 import plistlib
+import os
 import sys
 from pathlib import Path
 
@@ -201,11 +265,13 @@ plist = {
     ],
     "RunAtLoad": True,
     "KeepAlive": True,
+    "Umask": 0o077,
     "WorkingDirectory": str(root),
     "StandardOutPath": str(Path.home() / "Library" / "Logs" / "codepilot-cloudflared.out.log"),
     "StandardErrorPath": str(Path.home() / "Library" / "Logs" / "codepilot-cloudflared.err.log"),
 }
 plist_path.write_bytes(plistlib.dumps(plist, sort_keys=False))
+os.chmod(plist_path, 0o600)
 PY
 
   launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
@@ -233,11 +299,61 @@ verify_url() {
     echo "--url is required" >&2
     exit 2
   }
-  curl -fsS "$url/api/health" >/dev/null
+  url="$(/usr/bin/python3 - "$url" "$METADATA_PATH" <<'PY'
+import json
+import stat
+import sys
+from pathlib import Path
+from urllib.parse import urlsplit
+
+value = sys.argv[1]
+metadata_path = Path(sys.argv[2])
+try:
+    metadata_stat = metadata_path.lstat()
+    if stat.S_ISLNK(metadata_stat.st_mode) or not stat.S_ISREG(metadata_stat.st_mode):
+        raise ValueError("setup metadata must be a regular file")
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    expected_host = str(metadata.get("hostname") or "").casefold()
+    parsed = urlsplit(value)
+    port = parsed.port
+except (OSError, ValueError, json.JSONDecodeError) as error:
+    raise SystemExit(f"Cannot verify an untrusted Cloudflare URL: {error}")
+
+if (
+    metadata.get("mode") != "permanent"
+    or not expected_host
+    or parsed.scheme != "https"
+    or (parsed.hostname or "").casefold() != expected_host
+    or parsed.username is not None
+    or parsed.password is not None
+    or parsed.path not in {"", "/"}
+    or parsed.query
+    or parsed.fragment
+    or port not in {None, 443}
+):
+    raise SystemExit("Verification URL must be the configured Cloudflare HTTPS origin")
+
+print(f"https://{expected_host}")
+PY
+)"
+  [ -f "$GATEWAY_TOKEN_PATH" ] || {
+    echo "CodePilot gateway token is missing. Start the gateway before verifying remote access." >&2
+    exit 22
+  }
+  local token
+  token="$(tr -d '\r\n' < "$GATEWAY_TOKEN_PATH")"
+  if [[ -z "$token" || "$token" == *[^A-Za-z0-9_-]* ]]; then
+    echo "CodePilot gateway token is invalid. Rotate the token before verifying remote access." >&2
+    exit 22
+  fi
+  printf 'header = "Authorization: Bearer %s"\n' "$token" | \
+    curl -fsS --proto '=https' --proto-redir '=https' --max-redirs 0 \
+      --connect-timeout 10 --max-time 20 --config - "$url/api/health" >/dev/null
   echo "verified $url"
 }
 
 start_trycloudflare() {
+  validate_gateway_url
   local cf
   cf="$(cloudflared_bin)" || {
     echo "cloudflared is missing." >&2

@@ -31,8 +31,6 @@ struct CodexPhoneApp: App {
             switch arguments[index] {
             case "--gateway-url" where arguments.indices.contains(index + 1):
                 UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayURL")
-            case "--gateway-token" where arguments.indices.contains(index + 1):
-                UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayToken")
             default:
                 break
             }
@@ -73,9 +71,9 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
     private func sendDeviceTokenToGateway(_ deviceToken: Data) {
         let gatewayURL = UserDefaults.standard.string(forKey: "gatewayURL") ?? ""
-        let gatewayToken = UserDefaults.standard.string(forKey: "gatewayToken") ?? ""
+        let gatewayToken = SecureGatewayTokenStore.read()
         guard !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let root = URL(string: gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+              let root = GatewayEndpoint.baseURL(from: gatewayURL),
               let url = URL(string: "/api/notifications/device", relativeTo: root)?.absoluteURL else {
             return
         }
@@ -95,7 +93,7 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
         request.setValue("Bearer \(gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try? JSONEncoder().encode(body)
-        URLSession.shared.dataTask(with: request).resume()
+        GatewayURLSession.shared.dataTask(with: request).resume()
     }
 
     private func apnsEnvironment() -> String {
@@ -113,9 +111,8 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
 struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
+    @StateObject private var credentials = GatewayCredentials()
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var showingSettings = false
     @State private var showingStatus = false
@@ -129,11 +126,11 @@ struct RootView: View {
         NavigationStack {
             Group {
                 if gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    EmptySettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken)
+                    EmptySettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding)
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
-                    ThreadListView(model: model) {
+                    ThreadListView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken) {
                         showingRemoteDesktop = true
                     }
                 }
@@ -211,8 +208,8 @@ struct RootView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(
-                    gatewayURL: $gatewayURL,
-                    gatewayToken: $gatewayToken,
+                    gatewayURL: gatewayURLBinding,
+                    gatewayToken: gatewayTokenBinding,
                     model: model,
                     liveActivityError: $liveActivityError
                 )
@@ -222,7 +219,7 @@ struct RootView: View {
                 AccountStatusView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
             .fullScreenCover(isPresented: $showingRemoteDesktop) {
-                RemotePairingView()
+                RemotePairingView(gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
             .sheet(isPresented: $showingAccountSwitcher) {
                 AccountSwitcherView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
@@ -240,7 +237,7 @@ struct RootView: View {
                 .presentationDetents([.medium, .large])
             }
             .navigationDestination(item: $openedThread) { thread in
-                ChatView(model: model, thread: thread)
+                ChatView(model: model, thread: thread, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
             }
             .alert("CodePilot", isPresented: .constant(model.errorMessage != nil)) {
                 Button("OK") { model.errorMessage = nil }
@@ -264,6 +261,28 @@ struct RootView: View {
                 showingRemoteDesktop = false
             }
         }
+    }
+
+    private var gatewayURL: String {
+        credentials.gatewayURL
+    }
+
+    private var gatewayToken: String {
+        credentials.gatewayToken
+    }
+
+    private var gatewayURLBinding: Binding<String> {
+        Binding(
+            get: { credentials.gatewayURL },
+            set: { credentials.gatewayURL = $0 }
+        )
+    }
+
+    private var gatewayTokenBinding: Binding<String> {
+        Binding(
+            get: { credentials.gatewayToken },
+            set: { credentials.updateGatewayToken($0) }
+        )
     }
 
     private var liveActivityReconciliationID: String {
@@ -584,9 +603,9 @@ struct ReasoningLevelPicker: View {
 
 struct ThreadListView: View {
     @ObservedObject var model: CodexPhoneModel
+    let gatewayURL: String
+    let gatewayToken: String
     var onRemoteDesktop: () -> Void = {}
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var renamingThread: CodexThread?
     @State private var renameText = ""
     @State private var deletingThread: CodexThread?
@@ -694,7 +713,7 @@ struct ThreadListView: View {
 
     private func threadRow(_ thread: CodexThread) -> some View {
         NavigationLink {
-            ChatView(model: model, thread: thread)
+            ChatView(model: model, thread: thread, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                 .id(thread.id)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
@@ -947,9 +966,9 @@ struct NewThreadView: View {
 struct ChatView: View {
     @ObservedObject var model: CodexPhoneModel
     let thread: CodexThread
+    let gatewayURL: String
+    let gatewayToken: String
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var prompt = ""
     @State private var attachments: [PendingAttachment] = []
     @State private var showingFileImporter = false
@@ -1799,7 +1818,7 @@ func isMacLocalWebURL(_ url: URL) -> Bool {
 }
 
 func localWebSessionURL(path: String, baseURL: String) -> URL? {
-    guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)),
+    guard let root = GatewayEndpoint.baseURL(from: baseURL),
           var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
         return nil
     }
@@ -3607,13 +3626,18 @@ final class RemoteLoginAuthenticationViewController: UIViewController, ASWebAuth
 
         guard let redirectURL = Self.redirectURL(from: url),
               let port = redirectURL.port,
+              let expectedState = Self.state(from: url),
               Self.isCodexLoopbackCallback(redirectURL) else {
             onFailure("Login callback URL could not be prepared.")
             return
         }
 
         do {
-            let server = try LoopbackCallbackServer(port: UInt16(port), expectedPath: redirectURL.path) { [weak self] callbackURL in
+            let server = try LoopbackCallbackServer(
+                port: UInt16(port),
+                expectedPath: redirectURL.path,
+                expectedState: expectedState
+            ) { [weak self] callbackURL in
                 DispatchQueue.main.async {
                     guard let self, !self.didComplete else { return }
                     self.didComplete = true
@@ -3673,6 +3697,14 @@ final class RemoteLoginAuthenticationViewController: UIViewController, ASWebAuth
             .flatMap(URL.init(string:))
     }
 
+    private static func state(from authURL: URL) -> String? {
+        URLComponents(url: authURL, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first { $0.name == "state" }?
+            .value
+            .flatMap { $0.isEmpty ? nil : $0 }
+    }
+
     private static func isCodexLoopbackCallback(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased(),
               host == "localhost" || host == "127.0.0.1",
@@ -3686,17 +3718,26 @@ final class RemoteLoginAuthenticationViewController: UIViewController, ASWebAuth
 final class LoopbackCallbackServer {
     private let port: UInt16
     private let expectedPath: String
+    private let expectedState: String
     private let onCallback: (URL) -> Void
     private let queue = DispatchQueue(label: "codexphone.loopback-callback")
     private var listener: NWListener?
     private var didComplete = false
 
-    init(port: UInt16, expectedPath: String, onCallback: @escaping (URL) -> Void) throws {
+    init(
+        port: UInt16,
+        expectedPath: String,
+        expectedState: String,
+        onCallback: @escaping (URL) -> Void
+    ) throws {
         self.port = port
         self.expectedPath = expectedPath.isEmpty ? "/auth/callback" : expectedPath
+        self.expectedState = expectedState
         self.onCallback = onCallback
         let nwPort = NWEndpoint.Port(rawValue: port)!
-        listener = try NWListener(using: .tcp, on: nwPort)
+        let parameters = NWParameters.tcp
+        parameters.requiredLocalEndpoint = .hostPort(host: "127.0.0.1", port: nwPort)
+        listener = try NWListener(using: parameters)
         listener?.newConnectionHandler = { [weak self] connection in
             self?.handle(connection)
         }
@@ -3720,7 +3761,12 @@ final class LoopbackCallbackServer {
             }
             guard let data,
                   let request = String(data: data, encoding: .utf8),
-                  let callbackURL = self.callbackURL(from: request) else {
+                  let callbackURL = loopbackCallbackURL(
+                    from: request,
+                    port: self.port,
+                    expectedPath: self.expectedPath,
+                    expectedState: self.expectedState
+                  ) else {
                 self.respond(to: connection, status: "400 Bad Request", body: "Invalid Codex callback.")
                 return
             }
@@ -3729,17 +3775,6 @@ final class LoopbackCallbackServer {
             self.didComplete = true
             self.onCallback(callbackURL)
         }
-    }
-
-    private func callbackURL(from request: String) -> URL? {
-        guard let requestLine = request.split(separator: "\r\n", maxSplits: 1, omittingEmptySubsequences: false).first else {
-            return nil
-        }
-        let parts = requestLine.split(separator: " ")
-        guard parts.count >= 2 else { return nil }
-        let path = String(parts[1])
-        guard path.hasPrefix(expectedPath) else { return nil }
-        return URL(string: "http://localhost:\(port)\(path)")
     }
 
     private func respond(to connection: NWConnection, status: String, body: String) {
@@ -3755,6 +3790,28 @@ final class LoopbackCallbackServer {
             connection.cancel()
         })
     }
+}
+
+func loopbackCallbackURL(
+    from request: String,
+    port: UInt16,
+    expectedPath: String,
+    expectedState: String
+) -> URL? {
+    guard let requestLine = request.split(separator: "\r\n", maxSplits: 1, omittingEmptySubsequences: false).first else {
+        return nil
+    }
+    let parts = requestLine.split(separator: " ")
+    guard parts.count == 3, parts[0] == "GET" else { return nil }
+    let requestTarget = String(parts[1])
+    guard requestTarget.hasPrefix("/"),
+          let callbackURL = URL(string: "http://127.0.0.1:\(port)\(requestTarget)"),
+          let components = URLComponents(url: callbackURL, resolvingAgainstBaseURL: false),
+          components.path == expectedPath,
+          components.queryItems?.filter({ $0.name == "state" }).map(\.value) == [expectedState] else {
+        return nil
+    }
+    return callbackURL
 }
 
 @MainActor
@@ -4822,7 +4879,7 @@ struct CodexGatewayClient {
     }
 
     func downloadRemoteFile(path: String, baseURL: String, token: String) async throws -> URL {
-        guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
             throw GatewayError.invalidURL
         }
         guard var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
@@ -4839,7 +4896,7 @@ struct CodexGatewayClient {
         request.timeoutInterval = 120
         request.setValue("Bearer \(token.trimmingCharacters(in: .whitespacesAndNewlines))", forHTTPHeaderField: "Authorization")
 
-        let (temporaryURL, response) = try await URLSession.shared.download(for: request)
+        let (temporaryURL, response) = try await GatewayURLSession.shared.download(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw GatewayError.invalidResponse
         }
@@ -4885,7 +4942,7 @@ struct CodexGatewayClient {
         baseURL: String,
         token: String
     ) async throws -> T {
-        guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
             throw GatewayError.invalidURL
         }
         guard let url = URL(string: path, relativeTo: root)?.absoluteURL else {
@@ -4903,7 +4960,7 @@ struct CodexGatewayClient {
         var attempt = 0
         while true {
             do {
-                let (data, response) = try await URLSession.shared.data(for: request)
+                let (data, response) = try await GatewayURLSession.shared.data(for: request)
                 guard let http = response as? HTTPURLResponse else {
                     throw GatewayError.invalidResponse
                 }

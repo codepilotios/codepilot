@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 DEFAULT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -46,7 +47,7 @@ fi
 printf '%s\n' "$$" > "$LOCK_DIR/pid"
 trap 'rm -rf "$LOCK_DIR" 2>/dev/null || true' EXIT
 
-mkdir -p "$LOG_DIR" "$ROOT/ops/agents/escalations" "$WORKTREE_ROOT"
+mkdir -p "$LOG_DIR" "$WORKTREE_ROOT"
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
 log_file="$LOG_DIR/$JOB-$timestamp.log"
@@ -55,7 +56,6 @@ exec >>"$log_file" 2>&1
 
 echo "== CodePilot agent: $JOB =="
 echo "started_at=$timestamp"
-echo "repo=$ROOT"
 
 cd "$ROOT"
 
@@ -79,6 +79,9 @@ if [[ -d "$WORKTREE/.git" || -f "$WORKTREE/.git" ]]; then
   cd "$WORKTREE"
 fi
 
+AGENT_ROOT="$(pwd -P)"
+mkdir -p "$AGENT_ROOT/ops/agents/escalations"
+
 git fetch --quiet origin main 2>/dev/null || true
 if git diff --quiet && git diff --cached --quiet; then
   if git merge-base --is-ancestor HEAD origin/main 2>/dev/null; then
@@ -97,10 +100,10 @@ export CODEPILOT_AGENT_REAL_GIT="$REAL_GIT"
 export CODEPILOT_AGENT_REAL_GH="$REAL_GH"
 export CODEPILOT_AGENT_REAL_ASC="$REAL_ASC"
 export CODEPILOT_AGENT_PUBLIC_AUTONOMY="$PUBLIC_AUTONOMY"
-export CODEPILOT_REPO_ROOT="$ROOT"
+export CODEPILOT_REPO_ROOT="$AGENT_ROOT"
 export PATH="$GUARD_BIN:$PATH"
 
-ESCALATION_FILE="$ROOT/ops/agents/escalations/$JOB.md"
+ESCALATION_FILE="$AGENT_ROOT/ops/agents/escalations/$JOB.md"
 BEFORE_HASH=""
 if [[ -f "$ESCALATION_FILE" ]]; then
   BEFORE_HASH="$(shasum -a 256 "$ESCALATION_FILE" | awk '{print $1}')"
@@ -239,7 +242,7 @@ if [[ -n "$AFTER_HASH" && "$AFTER_HASH" != "$BEFORE_HASH" ]]; then
       echo "A CodePilot continuous agent needs intervention."
       echo
       echo "Agent: $JOB"
-      echo "Escalation file: $ESCALATION_FILE"
+      echo "Escalation file: ops/agents/escalations/$JOB.md"
       echo
       sed -n '1,220p' "$ESCALATION_FILE"
     } | "$CODEX_BIN" exec resume "$THREAD_ID" -

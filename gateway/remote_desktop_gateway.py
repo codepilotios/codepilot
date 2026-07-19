@@ -187,10 +187,15 @@ class RemoteDesktopGateway:
         host_client: NativeHostClient | None = None,
         signal_queue_limit: int = SIGNAL_QUEUE_LIMIT,
         turn_urlopen=urllib.request.urlopen,
+        remote_control_enabled: bool = False,
     ):
         self.host_client = host_client if host_client is not None else NativeHostClient()
         self.signal_queue_limit = max(1, int(signal_queue_limit))
         self.turn_urlopen = turn_urlopen
+        # The native host currently exposes frame capture and input RPCs without
+        # enforcing the trusted-device lease model. Keep those routes fail-closed
+        # at the public gateway until lease validation is wired end to end.
+        self.remote_control_enabled = bool(remote_control_enabled)
         self._signal_lock = threading.Lock()
         self._signals: dict[str, list[dict[str, Any]]] = {}
         self._last_signal_sequence: dict[str, int] = {}
@@ -204,6 +209,8 @@ class RemoteDesktopGateway:
     ) -> tuple[int, dict[str, Any]]:
         method = http_method.upper()
         try:
+            if not self.remote_control_enabled and not (method == "GET" and parts == ["status"]):
+                raise RemoteDesktopRequestError(503, "remote_desktop_disabled")
             return self._handle(method, parts, query, body)
         except RemoteDesktopHostError as exc:
             return ERROR_STATUS.get(exc.code, 503), {"error": exc.code}
@@ -219,8 +226,10 @@ class RemoteDesktopGateway:
     ) -> tuple[int, dict[str, Any]]:
         if method == "GET" and parts == ["status"]:
             status = self._native_json("status", {})
-            status.setdefault("iceServers", self._ice_servers())
-            status.setdefault("capabilities", {})["relayAvailable"] = self._relay_available()
+            status.setdefault("iceServers", self._ice_servers() if self.remote_control_enabled else [])
+            capabilities = status.setdefault("capabilities", {})
+            capabilities["relayAvailable"] = self.remote_control_enabled and self._relay_available()
+            capabilities["remoteControlAvailable"] = self.remote_control_enabled
             return 200, status
 
         if method == "GET" and parts == ["frame"]:

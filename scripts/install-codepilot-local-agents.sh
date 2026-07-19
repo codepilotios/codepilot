@@ -1,5 +1,6 @@
 #!/usr/bin/env zsh
 set -euo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
@@ -29,7 +30,9 @@ fi
 chmod +x "$RUNNER" "$SCHEDULER" "$ROOT/scripts/codepilot-agent-escalate.sh"
 mkdir -p "$PLIST_DIR"
 mkdir -p "$STATE_DIR"
+chmod 700 "$STATE_DIR"
 printf '%s\n' "$THREAD_ID" > "$STATE_DIR/thread-id"
+chmod 600 "$STATE_DIR/thread-id"
 
 for old_plist in "$PLIST_DIR"/io.codepilot.agent.*.plist; do
   [ -f "$old_plist" ] || continue
@@ -75,6 +78,8 @@ write_scheduler_plist() {
     <key>CODEPILOT_AGENT_THREAD_ID</key>
     <string>$THREAD_ID</string>
   </dict>
+  <key>Umask</key>
+  <integer>63</integer>
   <key>StandardOutPath</key>
   <string>$HOME/Library/Logs/CodePilotAgents/scheduler.launchd.out.log</string>
   <key>StandardErrorPath</key>
@@ -82,6 +87,7 @@ write_scheduler_plist() {
 </dict>
 </plist>
 EOF
+  chmod 600 "$plist"
   launchctl unload "$plist" 2>/dev/null || true
   launchctl load "$plist"
 }

@@ -109,10 +109,11 @@ enum CodePilotHostServicesManager {
     }
 
     private static func unloadAndRemoveLegacyLaunchAgents() {
-        [
-            "com.tony.codex-phone-gateway",
-            "com.tony.codex-phone-cloudflared"
-        ].forEach { label in
+        let legacyLabels = ProcessInfo.processInfo.environment["CODEPILOT_LEGACY_LAUNCHD_LABELS"]?
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty } ?? []
+        legacyLabels.forEach { label in
             let plist = launchAgents.appendingPathComponent("\(label).plist")
             runLaunchctl(["unload", plist.path])
             try? fileManager.removeItem(at: plist)
@@ -173,8 +174,12 @@ enum CodePilotHostServicesManager {
         let scheduler = bundledResource("scripts/codepilot-agent-scheduler.sh")
             ?? repoRoot.appendingPathComponent("scripts/codepilot-agent-scheduler.sh")
         guard fileManager.fileExists(atPath: scheduler.path) else { return }
-        let threadID = (try? String(contentsOf: appDir.appendingPathComponent("agents/thread-id"), encoding: .utf8))
-            ?? "019e2d20-3695-7423-be21-968f544d2b20"
+        let threadIDFile = appDir.appendingPathComponent("agents/thread-id")
+        guard let threadID = try? String(contentsOf: threadIDFile, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+            !threadID.isEmpty else {
+            return
+        }
         let codex = preferredCodexURL()?.path ?? executable(named: "codex")?.path ?? "codex"
         try writeLaunchAgent(
             label: "io.codepilot.agents.scheduler",
@@ -190,7 +195,7 @@ enum CodePilotHostServicesManager {
                 "CODEPILOT_AGENT_MODEL": "gpt-5.6-sol",
                 "CODEPILOT_AGENT_REASONING_EFFORT": "medium",
                 "CODEPILOT_CODEX_BIN": codex,
-                "CODEPILOT_AGENT_THREAD_ID": threadID.trimmingCharacters(in: .whitespacesAndNewlines)
+                "CODEPILOT_AGENT_THREAD_ID": threadID
             ],
             keepAlive: false,
             startInterval: 60
@@ -214,6 +219,7 @@ enum CodePilotHostServicesManager {
             "Label": label,
             "ProgramArguments": programArguments,
             "RunAtLoad": true,
+            "Umask": 0o077,
             "WorkingDirectory": workingDirectory,
             "StandardOutPath": stdout,
             "StandardErrorPath": stderr,
@@ -227,6 +233,7 @@ enum CodePilotHostServicesManager {
         }
         let data = try PropertyListSerialization.data(fromPropertyList: payload, format: .xml, options: 0)
         try data.write(to: plist, options: .atomic)
+        try fileManager.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plist.path)
         runLaunchctl(["unload", plist.path])
         runLaunchctl(["load", plist.path])
     }
@@ -3259,6 +3266,13 @@ private final class GatewayRemoteInputValidator: RemoteInputLeaseValidating {
     }
 }
 
+enum RemoteDesktopHostPolicy {
+    // The native RPC host still lacks lease authorization for screen capture,
+    // input injection, and WebRTC signaling. Keep it unreachable until those
+    // checks are enforced end to end.
+    static let isEnabled = false
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let switcher = CodexAccountSwitcher()
     private let remoteFrameCaptureService = RemoteFrameCaptureService()
@@ -3284,16 +3298,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NSApp.setActivationPolicy(.accessory)
         CodePilotHostServicesManager.ensureConfiguredOnLaunch()
 
-        if !CGPreflightScreenCaptureAccess() {
-            _ = CGRequestScreenCaptureAccess()
-        }
-
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = "CodePilot"
         menu.delegate = self
         statusItem.menu = menu
-        remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
-        if let remoteDesktopCoordinator {
+        if RemoteDesktopHostPolicy.isEnabled {
+            remoteDesktopCoordinator = try? RemoteDesktopCoordinator()
+        }
+        if RemoteDesktopHostPolicy.isEnabled, let remoteDesktopCoordinator {
             do {
                 let server = RemoteDesktopSocketServer { [weak self, weak remoteDesktopCoordinator] request in
                     guard let self, let remoteDesktopCoordinator else {
