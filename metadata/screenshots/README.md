@@ -8,13 +8,13 @@ Prepare approved screenshots for:
 
 - First connection screen with the Cloudflare connection choice.
 - Gateway health or setup status after a successful connection.
-- Total-credit status with synthetic account names and balances.
+- Total-credit status with synthetic `Work`, `Personal`, and `Demo` account names and balances.
 - Total Credit Live Activity on a supported Lock Screen or Dynamic Island.
-- Thread list or active turn view.
-- File preview from a local Mac path.
-- Local Mac web page opened through the gateway.
+- Thread list or active turn view using the fictional threads from `docs/SCREENSHOTS.md`.
+- File upload or preview using `sample-diff.txt` or `wireframe.png`, with any path hidden or replaced by a generic example.
+- Purpose-built demo web page opened through the gateway, with no local URL, session URL, source code, logs, paths, or query values visible.
 - Error recovery state with non-sensitive copy.
 
 Do not include Remote Desktop in the 0.1 screenshot set while its paired-device and session-authorization protections remain release-blocked.
 
-All screenshots must avoid real tokens, private hostnames, private account names, private file paths, private emails, and personal identifiers.
+All screenshots must avoid real tokens, private hostnames, private account names, private file paths, private emails, and personal identifiers. Follow the complete fictional capture brief and full-resolution acceptance checklist in [`docs/SCREENSHOTS.md`](../../docs/SCREENSHOTS.md) before committing or attaching an image.
