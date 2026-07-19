@@ -5,6 +5,9 @@ REAL_ASC="${CODEPILOT_AGENT_REAL_ASC:-}"
 if [[ -z "$REAL_ASC" ]]; then
   REAL_ASC="$(command -v asc 2>/dev/null || true)"
 fi
+if [[ -n "$REAL_ASC" && "${REAL_ASC:A}" == "${0:A}" ]]; then
+  REAL_ASC=""
+fi
 
 top="${1:-}"
 sub="${2:-}"

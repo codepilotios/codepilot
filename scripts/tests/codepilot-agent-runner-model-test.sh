@@ -1,23 +1,25 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-TMP_ROOT="$(mktemp -d)"
-ROOT="$TMP_ROOT/repo"
-STATE_DIR="$TMP_ROOT/state"
+unset CODEPILOT_AGENT_MODEL CODEPILOT_AGENT_REASONING_EFFORT
+export CODEPILOT_AGENT_PUBLIC_AUTONOMY="launch"
+
+TEST_ROOT="$(mktemp -d)"
+ROOT="$TEST_ROOT/repo"
+STATE_DIR="$TEST_ROOT/state"
 LOG_DIR="$ROOT/logs"
 JOB="health-watch"
 CAPTURE="$ROOT/codex-args"
 PROMPT_CAPTURE="$ROOT/codex-prompt"
-
-unset CODEPILOT_AGENT_MODEL CODEPILOT_AGENT_REASONING_EFFORT
+ASC_CAPTURE="$ROOT/asc-path"
 
 cleanup() {
-  rm -rf "$TMP_ROOT"
+  rm -rf "$TEST_ROOT"
 }
 trap cleanup EXIT
 
 mkdir -p \
-  "$ROOT" \
+  "$ROOT/bin" \
   "$ROOT/ops/agents/prompts" \
   "$ROOT/ops/agents/escalations" \
   "$STATE_DIR/worktrees/$JOB"
@@ -27,9 +29,16 @@ printf 'Check health.\n' > "$ROOT/ops/agents/prompts/$JOB.md"
 cat > "$ROOT/codex-stub" <<'EOF'
 #!/bin/zsh
 printf '%s\n' "$@" > "$CODEPILOT_TEST_CAPTURE"
+printf '%s\n' "${CODEPILOT_AGENT_REAL_ASC:-}" > "$CODEPILOT_TEST_ASC_CAPTURE"
 cat > "$CODEPILOT_TEST_PROMPT_CAPTURE"
 EOF
 chmod +x "$ROOT/codex-stub"
+
+cat > "$ROOT/bin/asc" <<'EOF'
+#!/bin/zsh
+exit 0
+EOF
+chmod +x "$ROOT/bin/asc"
 
 run_runner() {
   CODEPILOT_REPO_ROOT="$ROOT" \
@@ -38,13 +47,20 @@ run_runner() {
   CODEPILOT_CODEX_BIN="$ROOT/codex-stub" \
   CODEPILOT_TEST_CAPTURE="$CAPTURE" \
   CODEPILOT_TEST_PROMPT_CAPTURE="$PROMPT_CAPTURE" \
+  CODEPILOT_TEST_ASC_CAPTURE="$ASC_CAPTURE" \
   TMPDIR="$ROOT/tmp" \
+  PATH="$ROOT/bin:$PATH" \
     "$PWD/scripts/codepilot-agent-runner.sh" "$JOB"
 }
 
 mkdir -p "$ROOT/tmp"
 
 run_runner
+
+if [[ "$(<"$ASC_CAPTURE")" != "$ROOT/bin/asc" ]]; then
+  echo "Runner did not export the real asc executable before installing guards" >&2
+  exit 1
+fi
 
 if grep -qx -- '-m' "$CAPTURE"; then
   echo "Default runner unexpectedly forced a model" >&2
