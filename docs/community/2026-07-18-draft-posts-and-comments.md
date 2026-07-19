@@ -144,7 +144,10 @@ link-free until a direct public beta URL is verified and approved.
 
 ## r/ChatGPTCoding self-promotion thread
 
-**Status:** Use only as one comment in the current designated promotion thread.
+**Status:** Use only as one comment in the currently visible designated
+promotion thread after a same-day check that it remains open and that the
+identity can participate without an account-karma removal or manual-review
+hold. Do not use this copy as a main-feed post.
 
 > Disclosure: we build CodePilot; this is its project account.
 >

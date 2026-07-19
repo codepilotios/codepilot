@@ -11,9 +11,9 @@ Status: maintainer action required before any public posting.
   target community's account-age, karma, and participation rules. Do not create
   an account solely to satisfy this request.
 - Do not request `r/ChatGPTCoding` sponsorship solely for this launch run.
-  Re-check that the current self-promotion thread remains open, confirm that
-  `codepilotios` can comment without an account-karma removal, and approve the
-  exact comment before a human posts it.
+  Re-check that the currently visible self-promotion thread remains open,
+  confirm that `codepilotios` can comment without an account-karma removal or
+  manual-review hold, and approve the exact comment before a human posts it.
 - For `r/TestFlight`, provide or approve a verified public Apple TestFlight link;
   the draft must contain no other link.
 - For `r/BetaTests`, approve the no-link tester-feedback draft and confirm that

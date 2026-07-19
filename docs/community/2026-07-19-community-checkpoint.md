@@ -20,7 +20,7 @@ the first beta placements. The broader community survey remains in
 | `r/TestFlight` | Strong after distribution is ready | Hold until a direct public Apple TestFlight URL is verified and approved. New posts may contain only the TestFlight link, need the app flair, and should use the app name with no recruitment tag in the title. Put later updates in comments rather than reposting. |
 | `r/BetaTests` | Strong for focused tester feedback | Use the prepared no-link draft only after a maintainer verifies the identity's age and karma eligibility and re-checks the posting guidance. |
 | `r/alphaandbetausers` | Good secondary tester pool | Its rules endpoint currently publishes no community-specific rules. Use only after a same-day review of rules and recent removals; do not offer incentives or reciprocal testing. |
-| `r/ChatGPTCoding` | Good audience, gated placement | Maker-authored service promotion belongs in the designated self-promotion thread. Main-feed placement requires moderator sponsorship. Confirm the current thread and identity eligibility before a human posts one approved comment. |
+| `r/ChatGPTCoding` | Good audience, gated placement | Maker-authored service promotion belongs in the designated self-promotion thread. The currently visible thread still receives comments, but its automated moderation actively removes or holds comments based on account karma. Main-feed placement requires moderator sponsorship. Confirm thread status and identity eligibility before a human posts one approved comment. |
 | `r/Codex` | Best topical match, moderator-first | Posts must be directly about Codex, use the right flair, and must not use bots. The published rules do not explicitly authorize maker promotion, so send the prepared permission request manually and post only if moderators and a maintainer approve. |
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | App promotion is limited to Saturday and one app per year. Current enforcement requires labeled Tech Stack, Development Challenge, and AI Disclosure sections. Use the revised technical draft only after account eligibility, timing, and the annual allowance are confirmed. |
 | `r/MacApps` | Relevant but currently held | Requires 10 local karma, official distribution links, relationship disclosure, no more than one developer promotion in 30 days, and either main-feed qualification or the current promotion megathread. Do not manufacture eligibility or disclose a private identity. |
@@ -58,9 +58,9 @@ plan. The following destinations add a community-specific gate:
   title, and app flair.
 - `r/BetaTests`: confirm account age and karma eligibility.
 - `r/alphaandbetausers`: perform a same-day rules and recent-removals check.
-- `r/ChatGPTCoding`: confirm the designated thread is current and the identity
-  can participate; main-feed placement additionally requires moderator
-  sponsorship.
+- `r/ChatGPTCoding`: confirm the designated thread is still open and the
+  identity can participate without an account-karma removal or manual-review
+  hold; main-feed placement additionally requires moderator sponsorship.
 - `r/Codex`: moderator permission, correct flair, maintainer approval, and a
   human-authored manual post with no automation.
 - `r/iOSProgramming`: Saturday timing, current account eligibility, genuine
@@ -76,19 +76,21 @@ The concise maintainer action list remains in
 
 ## Live rule sources
 
-- <https://www.reddit.com/r/GenAiApps/about/rules>
-- <https://www.reddit.com/r/TestFlight/about/rules>
-- <https://www.reddit.com/r/BetaTests/about/rules>
-- <https://www.reddit.com/r/alphaandbetausers/about/rules>
-- <https://www.reddit.com/r/ChatGPTCoding/about/rules>
-- <https://www.reddit.com/r/codex/about/rules>
-- <https://www.reddit.com/r/iOSProgramming/about/rules>
+- <https://www.reddit.com/r/GenAiApps/about/>
+- <https://www.reddit.com/r/TestFlight/about/>
+- <https://www.reddit.com/r/BetaTests/about/>
+- <https://www.reddit.com/r/alphaandbetausers/about/>
+- <https://www.reddit.com/r/ChatGPTCoding/about/>
+- <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/>
+- <https://www.reddit.com/r/codex/about/>
+- <https://www.reddit.com/r/iOSProgramming/about/>
+- <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/>
 - <https://www.reddit.com/r/iOSProgramming/comments/1pnivdy/proposed_update_to_app_saturday_feedback_requested/>
 - <https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/>
-- <https://www.reddit.com/r/macapps/about/rules>
-- <https://www.reddit.com/r/OpenAI/about/rules>
-- <https://www.reddit.com/r/SwiftUI/about/rules>
-- <https://www.reddit.com/r/iosapps/about/rules>
+- <https://www.reddit.com/r/macapps/about/>
+- <https://www.reddit.com/r/OpenAI/about/>
+- <https://www.reddit.com/r/SwiftUI/about/>
+- <https://www.reddit.com/r/iosapps/about/>
 
 Re-read the target's rules, pinned posts, and active promotion thread immediately
 before any approved manual submission because community rules and moderation
