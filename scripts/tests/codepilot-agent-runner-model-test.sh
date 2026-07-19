@@ -1,19 +1,23 @@
 #!/usr/bin/env zsh
 set -euo pipefail
 
-ROOT="$(mktemp -d)"
-STATE_DIR="$ROOT/state"
+TMP_ROOT="$(mktemp -d)"
+ROOT="$TMP_ROOT/repo"
+STATE_DIR="$TMP_ROOT/state"
 LOG_DIR="$ROOT/logs"
 JOB="health-watch"
 CAPTURE="$ROOT/codex-args"
 PROMPT_CAPTURE="$ROOT/codex-prompt"
 
+unset CODEPILOT_AGENT_MODEL CODEPILOT_AGENT_REASONING_EFFORT
+
 cleanup() {
-  rm -rf "$ROOT"
+  rm -rf "$TMP_ROOT"
 }
 trap cleanup EXIT
 
 mkdir -p \
+  "$ROOT" \
   "$ROOT/ops/agents/prompts" \
   "$ROOT/ops/agents/escalations" \
   "$STATE_DIR/worktrees/$JOB"

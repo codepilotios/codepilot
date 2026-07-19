@@ -18,7 +18,7 @@ Public beta for Codex CLI users who want iPhone visibility, file uploads, turn c
 
 CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI coding users who already run Codex CLI on a Mac.
 
-Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive turn-finished notifications, and connect through your own same-network or Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
+Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
 
 The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use Codex-specific names while the public CodePilot product surface is prepared for broader provider support later.
 
@@ -32,7 +32,7 @@ Codex, coding agent, developer tools, Mac, iPhone, remote coding, AI coding, Tes
 
 Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, notifications, and setup recovery messages.
 
-Please report whether you used same-network access or Cloudflare Tunnel. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
+Please include the connection and recovery flow you tested. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
 
 ## Support URL
 
@@ -50,7 +50,7 @@ Use only sanitized demo data:
 - Example hostnames such as `codepilot.example.com`.
 - No tokens, auth details, private prompts, local paths, Apple identifiers, personal account names, private screenshots, or live desktop contents.
 
-See [Screenshot Plan](SCREENSHOTS.md).
+See the [App Store screenshot checklist](../metadata/screenshots/README.md).
 
 ## Approval Gates
 
