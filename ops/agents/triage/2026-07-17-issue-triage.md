@@ -1,44 +1,57 @@
 # CodePilot Issue Triage - 2026-07-17
 
-Remote write policy: public GitHub writes require a privacy audit. This pass pushed the focused `agent/issue-triage-remote-desktop-lease-blocker` branch and opened draft PR #26 after the audit passed.
+Remote write policy: public GitHub writes are allowed only after the privacy audit and only when directly permitted by the launch-autonomy policy. Non-GitHub external system mutation is prohibited in this unattended run.
 
 ## Reviewed Issues
 
-- #25 Enforce paired-device leases on every Remote Desktop path
-  - Proposed labels: `bug`, `remote-desktop`, `mac`, `ios`, `gateway`, `severity: critical`.
-  - Current labels already match the proposal; no label change is needed.
-  - Classification: confirmed security defect and release blocker for OTA, TestFlight, and App Store distribution.
 - #2 Support or disable the iOS Same Network setup path
-  - Current labels already matched the proposal: `setup`, `ios`, `gateway`, `severity: medium`.
-  - Merged PR #14 already disabled Same Network for the public beta, so the stale resolved issue was closed.
+  - Proposed labels: `setup`, `ios`, `gateway`, `severity: medium` (already applied).
+  - No comments or label changes have appeared since the 2026-07-03 maintainer decision to keep the public beta Cloudflare-only.
+  - The remaining Settings exposure and public-copy fix is prepared in draft PR #19, which is mergeable and has a passing `Test and Audit` check.
+  - Proposed next action: review and merge PR #19, then close #2 when the implementation is accepted.
 - #3 Require clear Remote Desktop pairing approval in setup
-  - Current labels already matched the proposal: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high`.
-  - Merged PR #14 already requires explicit Mac approval, so the stale resolved issue was closed.
+  - Proposed labels: `setup`, `remote-desktop`, `mac`, `ios`, `severity: high` (already applied).
+  - No comments or label changes have appeared since the 2026-07-03 maintainer decision requiring explicit Mac approval.
+  - The approved pairing flow is present on `main` through merged PR #14; no additional defect was reported or reproduced in this sweep.
+  - Proposed next action: close #3 if the merged behavior satisfies the acceptance criteria, or file a focused follow-up for any remaining setup gap.
 - #8 Prepare sanitized public screenshot set
-  - Current labels already match the proposal: `documentation`, `severity: low`.
-  - The issue remains open for approved demo-only screenshot capture; no screenshot asset was created or published in this pass.
+  - Proposed labels: `documentation`, `severity: low` (already applied).
+  - No comments or label changes have appeared since the 2026-07-03 approval for sanitized demo-only screenshots.
+  - Draft PR #16 remains mergeable with a passing `Test and Audit` check and contains the screenshot manifest and manual privacy-review procedure.
+  - Proposed next action: continue capture and review through PR #16; do not publish assets without privacy audit and manual pixel review.
 
-## Reproduction and Diagnosis
+## Related Pull Requests
 
-- Gateway frame capture calls `frame.capture` without a lease identifier or proof.
-- Gateway signaling accepts an arbitrary syntactically valid session ID, queues the signal, and forwards it to the native host.
-- The native signaling handler starts a peer connection for the supplied ID without validating it against `SessionLeaseStore`.
-- Native input validation only enforces monotonically increasing sequence numbers per caller-supplied session ID; it does not validate a trusted device or active lease.
-- The iOS Remote Desktop view generates a random session ID on appearance and immediately starts frame polling, WebRTC signaling, and input. It does not pair or call `startSession` first.
-- Existing gateway tests explicitly pass arbitrary session IDs to frame, signaling, clipboard, and input paths and expect success.
+- PR #19 (`agent/issue-triage-2026-07-08`) is a mergeable draft with passing CI and contains the focused #2 follow-up.
+- PR #16 (`agent/issue-8-screenshot-plan`) is a mergeable draft with passing CI and covers #8 planning.
+- PR #22 (`agent/security-scan-2026-07-17`) is a mergeable draft with passing CI, but remains security-agent scope.
+- PRs #15, #18, and #20 remain stale or merge-conflicted drafts; no issue-triage-owned public mutation is authorized for them.
 
-## Verification
+## Local Changes and Verification
 
-- `python3 -m unittest gateway.test_remote_desktop_gateway.RemoteDesktopGatewayTests`: passed.
-- `swift test --filter RemoteDesktop`: passed (20 tests).
-- Full gateway test discovery ran 23 tests but reported four import errors because the available Python 3.9 runtime lacks the standard-library `tomllib` module required by the phone gateway. The focused Remote Desktop gateway tests still passed, so this does not affect the confirmed authorization-path diagnosis.
-
-## Action
-
-- No code fix was attempted. Correct enforcement spans the iOS session lifecycle, gateway routing, native RPC boundary, lease expiry/revocation, and HTTP/WebRTC parity; a partial patch would be security-sensitive and outside low-risk issue triage.
-- Keep Remote Desktop distribution blocked until regression tests prove that unpaired, expired, revoked, replayed, arbitrary, and mismatched sessions fail at both gateway and native boundaries.
-- Closed superseded draft PR #15 after confirming its #2 and #3 fixes had already landed through merged PR #14 with passing CI.
+- Added this triage note only; no product code, App Store metadata, or release tooling changed in this sweep.
+- Queried all open issues and reviewed the bodies, labels, and comments for #2, #3, and #8.
+- Queried related draft PR merge state and CI results.
+- No new reproduction run was needed because no new actionable report was filed; the existing #2 fix remains verified by PR #19 CI.
 
 ## Blockers
 
-- A maintainer must assign and coordinate the cross-stack security fix before any OTA, TestFlight, or App Store distribution containing Remote Desktop.
+- No new outage, security finding, credential need, or product decision requires escalation.
+- Maintainer cleanup is still needed to merge or close existing issues and draft PRs because this unattended policy authorizes creation of issues and draft PRs, but not closure or merging.
+- Any merged iOS change still requires the separate OTA workflow; this run cannot mutate non-GitHub distribution systems.
+
+## Follow-up Sweep
+
+- Rechecked the complete open issue queue on 2026-07-17; it still contains only #2, #3, and #8, with no issue or comment updates since 2026-07-03.
+- Confirmed the proposed component and severity labels remain applied to all three issues.
+- Confirmed issue-linked draft PR #19 remains mergeable with passing CI and draft PR #16 remains mergeable with passing CI.
+- Draft PR #23 is new since the earlier sweep and is release-readiness scope. It is now mergeable with a passing `Test and Audit` check, but it does not respond to a new issue-triage report.
+- No reproduction, product-code change, public issue comment, or escalation was warranted in this follow-up.
+
+## Latest Sweep
+
+- Rechecked the complete open issue queue; it still contains only #2, #3, and #8, with no issue or comment updates since 2026-07-03.
+- Confirmed the proposed component and severity labels remain applied to all three issues.
+- Confirmed issue-linked draft PR #19 remains mergeable with passing CI and draft PR #16 remains mergeable with passing CI.
+- No new actionable bug was reported, so no reproduction run or product-code change was warranted.
+- No public GitHub issue, comment, label, branch, or PR mutation was made while collecting this evidence.
