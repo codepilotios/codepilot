@@ -37,7 +37,8 @@ It contains:
 - a link-free `r/GenAiApps` feedback post;
 - no-link tester requests tailored to `r/BetaTests` and
   `r/alphaandbetausers`;
-- a TestFlight-only link post and safety-focused first comment;
+- a TestFlight-only link post and safety-focused first comment with no
+  additional URL;
 - a single `r/ChatGPTCoding` self-promotion-thread comment;
 - an `r/Codex` moderator permission request and conditional post;
 - a technical `r/iOSProgramming` App Saturday post;

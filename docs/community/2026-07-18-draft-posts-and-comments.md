@@ -139,8 +139,8 @@ link-free until a direct public beta URL is verified and approved.
 > - Which thread or turn control felt unreliable?
 >
 > Please do not share gateway URLs, tokens, account names, private screenshots,
-> or unsanitized logs in public replies. The public issue tracker is
-> [PUBLIC_REPOSITORY_URL]/issues.
+> or unsanitized logs in public replies. Use the feedback channel included with
+> the beta for anything that should not be shared in the thread.
 
 ## r/ChatGPTCoding self-promotion thread
 
