@@ -1,5 +1,12 @@
 # Issue Triage Escalations
 
+Date: 2026-07-19
+
+- Issue #25 remains a critical distribution blocker after fail-closed containment merged in PR #22. Keep Remote Desktop disabled until approved-device signed leases, expiry and revocation, and HTTP/WebRTC/native-boundary authorization regression coverage pass.
+- Issue #27 now has its documentation prerequisite merged, but repository administration is still required to enable Pages from `main`/`docs`, verify and set the public website, update the approved beta description, enable private vulnerability reporting, and align the security-reporting links.
+- Issue #8 remains pending a sanitized demo capture session and manual full-resolution privacy review. No additional approval is needed for the already approved demo-only capture set.
+- No pricing, legal, App Store, credential, or public-posting decision is requested.
+
 Date: 2026-07-17
 
 - No active maintainer decision escalations for issue triage.
