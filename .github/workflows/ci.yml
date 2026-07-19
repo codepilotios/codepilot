@@ -17,6 +17,9 @@ jobs:
       - name: Privacy audit
         run: scripts/privacy-audit.sh
 
+      - name: Public presence audit
+        run: scripts/public-presence-audit.sh
+
       - name: SwiftPM tests
         run: swift test
 

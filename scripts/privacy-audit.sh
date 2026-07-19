@@ -34,6 +34,7 @@ users_dir_pattern="/$(printf %s Users)/[^[:space:]\"']+"
 generic_private_patterns=(
   "$users_dir_pattern"
   '[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}'
+  '(com|io)\.[A-Za-z0-9_-]+\.codexphone'
 )
 
 audit_files=()
@@ -62,6 +63,12 @@ secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"
 
 if LC_ALL=C grep -nI -E "$secret_pattern" -- "${audit_files[@]}"; then
   echo "privacy audit failed: repository files contain secret-looking material" >&2
+  exit 1
+fi
+
+noncanonical_public_url_pattern='https://(codepilotios\.github\.io|github\.com/codepilotios)/CodePilot'
+if git grep -n -I -E "$noncanonical_public_url_pattern" -- "${audit_files[@]}"; then
+  echo "privacy audit failed: tracked files contain noncanonical public CodePilot URLs" >&2
   exit 1
 fi
 

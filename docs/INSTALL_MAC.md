@@ -5,11 +5,19 @@ CodePilot Mac is a menu bar app. It currently builds from source with SwiftPM.
 ## Requirements
 
 - macOS 13 or later.
+- Git.
 - Xcode command line tools.
 - Codex installed and available as `codex`.
 - A local Codex login at `~/.codex/auth.json`.
 
 Successful setup means the menu bar app shows `CodePilot`, at least one account profile exists, and the setup window marks the gateway token and gateway as ready.
+
+## Get The Source
+
+```sh
+git clone https://github.com/codepilotios/codepilot.git
+cd codepilot
+```
 
 ## Build
 
@@ -17,6 +25,21 @@ Successful setup means the menu bar app shows `CodePilot`, at least one account 
 scripts/build-app.sh
 open "build/CodePilot.app"
 ```
+
+## Update A Source Build
+
+Finish active turns, then update the checkout and rebuild:
+
+```sh
+git pull --ff-only
+scripts/build-app.sh
+scripts/install-switcher-agent.sh
+scripts/install-phone-gateway-agent.sh
+```
+
+The gateway installer defers its restart if it detects an active phone turn. If that happens, let the turn finish and run the gateway installer again. Do not force a restart just to apply a routine update.
+
+If the update changes setup requirements, review the latest [changelog](CHANGELOG.md) and rerun the relevant setup step before reconnecting the iPhone app.
 
 ## Start At Login
 
@@ -56,6 +79,8 @@ The gateway listens on:
 ```text
 http://127.0.0.1:18790
 ```
+
+That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly. Use Cloudflare remote access for the public beta; LAN-bound gateway access is outside the supported beta path until CodePilot ships explicit firewall and trust guidance.
 
 The bearer token is stored at:
 

@@ -1,0 +1,16 @@
+title: CodePilot Public Beta
+description: Public beta Mac and iPhone companion for Codex CLI workflows.
+theme: jekyll-theme-minimal
+show_downloads: false
+
+# Keep planning, operations, and submission drafts in the repository without
+# publishing them as part of the user-facing GitHub Pages site.
+exclude:
+  - APP_STORE_METADATA_DRAFT.md
+  - PRODUCTION_READINESS.md
+  - PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md
+  - PUBLIC_PRESENCE_CHECKLIST.md
+  - RELEASE_CHECKLIST.md
+  - SCREENSHOTS.md
+  - operations
+  - superpowers

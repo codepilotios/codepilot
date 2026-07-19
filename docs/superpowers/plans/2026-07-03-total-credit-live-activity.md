@@ -282,7 +282,7 @@ POST to `http://127.0.0.1:8787/codexphone/api/build`, poll `/codexphone/api/stat
 
 - [ ] **Step 4: Verify public OTA artifacts**
 
-Fetch the generated tokenized manifest and IPA URLs from `https://ota.sprenkeling.co`.
+Fetch the generated tokenized manifest and IPA URLs from the approved OTA host, for example `https://ota.example.com`.
 
 Expected: HTTP 200 for both, manifest bundle identifier `io.codepilot.iOS`, and the widget extension embedded in the IPA.
 

@@ -6,41 +6,49 @@ This draft is for TestFlight and App Store Connect preparation only. Do not subm
 
 CodePilot
 
+Character count: 9 of 30.
+
 ## Subtitle
 
 Codex companion for your Mac
 
+Character count: 28 of 30.
+
 ## Promotional Text
 
-Public beta for Codex CLI users who want iPhone visibility, file uploads, turn control, notifications, and safe gateway-backed access to coding-agent sessions running on their own Mac.
+Public beta for Codex CLI users: check usage and threads, upload files, and steer coding sessions running on a Mac you control.
+
+Character count: 127 of 170.
 
 ## Description
 
 CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI coding users who already run Codex CLI on a Mac.
 
-Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
+Use the iPhone app to check active account status, follow threads, upload files, open loopback web previews, steer or stop supported turns, receive optional turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
 
-The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use Codex-specific names while the public CodePilot product surface is prepared for broader provider support later.
+The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use legacy Codex-specific names, and support for other coding agents is not part of the current beta.
 
-CodePilot handles local coding-agent credentials and gateway access. Review the privacy, security, install, and support docs before exposing the gateway outside your local network.
+CodePilot handles local coding-agent credentials and gateway access. Coding prompts and selected attachments are still processed through Codex and OpenAI according to the user's Codex account and configuration. Review the privacy, security, install, and support docs before exposing the gateway outside your local network.
 
 ## Keywords
 
-Codex, coding agent, developer tools, Mac, iPhone, remote coding, AI coding, TestFlight, gateway, Cloudflare
+Codex,coding agent,developer tools,Mac,iPhone,remote coding,AI coding,gateway,Cloudflare
+
+Character count: 88 of 100.
 
 ## What To Test
 
-Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, notifications, and setup recovery messages.
+Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, and setup recovery messages. Open a purpose-built demo page from a loopback link and confirm it appears in the in-app browser without exposing development data. If APNs is configured for the gateway, also verify turn-finished notifications.
 
-Please include the connection and recovery flow you tested. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
+Please report whether Cloudflare Tunnel setup, gateway connection, token entry, or localhost link opening was the step that failed. Remove account names, gateway URLs, tokens, hostnames, localhost or local-web session URLs, local page contents, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
 
 ## Support URL
 
-Use the public repository support documentation and issue tracker once the repository is public.
+Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination after GitHub Pages is enabled and verified: `https://codepilotios.github.io/codepilot/SUPPORT.html`.
 
 ## Privacy URL
 
-Use `docs/PRIVACY.md` until a public website URL is approved.
+Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination after GitHub Pages is enabled and verified: `https://codepilotios.github.io/codepilot/PRIVACY.html`, generated from [Privacy](PRIVACY.md).
 
 ## Screenshot Requirements
 
