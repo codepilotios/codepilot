@@ -5,100 +5,11 @@ import Network
 import PhotosUI
 import QuickLook
 import SafariServices
-import Security
 import SwiftUI
 import UIKit
 import UniformTypeIdentifiers
 import UserNotifications
 import WebKit
-
-enum SecureGatewayTokenStore {
-    private static let service = "io.codepilot.gateway"
-    private static let account = "gatewayToken"
-    private static let legacyDefaultsKey = "gatewayToken"
-
-    static func read() -> String {
-        var query = baseQuery()
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data,
-              let token = String(data: data, encoding: .utf8) else {
-            return ""
-        }
-        return token
-    }
-
-    static func save(_ token: String) {
-        let token = token.trimmingCharacters(in: .whitespacesAndNewlines)
-        UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
-        guard !token.isEmpty else {
-            delete()
-            return
-        }
-
-        let data = Data(token.utf8)
-        let attributes: [String: Any] = [
-            kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-        ]
-        let status = SecItemUpdate(baseQuery() as CFDictionary, attributes as CFDictionary)
-        if status == errSecItemNotFound {
-            var query = baseQuery()
-            query[kSecValueData as String] = data
-            query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            SecItemAdd(query as CFDictionary, nil)
-        }
-    }
-
-    @discardableResult
-    static func migrateLegacyTokenIfNeeded() -> String {
-        let current = read()
-        let legacy = UserDefaults.standard.string(forKey: legacyDefaultsKey)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if current.isEmpty, !legacy.isEmpty {
-            save(legacy)
-            return legacy
-        }
-        UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
-        return current
-    }
-
-    private static func delete() {
-        SecItemDelete(baseQuery() as CFDictionary)
-    }
-
-    private static func baseQuery() -> [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account
-        ]
-    }
-}
-
-@MainActor
-final class GatewayCredentials: ObservableObject {
-    @Published var gatewayURL: String {
-        didSet {
-            UserDefaults.standard.set(gatewayURL, forKey: "gatewayURL")
-        }
-    }
-
-    @Published var gatewayToken: String {
-        didSet {
-            SecureGatewayTokenStore.save(gatewayToken)
-        }
-    }
-
-    init() {
-        SecureGatewayTokenStore.migrateLegacyTokenIfNeeded()
-        gatewayURL = UserDefaults.standard.string(forKey: "gatewayURL") ?? ""
-        gatewayToken = SecureGatewayTokenStore.read()
-    }
-}
 
 @main
 struct CodexPhoneApp: App {
@@ -121,7 +32,7 @@ struct CodexPhoneApp: App {
             case "--gateway-url" where arguments.indices.contains(index + 1):
                 UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayURL")
             case "--gateway-token" where arguments.indices.contains(index + 1):
-                SecureGatewayTokenStore.save(arguments[index + 1])
+                UserDefaults.standard.set(arguments[index + 1], forKey: "gatewayToken")
             default:
                 break
             }
@@ -162,7 +73,7 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
     private func sendDeviceTokenToGateway(_ deviceToken: Data) {
         let gatewayURL = UserDefaults.standard.string(forKey: "gatewayURL") ?? ""
-        let gatewayToken = SecureGatewayTokenStore.read()
+        let gatewayToken = UserDefaults.standard.string(forKey: "gatewayToken") ?? ""
         guard !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               let root = GatewayEndpoint.baseURL(from: gatewayURL),
               let url = URL(string: "/api/notifications/device", relativeTo: root)?.absoluteURL else {
@@ -202,7 +113,10 @@ final class CodexPhoneAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
 
 struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
-    @StateObject private var credentials = GatewayCredentials()
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("gatewayURL") private var gatewayURL = ""
+    @AppStorage("gatewayToken") private var gatewayToken = ""
+    @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
@@ -215,11 +129,11 @@ struct RootView: View {
         NavigationStack {
             Group {
                 if gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    EmptySettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding)
+                    EmptySettingsView(gatewayURL: $gatewayURL, gatewayToken: $gatewayToken)
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
-                    ThreadListView(model: model, gatewayURL: gatewayURL, gatewayToken: gatewayToken) {
+                    ThreadListView(model: model) {
                         showingRemoteDesktop = true
                     }
                 }
@@ -296,7 +210,12 @@ struct RootView: View {
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
             .sheet(isPresented: $showingSettings) {
-                SettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding, model: model)
+                SettingsView(
+                    gatewayURL: $gatewayURL,
+                    gatewayToken: $gatewayToken,
+                    model: model,
+                    liveActivityError: $liveActivityError
+                )
                     .presentationDetents([.large])
             }
             .sheet(isPresented: $showingStatus) {
@@ -321,7 +240,7 @@ struct RootView: View {
                 .presentationDetents([.medium, .large])
             }
             .navigationDestination(item: $openedThread) { thread in
-                ChatView(model: model, thread: thread, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
+                ChatView(model: model, thread: thread)
             }
             .alert("CodePilot", isPresented: .constant(model.errorMessage != nil)) {
                 Button("OK") { model.errorMessage = nil }
@@ -399,28 +318,6 @@ struct RootView: View {
         } catch {
             liveActivityError = "The credit Live Activity could not be updated: \(error.localizedDescription)"
         }
-    }
-
-    private var gatewayURL: String {
-        credentials.gatewayURL
-    }
-
-    private var gatewayToken: String {
-        credentials.gatewayToken
-    }
-
-    private var gatewayURLBinding: Binding<String> {
-        Binding(
-            get: { credentials.gatewayURL },
-            set: { credentials.gatewayURL = $0 }
-        )
-    }
-
-    private var gatewayTokenBinding: Binding<String> {
-        Binding(
-            get: { credentials.gatewayToken },
-            set: { credentials.gatewayToken = $0 }
-        )
     }
 }
 
@@ -709,9 +606,9 @@ struct ReasoningLevelPicker: View {
 
 struct ThreadListView: View {
     @ObservedObject var model: CodexPhoneModel
-    let gatewayURL: String
-    let gatewayToken: String
     var onRemoteDesktop: () -> Void = {}
+    @AppStorage("gatewayURL") private var gatewayURL = ""
+    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var renamingThread: CodexThread?
     @State private var renameText = ""
     @State private var deletingThread: CodexThread?
@@ -819,7 +716,7 @@ struct ThreadListView: View {
 
     private func threadRow(_ thread: CodexThread) -> some View {
         NavigationLink {
-            ChatView(model: model, thread: thread, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
+            ChatView(model: model, thread: thread)
                 .id(thread.id)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
@@ -1072,9 +969,9 @@ struct NewThreadView: View {
 struct ChatView: View {
     @ObservedObject var model: CodexPhoneModel
     let thread: CodexThread
-    let gatewayURL: String
-    let gatewayToken: String
     @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("gatewayURL") private var gatewayURL = ""
+    @AppStorage("gatewayToken") private var gatewayToken = ""
     @State private var prompt = ""
     @State private var attachments: [PendingAttachment] = []
     @State private var showingFileImporter = false
@@ -1092,7 +989,7 @@ struct ChatView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach(timelineMessages) { message in
-                            MessageBubble(message: message, threadID: thread.id, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
+                            MessageBubble(message: message, gatewayURL: gatewayURL, gatewayToken: gatewayToken)
                                 .id(message.id)
                         }
                         if let job = visibleJob {
@@ -1486,7 +1383,6 @@ struct AttachmentStrip: View {
 
 struct MessageBubble: View {
     let message: CodexMessage
-    let threadID: String?
     let gatewayURL: String
     let gatewayToken: String
     @State private var showingSelectionSheet = false
@@ -1499,7 +1395,6 @@ struct MessageBubble: View {
             OpenableText(
                 text: message.text,
                 font: .body,
-                threadID: threadID,
                 gatewayURL: gatewayURL,
                 gatewayToken: gatewayToken
             )
@@ -1582,7 +1477,6 @@ struct OpenableText: View {
     let text: String
     var font: Font = .body
     var foregroundColor: Color = .primary
-    var threadID: String? = nil
     let gatewayURL: String
     let gatewayToken: String
     @State private var previewItem: FilePreviewItem?
@@ -1596,11 +1490,8 @@ struct OpenableText: View {
             .textSelection(.enabled)
             .environment(\.openURL, OpenURLAction { url in
                 if let path = remoteFilePath(from: url) {
-                    guard let threadID else {
-                        return .discarded
-                    }
                     Task {
-                        await openRemoteFile(path, threadID: threadID)
+                        await openRemoteFile(path)
                     }
                     return .handled
                 }
@@ -1631,11 +1522,10 @@ struct OpenableText: View {
     }
 
     @MainActor
-    private func openRemoteFile(_ path: String, threadID: String) async {
+    private func openRemoteFile(_ path: String) async {
         do {
             let localURL = try await CodexGatewayClient().downloadRemoteFile(
                 path: path,
-                threadID: threadID,
                 baseURL: gatewayURL,
                 token: gatewayToken
             )
@@ -1958,7 +1848,6 @@ struct JobStatusView: View {
                         JobEventRow(
                             event: event,
                             isExpanded: expandedEventIDs.contains(event.id),
-                            threadID: job.threadId,
                             gatewayURL: gatewayURL,
                             gatewayToken: gatewayToken
                         ) {
@@ -1977,7 +1866,6 @@ struct JobStatusView: View {
                     text: job.errorSummary,
                     font: .caption,
                     foregroundColor: .red,
-                    threadID: job.threadId,
                     gatewayURL: gatewayURL,
                     gatewayToken: gatewayToken
                 )
@@ -2057,7 +1945,6 @@ struct JobStatusHeader: View {
 struct JobEventRow: View {
     let event: CodexJobEvent
     let isExpanded: Bool
-    let threadID: String?
     let gatewayURL: String
     let gatewayToken: String
     let toggleExpansion: () -> Void
@@ -2090,7 +1977,6 @@ struct JobEventRow: View {
                         text: event.body,
                         font: event.kind == "message" ? .body : .caption,
                         foregroundColor: event.kind == "message" ? .primary : .secondary,
-                        threadID: threadID,
                         gatewayURL: gatewayURL,
                         gatewayToken: gatewayToken
                     )
@@ -4995,16 +4881,15 @@ struct CodexGatewayClient {
         )
     }
 
-    func downloadRemoteFile(path: String, threadID: String, baseURL: String, token: String) async throws -> URL {
-        let root = try gatewayRootURL(from: baseURL)
+    func downloadRemoteFile(path: String, baseURL: String, token: String) async throws -> URL {
+        guard let root = URL(string: baseURL.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            throw GatewayError.invalidURL
+        }
         guard var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
             throw GatewayError.invalidURL
         }
         components.path = "/api/files/download"
-        components.queryItems = [
-            URLQueryItem(name: "path", value: path),
-            URLQueryItem(name: "threadId", value: threadID),
-        ]
+        components.queryItems = [URLQueryItem(name: "path", value: path)]
         guard let url = components.url else {
             throw GatewayError.invalidURL
         }

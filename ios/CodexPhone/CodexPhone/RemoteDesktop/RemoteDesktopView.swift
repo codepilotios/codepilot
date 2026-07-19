@@ -445,6 +445,9 @@ struct RemoteDesktopView: View {
     }
 
     private var title: String {
+        guard let session else {
+            return "Remote Desktop"
+        }
         switch session.phase {
         case .connecting:
             return "Connecting"
