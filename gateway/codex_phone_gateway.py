@@ -2303,6 +2303,14 @@ class GatewayState:
         }
 
     def public_health(self) -> dict:
+        return {
+            "gateway": {
+                "running": True,
+                "version": read_marker(DEFAULT_SWITCHER_HOME / "gateway-version", "dev"),
+            },
+        }
+
+    def diagnostic_health(self) -> dict:
         remote_desktop_status = {"available": False}
         remote_desktop = self.remote_desktop_gateway
         if remote_desktop is not None:
@@ -4888,9 +4896,7 @@ class Handler(BaseHTTPRequestHandler):
         super().end_headers()
 
     def authenticate(self) -> bool:
-        expected = self.state().token
-        header = self.headers.get("authorization", "")
-        if secrets.compare_digest(header, f"Bearer {expected}"):
+        if self.is_authenticated():
             return True
         json_error(
             self,
@@ -4900,6 +4906,11 @@ class Handler(BaseHTTPRequestHandler):
             "Update the CodePilot Gateway token in the iPhone app, then try again.",
         )
         return False
+
+    def is_authenticated(self) -> bool:
+        expected = self.state().token
+        header = self.headers.get("authorization", "")
+        return secrets.compare_digest(header, f"Bearer {expected}")
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
@@ -4931,7 +4942,12 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         if path == "/health" or path == "/api/health":
-            json_response(self, 200, self.state().public_health())
+            payload = (
+                self.state().diagnostic_health()
+                if self.is_authenticated()
+                else self.state().public_health()
+            )
+            json_response(self, 200, payload)
             return
 
         if not self.authenticate():

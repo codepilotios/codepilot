@@ -25,7 +25,7 @@ Recommended:
 
 The iOS client refuses non-HTTPS gateway URLs except for `localhost`, `::1`, and syntactically valid `127.x.x.x` loopback addresses. DNS names that merely begin with `127.` are not loopback exceptions and still require HTTPS. The client also rejects gateway URLs containing user information, query strings, or fragments, and credential-bearing requests do not follow cross-origin redirects.
 
-The gateway health response is intentionally public-safe, but it is still operational metadata. Treat the gateway URL and token as private.
+The unauthenticated gateway health response contains only liveness and version data. Account, job, notification, and remote-access diagnostics are returned only when the request includes the iOS connection token. Treat the gateway URL and token as private.
 
 Do not place infrastructure or connector management tokens in `phone-gateway.env`. The gateway service deliberately does not load `SUPABASE_ACCESS_TOKEN`, and gateway-launched Codex processes scrub gateway-only credentials from their environment. Configure sensitive connectors in a separately trusted local Codex session instead of exposing their bearer tokens to remotely initiated turns.
 
