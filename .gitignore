@@ -17,6 +17,7 @@ __pycache__/
 .pytest_cache/
 
 # Local runtime state and secrets
+.private/
 .agents/
 .superpowers/
 AGENTS.md

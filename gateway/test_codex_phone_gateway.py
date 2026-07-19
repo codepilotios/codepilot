@@ -2235,7 +2235,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             }
 
         old_run_turn = GatewayState.run_turn
-        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True: None
+        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True, reasoning_effort=None: None
         try:
             state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
             state.get_thread = lambda thread_id: {
@@ -2265,7 +2265,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
             }
 
         old_run_turn = GatewayState.run_turn
-        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True: None
+        GatewayState.run_turn = lambda self, job_id, thread, prompt, attachments, resume_existing=True, reasoning_effort=None: None
         try:
             state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
             state.get_thread = lambda thread_id: {

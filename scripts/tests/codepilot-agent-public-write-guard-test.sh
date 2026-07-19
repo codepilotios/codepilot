@@ -28,6 +28,7 @@ chmod +x "$TMP_ROOT/gh" "$TMP_ROOT/git"
 export CODEPILOT_GUARD_CAPTURE="$TMP_ROOT/capture"
 export CODEPILOT_AGENT_REAL_GH="$TMP_ROOT/gh"
 export CODEPILOT_AGENT_REAL_GIT="$TMP_ROOT/git"
+export CODEPILOT_AGENT_PUBLIC_AUTONOMY="review"
 
 "$GUARD_BIN/gh" issue list --repo codepilotios/codepilot
 grep -qx 'list' "$TMP_ROOT/capture"

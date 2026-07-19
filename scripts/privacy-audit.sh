@@ -9,48 +9,59 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 2
 fi
 
-private_patterns_file="${CODEPILOT_PRIVACY_PATTERNS_FILE:-$HOME/.codepilot-privacy-patterns}"
+candidate_files=("${(@f)$(git ls-files --cached --others --exclude-standard)}")
+
+if (( ${#candidate_files[@]} == 0 )); then
+  echo "privacy audit skipped: no candidate files" >&2
+  exit 0
+fi
+
+private_patterns_file="${CODEPILOT_PRIVATE_AUDIT_PATTERNS_FILE:-${CODEPILOT_PRIVACY_PATTERNS_FILE:-$ROOT/.private/privacy-audit-patterns.txt}}"
+
+if [[ -n "${CODEPILOT_PRIVATE_AUDIT_PATTERNS_FILE:-}${CODEPILOT_PRIVACY_PATTERNS_FILE:-}" && ! -f "$private_patterns_file" ]]; then
+  echo "privacy audit failed: configured private-pattern file is unavailable" >&2
+  exit 2
+fi
+
+if [[ -f "$private_patterns_file" ]]; then
+  if LC_ALL=C grep -nI -F -f "$private_patterns_file" -- "${candidate_files[@]}"; then
+    echo "privacy audit failed: repository files contain private identifiers" >&2
+    exit 1
+  fi
+fi
+
 users_dir_pattern="/$(printf %s Users)/[^[:space:]\"']+"
 generic_private_patterns=(
   "$users_dir_pattern"
   '[A-Za-z][A-Za-z0-9._%+-]*@[A-Za-z][A-Za-z0-9.-]*\.[A-Za-z]{2,}'
 )
 
-pattern="$(IFS='|'; echo "${generic_private_patterns[*]}")"
-
-if [[ -f "$private_patterns_file" ]]; then
-  while IFS= read -r private_pattern; do
-    [[ -n "$private_pattern" && "${private_pattern:0:1}" != "#" ]] || continue
-    pattern="$pattern|$private_pattern"
-  done < "$private_patterns_file"
-fi
-
-tracked_files=("${(@f)$(git ls-files)}")
 audit_files=()
-for file in "${tracked_files[@]}"; do
+for file in "${candidate_files[@]}"; do
   [[ "$file" == "scripts/privacy-audit.sh" ]] && continue
   audit_files+=("$file")
 done
 
-if git grep -n -I -E "$pattern" -- "${audit_files[@]}"; then
-  echo "privacy audit failed: tracked files contain private identifiers" >&2
+generic_pattern="$(IFS='|'; echo "${generic_private_patterns[*]}")"
+if LC_ALL=C grep -nI -E "$generic_pattern" -- "${audit_files[@]}"; then
+  echo "privacy audit failed: repository files contain private paths or email addresses" >&2
   exit 1
 fi
 
 secret_patterns=(
-  "g""hp_[A-Za-z0-9_]+"
-  "github_""pat_[A-Za-z0-9_]+"
-  "s""k-[A-Za-z0-9]{20,}"
+  "g""hp_[A-Za-z0-9_]{20,}"
+  "github_""pat_[A-Za-z0-9_]{20,}"
+  "(^|[^A-Za-z0-9])s""k-[A-Za-z0-9]{20,}"
   "-----BEGIN (RSA|OPENSSH|PRIVATE) ""KEY"
   'Bearer [A-Za-z0-9._-]{20,}'
-  "client_""secret"
-  "private_""key"
+  "client_""secret[[:space:]]*[:=]"
+  "private_""key[[:space:]]*[:=]"
 )
 
 secret_pattern="$(IFS='|'; echo "${secret_patterns[*]}")"
 
-if git grep -n -I -E "$secret_pattern" -- "${audit_files[@]}"; then
-  echo "privacy audit failed: tracked files contain secret-looking material" >&2
+if LC_ALL=C grep -nI -E "$secret_pattern" -- "${audit_files[@]}"; then
+  echo "privacy audit failed: repository files contain secret-looking material" >&2
   exit 1
 fi
 

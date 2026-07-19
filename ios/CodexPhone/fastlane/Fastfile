@@ -52,8 +52,13 @@ platform :ios do
   def codex_phone_beta_description
     ENV.fetch(
       "BETA_APP_DESCRIPTION",
-      "CodePilot lets you securely connect an iPhone to your own Mac gateway for remote coding sessions, thread management, usage status, file upload, and remote desktop control."
+      "CodePilot connects an iPhone to your own Mac gateway for remote coding sessions, thread management, usage status, file upload, file previews, and local Mac web links. Remote Desktop is not included in this beta."
     )
+  end
+
+  def codex_phone_testflight_changelog
+    notes_path = File.expand_path("../../../metadata/testflight/0.1/en-US.md", __dir__)
+    File.read(notes_path)
   end
 
   def codex_phone_beta_review_info
@@ -77,7 +82,7 @@ platform :ios do
       "default" => {
         feedback_email: codex_phone_feedback_email,
         description: codex_phone_beta_description,
-        privacy_policy_url: ENV.fetch("APP_PRIVACY_POLICY_URL", "https://codepilotios.github.io/CodePilot/privacy.html"),
+        privacy_policy_url: ENV.fetch("APP_PRIVACY_POLICY_URL"),
         marketing_url: ENV.fetch("APP_MARKETING_URL", "https://github.com/codepilotios/CodePilot")
       }
     }
@@ -183,7 +188,7 @@ platform :ios do
       beta_app_review_info: codex_phone_beta_review_info,
       localized_app_info: codex_phone_localized_app_info,
       demo_account_required: false,
-      changelog: options[:changelog] || "CodePilot remote client update."
+      changelog: options[:changelog] || codex_phone_testflight_changelog
     )
   end
 
@@ -198,7 +203,7 @@ platform :ios do
       ipa: ipa_path,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
-      changelog: options[:changelog] || "CodePilot remote client update."
+      changelog: options[:changelog] || codex_phone_testflight_changelog
     )
   end
 
@@ -222,7 +227,7 @@ platform :ios do
       beta_app_review_info: codex_phone_beta_review_info,
       localized_app_info: codex_phone_localized_app_info,
       demo_account_required: false,
-      changelog: options[:changelog] || "CodePilot remote client update."
+      changelog: options[:changelog] || codex_phone_testflight_changelog
     )
   end
 
