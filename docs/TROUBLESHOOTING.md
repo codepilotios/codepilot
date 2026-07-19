@@ -1,5 +1,11 @@
 # Troubleshooting
 
+## iPhone Cannot Reach The Gateway
+
+Confirm the iPhone has an internet or local-network connection and the Mac is awake. On the Mac, open CodePilot and choose **Restart Gateway When Idle**. For Cloudflare connections, also restart the tunnel from **Setup CodePilot... > Cloudflare Remote Access**.
+
+If the connection test still cannot find the host, confirm the iPhone gateway URL exactly matches the verified remote access URL from the Mac setup screen. Do not use the Mac gateway's `127.0.0.1` address on the iPhone.
+
 ## iPhone Shows 502
 
 Cloudflare reached your hostname, but the Mac gateway was not reachable. Open CodePilot on the Mac and choose **Restart Gateway When Idle**.
@@ -18,7 +24,7 @@ Open **Setup CodePilot... > Cloudflare Remote Access** and review the details fo
 
 ## iPhone Shows 401 Or 403
 
-The saved gateway token is missing or wrong. Copy the current token from CodePilot on the Mac and update the iPhone connection.
+The saved iOS connection token is missing or wrong. Copy the current token from CodePilot on the Mac and update the iPhone connection.
 
 If the token was rotated, every connected iPhone must be updated.
 
@@ -38,26 +44,7 @@ Pull to refresh the thread list. If a live stream was interrupted, open the thre
 
 ## File Upload Is Rejected
 
-Confirm the iPhone can still load threads from the Mac gateway, then retry with a smaller selection. One turn can include up to eight attachments, with a 25 MB limit per file and a 50 MB combined limit.
-
-Uploads that succeed remain under the CodePilot state directory on the Mac until you delete them. Do not attach the original private file or an unsanitized gateway response to a public issue. If the same sanitized sample file still fails, report the visible recovery message and the file's approximate size and type.
-
-## Turn-Finished Notifications Do Not Arrive
-
-Check each part of the optional notification path:
-
-1. In iOS Settings, confirm notifications are allowed for CodePilot.
-2. Confirm the Mac is awake and online and that the CodePilot gateway and Cloudflare Tunnel are running.
-3. Confirm the iPhone can still load threads using the saved gateway URL and token.
-4. For background delivery, confirm APNs is configured in the gateway environment.
-
-Live Activities use a separate iOS control. Enabling notifications does not automatically enable Live Activities, and disabling one does not disable the other.
-
-If delivery still fails, report whether it fails only in the background or also while CodePilot is open. Share only sanitized recovery text; notification registration details and device tokens are private.
-
-## Remote Desktop Is Unavailable
-
-Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not work around this restriction or enable the feature in beta builds.
+Open **Remote Desktop...** on the Mac and confirm Screen Recording and Accessibility permissions are granted. Use **Allow Screen Recording** or **Allow Accessibility** for a missing permission, then restart CodePilot after changing macOS privacy permissions.
 
 ## Localhost Link Does Not Open
 

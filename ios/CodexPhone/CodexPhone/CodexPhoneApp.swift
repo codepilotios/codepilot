@@ -1,5 +1,6 @@
 import ActivityKit
 import AuthenticationServices
+import CryptoKit
 import Foundation
 import Network
 import PhotosUI
@@ -114,6 +115,8 @@ struct RootView: View {
     @StateObject private var credentials = GatewayCredentials()
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
+    @AppStorage("verifiedGatewayConfiguration") private var verifiedGatewayConfiguration = ""
     @State private var showingSettings = false
     @State private var showingStatus = false
     @State private var showingNewThread = false
@@ -125,8 +128,12 @@ struct RootView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    EmptySettingsView(gatewayURL: gatewayURLBinding, gatewayToken: gatewayTokenBinding)
+                if !gatewaySetupIsComplete {
+                    EmptySettingsView(
+                        gatewayURL: gatewayURLBinding,
+                        gatewayToken: gatewayTokenBinding,
+                        verifiedGatewayConfiguration: $verifiedGatewayConfiguration
+                    )
                 } else if model.threads.isEmpty && model.isLoading {
                     ProgressView("Loading")
                 } else {
@@ -153,7 +160,7 @@ struct RootView: View {
                     .buttonStyle(.borderless)
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("Switch OpenAI Account")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -162,7 +169,7 @@ struct RootView: View {
                         Image(systemName: "square.and.pencil")
                     }
                     .accessibilityLabel("New Thread")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -171,7 +178,7 @@ struct RootView: View {
                         Image(systemName: "desktopcomputer")
                     }
                     .accessibilityLabel("Remote Desktop")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -180,7 +187,7 @@ struct RootView: View {
                         Image(systemName: "chart.bar.xaxis")
                     }
                     .accessibilityLabel("Usage Status")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -197,19 +204,22 @@ struct RootView: View {
                         Image(systemName: "arrow.clockwise")
                     }
                     .accessibilityLabel("Refresh")
-                    .disabled(gatewayToken.isEmpty)
+                    .disabled(!gatewaySetupIsComplete)
                 }
             }
             .refreshable {
+                guard gatewaySetupIsComplete else { return }
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
-            .task {
+            .task(id: verifiedGatewayRequestID) {
+                guard gatewaySetupIsComplete else { return }
                 await model.loadThreads(baseURL: gatewayURL, token: gatewayToken)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(
                     gatewayURL: gatewayURLBinding,
                     gatewayToken: gatewayTokenBinding,
+                    verifiedGatewayConfiguration: $verifiedGatewayConfiguration,
                     model: model,
                     liveActivityError: $liveActivityError
                 )
@@ -244,7 +254,8 @@ struct RootView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
-            .task(id: gatewayToken) {
+            .task(id: verifiedGatewayRequestID) {
+                guard gatewaySetupIsComplete else { return }
                 await model.pollAccountStatus(baseURL: gatewayURL, token: gatewayToken)
             }
             .task(id: liveActivityReconciliationID) {
@@ -316,12 +327,35 @@ struct RootView: View {
             liveActivityError = "The credit Live Activity could not be updated: \(error.localizedDescription)"
         }
     }
+
+    private var selectedConnectionKind: GatewayConnectionKind {
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
+    }
+
+    private var gatewaySetupIsComplete: Bool {
+        isGatewaySetupComplete(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind,
+            verifiedConfiguration: verifiedGatewayConfiguration
+        )
+    }
+
+    private var verifiedGatewayRequestID: String? {
+        gatewayRequestID(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind,
+            verifiedConfiguration: verifiedGatewayConfiguration
+        )
+    }
 }
 
 struct EmptySettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
+    @Binding var verifiedGatewayConfiguration: String
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
     private let client = CodexGatewayClient()
@@ -332,7 +366,7 @@ struct EmptySettingsView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Connect to CodePilot", systemImage: "link.circle")
                         .font(.title2.weight(.semibold))
-                    Text("CodePilot connects to a Mac running the CodePilot gateway. Enter the gateway URL and bearer token from the Mac setup screen.")
+                    Text("CodePilot connects to a Mac running the CodePilot gateway. Enter the gateway URL and iOS connection token from the Mac setup screen.")
                         .foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 4)
@@ -350,11 +384,17 @@ struct EmptySettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                if let setupValidationMessage {
+                    Text(setupValidationMessage)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+
                 TextField("Gateway URL", text: $gatewayURL)
                     .textInputAutocapitalization(.never)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
-                SecureField("Bearer token", text: $gatewayToken)
+                SecureField("iOS connection token", text: $gatewayToken)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
@@ -377,7 +417,7 @@ struct EmptySettingsView: View {
                         .foregroundStyle(connectionMessage.hasPrefix("Connected") ? .green : .orange)
                 }
             } footer: {
-                Text("The token is stored on the Mac at ~/.codex-account-switcher/phone-gateway-token.")
+                Text("Copy the token from the Mac setup screen. Do not share it in issue reports or screenshots.")
             }
         }
         .navigationTitle("CodePilot")
@@ -389,12 +429,19 @@ struct EmptySettingsView: View {
     }
 
     private var canTestConnection: Bool {
-        !gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        setupValidationMessage == nil
+    }
+
+    private var setupValidationMessage: String? {
+        gatewaySetupValidationMessage(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind
+        )
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
-        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
     }
 
     @MainActor
@@ -403,20 +450,36 @@ struct EmptySettingsView: View {
         defer { isTestingConnection = false }
         do {
             let status = try await client.accountStatus(baseURL: gatewayURL, token: gatewayToken)
-            let accountText = status.activeAccount.isEmpty ? "unknown account" : status.activeAccount
-            connectionMessage = "Connected as \(accountText)."
+            connectionMessage = gatewayConnectionSuccessMessage(activeAccount: status.activeAccount)
+            verifiedGatewayConfiguration = gatewaySetupVerificationKey(
+                url: gatewayURL,
+                token: gatewayToken,
+                connectionKind: selectedConnectionKind
+            ) ?? ""
         } catch {
             connectionMessage = connectionFailureMessage(error)
         }
     }
 
     private func connectionFailureMessage(_ error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet:
+                return "This iPhone is offline. Reconnect to the internet or local network, then retry."
+            case .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .dnsLookupFailed:
+                return "Could not reach the gateway. Confirm the Mac is awake, the gateway is running, and the tunnel or local network is available."
+            case .timedOut:
+                return "The gateway connection timed out. Confirm the Mac and tunnel are online, then retry."
+            default:
+                break
+            }
+        }
         if let gatewayError = error as? GatewayError {
             switch gatewayError {
             case .invalidURL:
                 return "Enter a valid gateway URL."
             case .http(let status) where status == 401 || status == 403:
-                return "Invalid or expired bearer token."
+                return "Invalid or expired iOS connection token."
             case .http(let status) where status == 502:
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
@@ -436,6 +499,8 @@ struct EmptySettingsView: View {
 enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     case local
     case cloudflare
+
+    static let setupDefault = GatewayConnectionKind.cloudflare
 
     var id: String { rawValue }
 
@@ -463,7 +528,7 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .local:
-            "Same Network"
+            "Same Network (Advanced)"
         case .cloudflare:
             "Cloudflare"
         }
@@ -472,7 +537,7 @@ enum GatewayConnectionKind: String, CaseIterable, Identifiable {
     var helpText: String {
         switch self {
         case .local:
-            "Same Network is disabled for public beta until LAN binding has explicit firewall and trust guidance."
+            "Use only after configuring the Mac gateway to listen on a LAN address."
         case .cloudflare:
             "Use your Cloudflare Tunnel hostname for access when you are away from the Mac."
         }
@@ -662,7 +727,11 @@ struct ThreadListView: View {
             }
             .overlay {
                 if model.threads.isEmpty && !model.isLoading {
-                    ContentUnavailableView("No Threads", systemImage: "tray")
+                    ContentUnavailableView(
+                        "No Threads",
+                        systemImage: "tray",
+                        description: Text("Start a new thread on this iPhone, or create one with Codex on the connected Mac, then refresh.")
+                    )
                 }
             }
         }
@@ -842,7 +911,11 @@ struct NewThreadView: View {
                                 }
                             }
                         } else {
-                            ContentUnavailableView("No Projects", systemImage: "folder")
+                            ContentUnavailableView(
+                                "No Projects",
+                                systemImage: "folder",
+                                description: Text("Enter a workspace path on the connected Mac, or choose New to create a project folder.")
+                            )
                         }
 
                         TextField("Workspace path", text: $selectedWorkspace)
@@ -1825,8 +1898,112 @@ func isMacLocalWebURL(_ url: URL) -> Bool {
     return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
+func gatewayRootURL(from rawValue: String) throws -> URL {
+    let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let url = URL(string: trimmed),
+          let scheme = url.scheme?.lowercased(),
+          ["http", "https"].contains(scheme),
+          let host = url.host,
+          !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        throw GatewayError.invalidURL
+    }
+    return url
+}
+
+func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, connectionKind: GatewayConnectionKind) -> String? {
+    let trimmedURL = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    let trimmedToken = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmedURL.isEmpty {
+        return "Enter the gateway URL from the Mac setup screen."
+    }
+    if trimmedToken.isEmpty {
+        return "Enter the iOS connection token from the Mac setup screen."
+    }
+    guard let url = try? gatewayRootURL(from: trimmedURL) else {
+        return "Gateway URL must start with http:// or https:// and include a host."
+    }
+    if url.user != nil
+        || url.password != nil
+        || !url.path.isEmpty && url.path != "/"
+        || url.query != nil
+        || url.fragment != nil {
+        return "Gateway URL must be the server address only, without credentials, a path, query, or fragment."
+    }
+    let scheme = url.scheme?.lowercased()
+    let host = url.host?.lowercased() ?? ""
+    switch connectionKind {
+    case .local where host == "localhost" || host == "127.0.0.1" || host == "::1":
+        return "Same Network needs the Mac's LAN address, not localhost or 127.0.0.1."
+    case .cloudflare where host == "localhost" || host == "127.0.0.1" || host == "::1":
+        return "Cloudflare needs the public tunnel URL from the Mac setup screen, not localhost or 127.0.0.1."
+    case .cloudflare where IPv4Address(host) != nil || IPv6Address(host) != nil:
+        return "Cloudflare needs a public tunnel hostname, not an IP address."
+    case .cloudflare where scheme != "https":
+        return "Cloudflare connections should use an https:// tunnel URL."
+    default:
+        return nil
+    }
+}
+
+func gatewayConnectionSuccessMessage(activeAccount: String) -> String {
+    let account = activeAccount.trimmingCharacters(in: .whitespacesAndNewlines)
+    if account.isEmpty {
+        return "Connected. No active account profile was reported; add and save one in CodePilot on the Mac."
+    }
+    return "Connected as \(account)."
+}
+
+func gatewaySetupVerificationKey(
+    url rawURL: String,
+    token rawToken: String,
+    connectionKind: GatewayConnectionKind
+) -> String? {
+    guard gatewaySetupValidationMessage(
+        url: rawURL,
+        token: rawToken,
+        connectionKind: connectionKind
+    ) == nil,
+    let url = try? gatewayRootURL(from: rawURL) else {
+        return nil
+    }
+
+    let token = rawToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    let value = [connectionKind.rawValue, url.absoluteString, token].joined(separator: "\u{0}")
+    return SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
+}
+
+func isGatewaySetupComplete(
+    url rawURL: String,
+    token rawToken: String,
+    connectionKind: GatewayConnectionKind,
+    verifiedConfiguration: String
+) -> Bool {
+    guard let expected = gatewaySetupVerificationKey(
+        url: rawURL,
+        token: rawToken,
+        connectionKind: connectionKind
+    ) else {
+        return false
+    }
+    return verifiedConfiguration == expected
+}
+
+func gatewayRequestID(
+    url: String,
+    token: String,
+    connectionKind: GatewayConnectionKind,
+    verifiedConfiguration: String
+) -> String? {
+    isGatewaySetupComplete(
+        url: url,
+        token: token,
+        connectionKind: connectionKind,
+        verifiedConfiguration: verifiedConfiguration
+    ) ? verifiedConfiguration : nil
+}
+
 func localWebSessionURL(path: String, baseURL: String) -> URL? {
-    guard let root = GatewayEndpoint.baseURL(from: baseURL),
+    guard let root = try? gatewayRootURL(from: baseURL),
           var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
         return nil
     }
@@ -2115,10 +2292,11 @@ struct RespondingIndicator: View {
 struct SettingsView: View {
     @Binding var gatewayURL: String
     @Binding var gatewayToken: String
+    @Binding var verifiedGatewayConfiguration: String
     @ObservedObject var model: CodexPhoneModel
     @Binding var liveActivityError: String
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.defaultPublicBetaCase.rawValue
+    @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @State private var isTestingConnection = false
     @State private var connectionMessage = ""
@@ -2140,15 +2318,23 @@ struct SettingsView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                    TextField("URL", text: $gatewayURL)
+                    if let setupValidationMessage {
+                        Text(setupValidationMessage)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+
+                    TextField("Gateway URL", text: $gatewayURL)
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    SecureField("Bearer token", text: $gatewayToken)
+                        .autocorrectionDisabled()
+                    SecureField("iOS connection token", text: $gatewayToken)
                         .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                 }
 
                 Section("Status") {
-                    LabeledContent("Active account", value: model.activeAccount.isEmpty ? "Unknown" : model.activeAccount)
+                    LabeledContent("Active account", value: model.activeAccount.isEmpty ? "No active account" : model.activeAccount)
                     if let generatedAt = model.accountStatusGeneratedAt {
                         LabeledContent("Usage updated", value: Date(timeIntervalSince1970: TimeInterval(generatedAt)).formatted(date: .abbreviated, time: .shortened))
                     }
@@ -2193,7 +2379,7 @@ struct SettingsView: View {
                     }
                     .disabled(!canTestConnection || isTestingConnection)
 
-                    Text("The token is stored on the Mac at ~/.codex-account-switcher/phone-gateway-token.")
+                    Text("Copy the token from the Mac setup screen. Do not share it in issue reports or screenshots.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -2213,12 +2399,19 @@ struct SettingsView: View {
     }
 
     private var canTestConnection: Bool {
-        !gatewayURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !gatewayToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        setupValidationMessage == nil
+    }
+
+    private var setupValidationMessage: String? {
+        gatewaySetupValidationMessage(
+            url: gatewayURL,
+            token: gatewayToken,
+            connectionKind: selectedConnectionKind
+        )
     }
 
     private var selectedConnectionKind: GatewayConnectionKind {
-        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .local
+        GatewayConnectionKind(rawValue: gatewayConnectionKind) ?? .setupDefault
     }
 
     @MainActor
@@ -2229,20 +2422,36 @@ struct SettingsView: View {
             let status = try await client.accountStatus(baseURL: gatewayURL, token: gatewayToken)
             model.applyAccountStatusFromConnectionTest(status)
             lastConnectedAt = Date()
-            let accountText = status.activeAccount.isEmpty ? "unknown account" : status.activeAccount
-            connectionMessage = "Connected as \(accountText)."
+            connectionMessage = gatewayConnectionSuccessMessage(activeAccount: status.activeAccount)
+            verifiedGatewayConfiguration = gatewaySetupVerificationKey(
+                url: gatewayURL,
+                token: gatewayToken,
+                connectionKind: selectedConnectionKind
+            ) ?? ""
         } catch {
             connectionMessage = connectionFailureMessage(error)
         }
     }
 
     private func connectionFailureMessage(_ error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet:
+                return "This iPhone is offline. Reconnect to the internet or local network, then retry."
+            case .cannotFindHost, .cannotConnectToHost, .networkConnectionLost, .dnsLookupFailed:
+                return "Could not reach the gateway. Confirm the Mac is awake, the gateway is running, and the tunnel or local network is available."
+            case .timedOut:
+                return "The gateway connection timed out. Confirm the Mac and tunnel are online, then retry."
+            default:
+                break
+            }
+        }
         if let gatewayError = error as? GatewayError {
             switch gatewayError {
             case .invalidURL:
                 return "Enter a valid gateway URL."
             case .http(let status) where status == 401 || status == 403:
-                return "Invalid or expired bearer token."
+                return "Invalid or expired iOS connection token."
             case .http(let status) where status == 502:
                 return "Cloudflare reached the hostname, but the gateway is not reachable behind it."
             case .http(let status):
@@ -2288,7 +2497,11 @@ struct AccountStatusView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else if model.accountStatuses.isEmpty {
-                        ContentUnavailableView("No Accounts", systemImage: "person.crop.circle.badge.questionmark")
+                        ContentUnavailableView(
+                            "No Accounts",
+                            systemImage: "person.crop.circle.badge.questionmark",
+                            description: Text("Add and save an account profile from the CodePilot menu on the connected Mac, then refresh.")
+                        )
                     } else {
                         ForEach(model.accountStatuses) { account in
                             AccountStatusRow(
@@ -2426,7 +2639,11 @@ struct AccountSwitcherView: View {
                                 .foregroundStyle(.secondary)
                         }
                     } else if model.accountStatuses.isEmpty {
-                        ContentUnavailableView("No Accounts", systemImage: "person.crop.circle.badge.questionmark")
+                        ContentUnavailableView(
+                            "No Accounts",
+                            systemImage: "person.crop.circle.badge.questionmark",
+                            description: Text("Add and save an account profile from the CodePilot menu on the connected Mac, then refresh.")
+                        )
                     } else {
                         ForEach(model.accountStatuses) { account in
                             AccountStatusRow(
@@ -4892,9 +5109,7 @@ struct CodexGatewayClient {
     }
 
     func downloadRemoteFile(path: String, baseURL: String, token: String) async throws -> URL {
-        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
-            throw GatewayError.invalidURL
-        }
+        let root = try gatewayRootURL(from: baseURL)
         guard var components = URLComponents(url: root, resolvingAgainstBaseURL: false) else {
             throw GatewayError.invalidURL
         }
@@ -4955,9 +5170,7 @@ struct CodexGatewayClient {
         baseURL: String,
         token: String
     ) async throws -> T {
-        guard let root = GatewayEndpoint.baseURL(from: baseURL) else {
-            throw GatewayError.invalidURL
-        }
+        let root = try gatewayRootURL(from: baseURL)
         guard let url = URL(string: path, relativeTo: root)?.absoluteURL else {
             throw GatewayError.invalidURL
         }

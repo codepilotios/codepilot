@@ -7,6 +7,9 @@ protocol RemoteDesktopPermissionChecking: AnyObject {
     var screenRecordingGranted: Bool { get }
     var accessibilityGranted: Bool { get }
     var macUnlocked: Bool { get }
+
+    func requestScreenRecording()
+    func requestAccessibility()
 }
 
 final class SystemRemoteDesktopPermissions: RemoteDesktopPermissionChecking {
@@ -117,6 +120,16 @@ final class RemoteDesktopCoordinator {
         lock.lock()
         defer { lock.unlock() }
         rebuildSnapshotLocked()
+    }
+
+    func requestScreenRecordingPermission() {
+        permissions.requestScreenRecording()
+        refreshStatus()
+    }
+
+    func requestAccessibilityPermission() {
+        permissions.requestAccessibility()
+        refreshStatus()
     }
 
     @discardableResult

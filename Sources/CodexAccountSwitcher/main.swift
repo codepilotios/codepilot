@@ -2568,12 +2568,47 @@ enum SwitchError: LocalizedError {
     }
 }
 
-private struct CodePilotSetupStatus {
+enum CodePilotGatewayHealthProbe {
+    static func request() -> URLRequest {
+        URLRequest(url: URL(string: "http://127.0.0.1:18790/api/health")!)
+    }
+
+    static func requirement(from data: Data?) -> CodePilotSetupRequirement {
+        status(from: data).gatewayRequirement
+    }
+
+    static func status(from data: Data?) -> CodePilotGatewayHealthStatus {
+        guard let data,
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let gateway = object["gateway"] as? [String: Any],
+              gateway["running"] as? Bool == true else {
+            return CodePilotGatewayHealthStatus(
+                gatewayRequirement: .gatewayStopped,
+                notificationsRequirement: .notificationsUnknown
+            )
+        }
+        let notifications = object["notifications"] as? [String: Any]
+        let notificationsConfigured = notifications?["configured"] as? Bool
+        return CodePilotGatewayHealthStatus(
+            gatewayRequirement: .gatewayRunning,
+            notificationsRequirement: notificationsConfigured == true
+                ? .notificationsReady
+                : .notificationsUnavailable
+        )
+    }
+}
+
+struct CodePilotGatewayHealthStatus: Equatable {
+    let gatewayRequirement: CodePilotSetupRequirement
+    let notificationsRequirement: CodePilotSetupRequirement
+}
+
+struct CodePilotSetupStatus {
     let rows: [CodePilotSetupRow]
 
     static func load() -> CodePilotSetupStatus {
         let home = FileManager.default.homeDirectoryForCurrentUser
-        let codexAuth = home.appendingPathComponent(".codex/auth.json").path
+        let codexAuth = home.appendingPathComponent(".codex/auth.json")
         let appDir = home.appendingPathComponent(".codex-account-switcher", isDirectory: true)
         let accountsDir = appDir.appendingPathComponent("accounts", isDirectory: true)
         let tokenPath = appDir.appendingPathComponent("phone-gateway-token")
@@ -2581,88 +2616,116 @@ private struct CodePilotSetupStatus {
             at: accountsDir,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles]
-        ).filter { FileManager.default.fileExists(atPath: $0.appendingPathComponent("auth.json").path) }.count) ?? 0
+        ).filter { authFileIsUsable(at: $0.appendingPathComponent("auth.json")) }.count) ?? 0
 
         let codexCLI = executablePath(named: "codex")
         let cloudflared = executablePath(named: "cloudflared")
+        let codexAuthUsable = authFileIsUsable(at: codexAuth)
+        let remoteDesktopPermissions = SystemRemoteDesktopPermissions()
         let cloudflareRequirement: CodePilotSetupRequirement
         let cloudflareDetail: String
         if cloudflared == nil {
-            cloudflareRequirement = .cloudflareMissing
-            cloudflareDetail = "Install cloudflared to enable remote iPhone access."
-        } else if cloudflareMetadataExists() || cloudflareConfigExists() {
+            cloudflareRequirement = .cloudflareOptional
+            cloudflareDetail = "Optional for remote iPhone access; install cloudflared to use Cloudflare."
+        } else if let metadata = loadCloudflareMetadata(), metadata.isVerified {
             cloudflareRequirement = .cloudflareReady
             cloudflareDetail = cloudflareReadyDetail(defaultPath: cloudflared)
+        } else if cloudflareMetadataExists() || cloudflareConfigExists() {
+            cloudflareRequirement = .cloudflareNeedsVerification
+            cloudflareDetail = "Tunnel configured; verify remote access before copying it to iPhone."
         } else {
             cloudflareRequirement = .cloudflareNeedsConfiguration
             cloudflareDetail = "cloudflared is installed; set up a tunnel for remote access."
         }
+        let gatewayHealth = gatewayHealthStatus()
+        let gatewayRequirement = gatewayHealth.gatewayRequirement
+        let gatewayTokenRequirement = gatewayTokenRequirement(at: tokenPath)
         return CodePilotSetupStatus(rows: [
             CodePilotSetupRow(
                 title: "Codex CLI",
                 requirement: codexCLI == nil ? .codexCLIMissing : .codexCLIInstalled,
-                detail: codexCLI ?? "Install Codex before using CodePilot."
+                detail: codexCLIDetail(installed: codexCLI != nil)
             ),
             CodePilotSetupRow(
                 title: "Codex Login",
-                requirement: FileManager.default.fileExists(atPath: codexAuth) ? .codexSignedIn : .codexSignedOut,
-                detail: FileManager.default.fileExists(atPath: codexAuth) ? "Signed in" : "Missing auth.json"
+                requirement: codexAuthUsable ? .codexSignedIn : .codexSignedOut,
+                detail: codexLoginDetail(signedIn: codexAuthUsable)
             ),
             CodePilotSetupRow(
                 title: "Account Profiles",
                 requirement: accountCount > 0 ? .profilesCreated : .profilesMissing,
-                detail: accountCount == 1 ? "1 profile" : "\(accountCount) profiles"
+                detail: accountProfilesDetail(count: accountCount)
             ),
             CodePilotSetupRow(
-                title: "Gateway Token",
-                requirement: FileManager.default.fileExists(atPath: tokenPath.path) ? .gatewayTokenPresent : .gatewayTokenMissing,
-                detail: FileManager.default.fileExists(atPath: tokenPath.path) ? "Token present" : "Missing token"
+                title: "iOS Connection Token",
+                requirement: gatewayTokenRequirement,
+                detail: gatewayTokenDetail(for: gatewayTokenRequirement)
             ),
             CodePilotSetupRow(
                 title: "Gateway",
-                requirement: gatewayHealthRequirement(),
-                detail: gatewayHealthDetail()
+                requirement: gatewayRequirement,
+                detail: gatewayHealthDetail(for: gatewayRequirement)
             ),
             CodePilotSetupRow(
                 title: "Cloudflare",
                 requirement: cloudflareRequirement,
                 detail: cloudflareDetail
+            ),
+            CodePilotSetupRow(
+                title: "Screen Recording",
+                requirement: remoteDesktopPermissions.screenRecordingGranted ? .screenRecordingReady : .screenRecordingMissing,
+                detail: remoteDesktopPermissions.screenRecordingGranted
+                    ? "Ready for Remote Desktop viewing"
+                    : "Optional; grant in System Settings to view this Mac remotely"
+            ),
+            CodePilotSetupRow(
+                title: "Accessibility",
+                requirement: remoteDesktopPermissions.accessibilityGranted ? .accessibilityReady : .accessibilityMissing,
+                detail: remoteDesktopPermissions.accessibilityGranted
+                    ? "Ready for Remote Desktop control"
+                    : "Optional; grant in System Settings to control this Mac remotely"
+            ),
+            CodePilotSetupRow(
+                title: "Notifications",
+                requirement: gatewayHealth.notificationsRequirement,
+                detail: notificationsDetail(for: gatewayHealth.notificationsRequirement)
             )
         ])
     }
 
-    private static func executablePath(named name: String) -> String? {
-        let process = Process()
-        let pipe = Pipe()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
-        process.arguments = [name]
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        do {
-            try process.run()
-            process.waitUntilExit()
-        } catch {
-            return nil
+    static func executablePath(
+        named name: String,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        home: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> String? {
+        let pathDirectories = (environment["PATH"] ?? "")
+            .split(separator: ":")
+            .map(String.init)
+        let standardDirectories = [
+            home.appendingPathComponent(".local/bin").path,
+            home.appendingPathComponent(".npm-global/bin").path,
+            home.appendingPathComponent(".bun/bin").path,
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin"
+        ]
+
+        var visited = Set<String>()
+        for directory in pathDirectories + standardDirectories where visited.insert(directory).inserted {
+            let candidate = URL(fileURLWithPath: directory, isDirectory: true)
+                .appendingPathComponent(name).path
+            if FileManager.default.isExecutableFile(atPath: candidate) {
+                return candidate
+            }
         }
-        guard process.terminationStatus == 0 else { return nil }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return nil
     }
 
-    private static func gatewayHealthRequirement() -> CodePilotSetupRequirement {
-        let tokenPath = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
-        guard let token = try? String(contentsOf: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-              !token.isEmpty,
-              let url = URL(string: "http://127.0.0.1:18790/api/health") else {
-            return .gatewayStopped
-        }
-        var request = URLRequest(url: url)
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        guard let data = synchronousData(for: request), !data.isEmpty else {
-            return .gatewayStopped
-        }
-        return .gatewayRunning
+    private static func gatewayHealthStatus() -> CodePilotGatewayHealthStatus {
+        CodePilotGatewayHealthProbe.status(from: synchronousData(for: CodePilotGatewayHealthProbe.request()))
     }
 
     private static func synchronousData(for request: URLRequest) -> Data? {
@@ -2677,10 +2740,62 @@ private struct CodePilotSetupStatus {
         return result
     }
 
-    private static func gatewayHealthDetail() -> String {
-        gatewayHealthRequirement() == .gatewayRunning
+    static func gatewayHealthDetail(for requirement: CodePilotSetupRequirement) -> String {
+        requirement == .gatewayRunning
             ? "Reachable on 127.0.0.1:18790"
-            : "Not reachable on 127.0.0.1:18790"
+            : "Start or restart the gateway from the setup window"
+    }
+
+    static func notificationsDetail(for requirement: CodePilotSetupRequirement) -> String {
+        switch requirement {
+        case .notificationsReady:
+            return "Gateway ready for background turn-finished alerts"
+        case .notificationsUnavailable:
+            return "Optional; gateway APNs delivery is not configured"
+        default:
+            return "Start the gateway to check background alert readiness"
+        }
+    }
+
+    static func codexCLIDetail(installed: Bool) -> String {
+        installed ? "Installed" : "Install Codex, then refresh status"
+    }
+
+    static func codexLoginDetail(signedIn: Bool) -> String {
+        signedIn ? "Signed in" : "Sign in to Codex, then refresh status"
+    }
+
+    static func accountProfilesDetail(count: Int) -> String {
+        switch count {
+        case 0:
+            return "Create an account profile from the CodePilot menu"
+        case 1:
+            return "1 profile"
+        default:
+            return "\(count) profiles"
+        }
+    }
+
+    static func authFileIsUsable(at authFile: URL) -> Bool {
+        guard let data = try? Data(contentsOf: authFile),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return false
+        }
+        return !object.isEmpty
+    }
+
+    static func gatewayTokenRequirement(at tokenPath: URL) -> CodePilotSetupRequirement {
+        guard let token = try? String(contentsOf: tokenPath, encoding: .utf8),
+              !token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return .gatewayTokenMissing
+        }
+        return .gatewayTokenPresent
+    }
+
+    static func gatewayTokenDetail(for requirement: CodePilotSetupRequirement) -> String {
+        requirement == .gatewayTokenPresent
+            ? "Ready to copy to iPhone"
+            : "Start or restart the gateway to create it"
     }
 
     private static func cloudflareMetadataExists() -> Bool {
@@ -2703,7 +2818,7 @@ private struct CodePilotSetupStatus {
         return defaultPath ?? "Configured"
     }
 
-    private static func loadCloudflareMetadata() -> CodePilotCloudflareMetadata? {
+    static func loadCloudflareMetadata() -> CodePilotCloudflareMetadata? {
         let path = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".codex-account-switcher/cloudflare-setup.json")
         guard let data = try? Data(contentsOf: path) else { return nil }
@@ -2726,19 +2841,44 @@ struct CodePilotCloudflareMetadata: Codable, Equatable {
     let launchAgentLabel: String
     let lastVerifiedAt: String?
 
+    var isVerified: Bool {
+        guard let lastVerifiedAt else { return false }
+        return !lastVerifiedAt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var safeSummary: String {
         let host = hostname.isEmpty ? "No hostname configured" : hostname
         return "\(mode) tunnel \(tunnelName) for \(host)"
+    }
+
+    var remoteAccessURL: URL? {
+        guard mode == "permanent", !hostname.isEmpty else { return nil }
+        var components = URLComponents()
+        components.scheme = "https"
+        components.host = hostname
+        return components.url
+    }
+
+    var verifiedRemoteAccessURL: URL? {
+        isVerified ? remoteAccessURL : nil
     }
 }
 
 enum CodePilotCloudflareErrorMapper {
     static func message(forExitCode code: Int32) -> String {
         switch code {
+        case 2:
+            return "Check the hostname and tunnel name. Use a DNS hostname such as codepilot.example.com without https:// or a path, then retry."
         case 20:
             return "Homebrew is missing. Install Homebrew or use Cloudflare's manual cloudflared installer, then retry."
         case 21:
             return "cloudflared is missing. Install it from the Cloudflare setup step before continuing."
+        case 22:
+            return "Cloudflare did not create a new tunnel. Confirm you are signed in, choose an unused tunnel name, then retry."
+        case 23:
+            return "The remote URL did not report a running CodePilot gateway. Start or restart the gateway and tunnel, then retry verification."
+        case 24:
+            return "Could not reach the remote URL within 15 seconds. Confirm the Mac gateway and Cloudflare tunnel are running, then retry."
         default:
             return "Cloudflare setup did not finish. Open details, review the last command output, and retry the failed step."
         }
@@ -2761,23 +2901,32 @@ enum CodePilotSetupRequirement: Equatable {
     case cloudflareOptional
     case cloudflareMissing
     case cloudflareNeedsConfiguration
+    case cloudflareNeedsVerification
+    case screenRecordingReady
     case screenRecordingMissing
+    case accessibilityReady
     case accessibilityMissing
-    case notificationsOptional
+    case notificationsReady
+    case notificationsUnavailable
+    case notificationsUnknown
 
     var statusLabel: String {
         switch self {
-        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady:
+        case .codexCLIInstalled, .codexSignedIn, .profilesCreated, .gatewayTokenPresent, .gatewayRunning, .cloudflareReady, .screenRecordingReady, .accessibilityReady, .notificationsReady:
             return "Ready"
         case .cloudflareNeedsConfiguration:
             return "Needs setup"
+        case .cloudflareNeedsVerification:
+            return "Needs verification"
         case .gatewayStopped:
             return "Stopped"
         case .gatewayBlockedByActiveTurn:
             return "Blocked by active turn"
-        case .cloudflareOptional, .notificationsOptional:
+        case .cloudflareOptional, .screenRecordingMissing, .accessibilityMissing, .notificationsUnavailable:
             return "Optional"
-        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing, .screenRecordingMissing, .accessibilityMissing:
+        case .notificationsUnknown:
+            return "Unknown"
+        case .codexCLIMissing, .codexSignedOut, .profilesMissing, .gatewayTokenMissing, .cloudflareMissing:
             return "Missing"
         }
     }
@@ -2786,35 +2935,50 @@ enum CodePilotSetupRequirement: Equatable {
 private final class CodePilotSetupWindowController: NSWindowController {
     private let statusStack = NSStackView()
     private let outputLabel = NSTextField(labelWithString: "")
+    private var beginAccountLogin: (() -> Void)?
+    private var openRemoteDesktopPermissions: (() -> Void)?
     private var cloudflareWizardController: CodePilotCloudflareWizardController?
 
-    convenience init() {
+    convenience init(
+        beginAccountLogin: @escaping () -> Void,
+        openRemoteDesktopPermissions: @escaping () -> Void
+    ) {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 560, height: 560),
+            contentRect: NSRect(x: 0, y: 0, width: 560, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "Setup CodePilot"
         self.init(window: window)
+        self.beginAccountLogin = beginAccountLogin
+        self.openRemoteDesktopPermissions = openRemoteDesktopPermissions
         buildUI()
         refreshStatus()
     }
 
     private func buildUI() {
         guard let contentView = window?.contentView else { return }
+        let scrollView = NSScrollView()
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(scrollView)
+
         let root = NSStackView()
         root.orientation = .vertical
         root.alignment = .leading
         root.spacing = 16
+        root.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
         root.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(root)
+        scrollView.documentView = root
 
         NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 20),
-            root.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
-            root.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
-            root.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -20)
+            scrollView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
+            root.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor)
         ])
 
         let title = NSTextField(labelWithString: "CodePilot Setup")
@@ -2833,7 +2997,7 @@ private final class CodePilotSetupWindowController: NSWindowController {
         root.addArrangedSubview(section(
             title: "Codex",
             buttons: [
-                button("Open Codex Login", #selector(openCodexLogin)),
+                button("Log In New Account...", #selector(openCodexLogin)),
                 button("Open Accounts Folder", #selector(openAccountsFolder))
             ]
         ))
@@ -2841,16 +3005,29 @@ private final class CodePilotSetupWindowController: NSWindowController {
             title: "Gateway",
             buttons: [
                 button("Restart Gateway When Idle", #selector(restartGatewayWhenIdle)),
-                button("Force Restart Gateway...", #selector(forceRestartGateway)),
-                button("Copy iOS Token", #selector(copyToken))
+                button("Force Restart Gateway...", #selector(forceRestartGateway))
+            ]
+        ))
+        root.addArrangedSubview(section(
+            title: "iPhone Connection",
+            buttons: [
+                button("Copy Remote Access URL", #selector(copyRemoteAccessURL)),
+                button("Copy iOS Connection Token", #selector(copyToken))
             ]
         ))
         root.addArrangedSubview(section(
             title: "Cloudflare Remote Access",
             buttons: [
                 button("Set Up Remote Access...", #selector(openCloudflareWizard)),
+                button("Verify Remote Access", #selector(verifyRemoteAccess)),
                 button("Restart Tunnel", #selector(restartCloudflareTunnel)),
                 button("Open Cloudflare Guide", #selector(openCloudflareGuide))
+            ]
+        ))
+        root.addArrangedSubview(section(
+            title: "Remote Desktop Permissions",
+            buttons: [
+                button("Open Permission Setup...", #selector(openRemoteDesktopPermissionSetup))
             ]
         ))
 
@@ -2901,7 +3078,8 @@ private final class CodePilotSetupWindowController: NSWindowController {
     }
 
     @objc private func openCodexLogin() {
-        runInTerminal("codex login")
+        beginAccountLogin?()
+        outputLabel.stringValue = "Finish Codex login, then choose Save Logged-In Account... from the CodePilot menu."
     }
 
     @objc private func openAccountsFolder() {
@@ -2934,8 +3112,24 @@ private final class CodePilotSetupWindowController: NSWindowController {
         }
     }
 
+    @objc private func openRemoteDesktopPermissionSetup() {
+        openRemoteDesktopPermissions?()
+    }
+
     @objc private func restartCloudflareTunnel() {
         runBundledScript(named: "setup-cloudflare-remote-access.sh", arguments: ["restart-service"])
+    }
+
+    @objc private func verifyRemoteAccess() {
+        guard let metadata = CodePilotSetupStatus.loadCloudflareMetadata(),
+              let url = metadata.remoteAccessURL else {
+            outputLabel.stringValue = "No permanent remote access URL found. Finish Cloudflare setup first."
+            return
+        }
+        runBundledScript(
+            named: "setup-cloudflare-remote-access.sh",
+            arguments: ["verify", "--url", url.absoluteString]
+        )
     }
 
     @objc private func copyToken() {
@@ -2943,19 +3137,33 @@ private final class CodePilotSetupWindowController: NSWindowController {
             .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
         guard let token = try? String(contentsOf: tokenPath, encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
               !token.isEmpty else {
-            outputLabel.stringValue = "No gateway token found."
+            outputLabel.stringValue = "No iOS connection token found. Start the gateway, then refresh setup."
             return
         }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(token, forType: .string)
-        outputLabel.stringValue = "Copied iOS token."
+        outputLabel.stringValue = "Copied iOS connection token. Keep it private."
+    }
+
+    @objc private func copyRemoteAccessURL() {
+        guard let metadata = CodePilotSetupStatus.loadCloudflareMetadata(),
+              let url = metadata.verifiedRemoteAccessURL else {
+            outputLabel.stringValue = "No verified remote access URL found. Finish Cloudflare setup, verify remote access, then retry."
+            return
+        }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        outputLabel.stringValue = "Copied remote access URL for the iPhone app."
     }
 
     @objc private func openCloudflareGuide() {
-        let sourceURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("docs/CLOUDFLARE_SETUP.md")
-        if FileManager.default.fileExists(atPath: sourceURL.path) {
-            NSWorkspace.shared.open(sourceURL)
+        let candidates = [
+            Bundle.main.resourceURL?.appendingPathComponent("docs/CLOUDFLARE_SETUP.md"),
+            URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+                .appendingPathComponent("docs/CLOUDFLARE_SETUP.md")
+        ].compactMap { $0 }
+        if let guideURL = candidates.first(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+            NSWorkspace.shared.open(guideURL)
         } else if let url = URL(string: "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/") {
             NSWorkspace.shared.open(url)
         }
@@ -3050,7 +3258,7 @@ private final class CodePilotCloudflareWizardController: NSWindowController {
         root.addArrangedSubview(title)
 
         let intro = NSTextField(wrappingLabelWithString: """
-        CodePilot can use Cloudflare Tunnel so your iPhone can reach the Mac gateway away from your local network. Setup may install cloudflared, sign in to Cloudflare, create a tunnel, add a DNS route, write ~/.cloudflared/codepilot-config.yaml, and install a LaunchAgent to keep the tunnel running. No inbound ports are opened; the iOS app still needs the gateway token.
+        CodePilot can use Cloudflare Tunnel so your iPhone can reach the Mac gateway away from your local network. Setup may install cloudflared, sign in to Cloudflare, create a tunnel, add a DNS route, write ~/.cloudflared/codepilot-config.yaml, and install a LaunchAgent to keep the tunnel running. No inbound ports are opened; the iOS app still needs the iOS connection token.
         """)
         intro.textColor = .secondaryLabelColor
         root.addArrangedSubview(intro)
@@ -3063,6 +3271,10 @@ private final class CodePilotCloudflareWizardController: NSWindowController {
         fields.column(at: 1).width = 420
         hostnameField.placeholderString = "codepilot.example.com"
         root.addArrangedSubview(fields)
+
+        let tunnelNameHelp = NSTextField(wrappingLabelWithString: "Use a new tunnel name. CodePilot cannot reuse an existing Cloudflare tunnel yet.")
+        tunnelNameHelp.textColor = .secondaryLabelColor
+        root.addArrangedSubview(tunnelNameHelp)
 
         root.addArrangedSubview(buttonRow([
             button("Install cloudflared", #selector(installCloudflared)),
@@ -3457,7 +3669,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func openSetup() {
         if setupWindowController == nil {
-            setupWindowController = CodePilotSetupWindowController()
+            setupWindowController = CodePilotSetupWindowController(
+                beginAccountLogin: { [weak self] in
+                    self?.switcher.beginManualLogin()
+                },
+                openRemoteDesktopPermissions: { [weak self] in
+                    self?.openRemoteDesktop()
+                }
+            )
         }
         setupWindowController?.showWindow(nil)
         setupWindowController?.window?.makeKeyAndOrderFront(nil)

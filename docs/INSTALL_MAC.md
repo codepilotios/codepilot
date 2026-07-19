@@ -7,16 +7,18 @@ CodePilot Mac is a menu bar app. It currently builds from source with SwiftPM.
 - macOS 13 or later.
 - Git.
 - Xcode command line tools.
-- Codex installed and available as `codex`.
+- [Codex CLI](https://developers.openai.com/codex/cli/) installed and available as `codex`.
 - A local Codex login at `~/.codex/auth.json`.
+
+CodePilot currently expects Codex to use its default `~/.codex` state directory. A custom `CODEX_HOME` is not supported by the Mac app and gateway yet; use the default directory for CodePilot beta setup.
 
 Successful setup means the menu bar app shows `CodePilot`, at least one account profile exists, and the setup window marks the gateway token and gateway as ready.
 
-## Get The Source
+If Codex CLI is not installed yet, use OpenAI's macOS/Linux installer, then run `codex` once and complete sign-in:
 
 ```sh
-git clone https://github.com/codepilotios/codepilot.git
-cd codepilot
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+codex
 ```
 
 ## Build
@@ -51,12 +53,11 @@ scripts/install-switcher-agent.sh
 
 ## Add Accounts
 
-Use the CodePilot menu bar app:
+Use **Log In New Account...** from either **Setup CodePilot...** or the CodePilot menu:
 
-1. Choose **Log In New Account...**.
-2. Complete the Codex login flow.
-3. Choose **Save Logged-In Account...**.
-4. Give the profile a clear name.
+1. Complete the Codex login flow.
+2. Return to the CodePilot menu and choose **Save Logged-In Account...**.
+3. Give the profile a clear name.
 
 Profiles are stored under:
 
@@ -66,7 +67,9 @@ Profiles are stored under:
 
 ## Gateway
 
-For iPhone access, install the local gateway:
+For iPhone access, open **Setup CodePilot...** and choose **Restart Gateway When Idle**. The Mac app includes the gateway service and installs its LaunchAgent.
+
+When running directly from a source checkout, the equivalent helper is:
 
 ```sh
 scripts/install-phone-gateway-agent.sh
@@ -80,16 +83,20 @@ The gateway listens on:
 http://127.0.0.1:18790
 ```
 
-That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly. Use Cloudflare remote access for the public beta; LAN-bound gateway access is outside the supported beta path until CodePilot ships explicit firewall and trust guidance.
+That local address is for CodePilot on the Mac and for Cloudflare Tunnel. A physical iPhone cannot reach `127.0.0.1` on the Mac directly. Use Cloudflare remote access for the supported setup; **Same Network (Advanced)** is not supported by the standard installer.
 
-The bearer token is stored at:
+Use **Setup CodePilot... > iPhone Connection** to copy the remote access URL and iOS connection token into the iPhone app. Configure a permanent Cloudflare hostname before copying the remote access URL. For advanced troubleshooting, the token is stored at:
 
 ```text
 ~/.codex-account-switcher/phone-gateway-token
 ```
 
-Copy this token into the iOS app connection screen. Do not share it in issue reports or screenshots.
+Do not share this token in issue reports or screenshots.
 
 ## Remote iPhone Access
 
 For access away from the local network, open **Setup CodePilot...** in the Mac menu bar app and use **Cloudflare Remote Access**. The setup wizard can install `cloudflared`, sign in to Cloudflare, configure a permanent hostname, or start a temporary TryCloudflare URL for testing.
+
+## Remote Desktop Permissions
+
+Open **Setup CodePilot... > Remote Desktop Permissions > Open Permission Setup...** (or **Remote Desktop...** from the Mac menu) to check Screen Recording and Accessibility. Screen Recording is required to view the Mac, and Accessibility is required for pointer and keyboard control. Use **Allow Screen Recording** or **Allow Accessibility** when the corresponding permission is missing, then restart CodePilot after granting either macOS privacy permission.

@@ -30,17 +30,8 @@ The public product name is provider-neutral, but the first implementation remain
 
 ## Quick Start
 
-The Mac app currently builds from source on macOS 13 or later. The iPhone companion requires iOS 17 or later and access to an approved beta build; this repository does not yet promise a public TestFlight invitation or App Store download.
-
-1. Install Codex on the Mac that will run CodePilot.
-2. Clone this repository:
-
-   ```sh
-   git clone https://github.com/codepilotios/codepilot.git
-   cd codepilot
-   ```
-
-3. Build the Mac app:
+1. [Install Codex CLI](https://developers.openai.com/codex/cli/) on the Mac that will run CodePilot, then run `codex` once to sign in.
+2. Build the Mac app:
 
    ```sh
    scripts/build-app.sh
@@ -54,10 +45,8 @@ The Mac app currently builds from source on macOS 13 or later. The iPhone compan
    scripts/install-phone-gateway-agent.sh
    ```
 
-6. Configure Cloudflare Tunnel for public-beta iPhone access.
-7. If you have an approved iPhone beta build, install it and enter the gateway URL plus bearer token.
-
-Keep the Mac awake and online, with the CodePilot gateway and Cloudflare Tunnel running, while using the iPhone companion. The current beta has no hosted relay that can reach an offline Mac.
+5. Configure Cloudflare Tunnel for the standard iPhone setup. The advanced same-network path requires a deliberately configured and secured LAN listener.
+6. After receiving an approved beta build, install the iOS app and enter the gateway URL plus iOS connection token from the Mac setup screen. A public install link is not available yet.
 
 See:
 

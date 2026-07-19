@@ -7,20 +7,24 @@ CONTENTS="$APP/Contents"
 MACOS="$CONTENTS/MacOS"
 RESOURCES="$CONTENTS/Resources"
 FRAMEWORKS="$CONTENTS/Frameworks"
+ENTITLEMENTS="$ROOT/scripts/CodePilot.entitlements"
 
 cd "$ROOT"
 swift build -c release
 
 rm -rf "$APP"
-mkdir -p "$MACOS" "$RESOURCES/scripts" "$RESOURCES/gateway" "$FRAMEWORKS"
+mkdir -p "$MACOS" "$RESOURCES/scripts" "$RESOURCES/gateway" "$RESOURCES/docs" "$FRAMEWORKS"
 cp "$ROOT/.build/release/CodexAccountSwitcher" "$MACOS/CodePilot"
 if [[ -d "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" ]]; then
   cp -R "$ROOT/.build/arm64-apple-macosx/release/LiveKitWebRTC.framework" "$FRAMEWORKS/"
   install_name_tool -add_rpath "@executable_path/../Frameworks" "$MACOS/CodePilot" 2>/dev/null || true
 fi
-cp "$ROOT/scripts/"*.sh "$RESOURCES/scripts/"
-cp "$ROOT/scripts/"*.py "$RESOURCES/scripts/" 2>/dev/null || true
-cp "$ROOT/gateway/"*.py "$RESOURCES/gateway/"
+cp "$ROOT/scripts/install-phone-gateway-agent.sh" "$RESOURCES/scripts/"
+cp "$ROOT/scripts/setup-cloudflare-remote-access.sh" "$RESOURCES/scripts/"
+cp "$ROOT/scripts/start-phone-cloudflared.sh" "$RESOURCES/scripts/"
+cp "$ROOT/gateway/codex_phone_gateway.py" "$RESOURCES/gateway/"
+cp "$ROOT/gateway/remote_desktop_gateway.py" "$RESOURCES/gateway/"
+cp "$ROOT/docs/CLOUDFLARE_SETUP.md" "$RESOURCES/docs/"
 chmod +x "$RESOURCES/scripts/"*.sh
 
 cat > "$CONTENTS/Info.plist" <<'PLIST'
@@ -46,6 +50,8 @@ cat > "$CONTENTS/Info.plist" <<'PLIST'
   <string>13.0</string>
   <key>LSUIElement</key>
   <true/>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>CodePilot opens Terminal to run interactive Codex and Cloudflare sign-in commands.</string>
 </dict>
 </plist>
 PLIST
@@ -58,7 +64,7 @@ if [[ -n "$SIGNING_IDENTITY" ]]; then
   if [[ -d "$FRAMEWORKS/LiveKitWebRTC.framework" ]]; then
     codesign --force --timestamp=none --sign "$SIGNING_IDENTITY" "$FRAMEWORKS/LiveKitWebRTC.framework"
   fi
-  codesign --force --timestamp=none --options runtime --identifier io.codepilot.mac --sign "$SIGNING_IDENTITY" "$APP"
+  codesign --force --timestamp=none --options runtime --entitlements "$ENTITLEMENTS" --identifier io.codepilot.mac --sign "$SIGNING_IDENTITY" "$APP"
 else
   echo "warning: no Apple Development signing identity found; macOS permissions may reset after rebuilds" >&2
 fi

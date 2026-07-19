@@ -2,8 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-DEFAULT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-ROOT="${CODEPILOT_REPO_ROOT:-$DEFAULT_ROOT}"
+ROOT="${CODEPILOT_REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 STATE_DIR="${CODEPILOT_AGENT_STATE_DIR:-$HOME/.codex-account-switcher/agents}"
 THREAD_ID_FILE="$STATE_DIR/thread-id"
 CODEX_BIN="${CODEPILOT_CODEX_BIN:-codex}"

@@ -14,13 +14,17 @@ The wizard explains and can configure:
 - A temporary TryCloudflare URL for testing without a domain.
 - A macOS LaunchAgent that keeps the tunnel running.
 
-CodePilot does not open inbound ports. Cloudflare Tunnel makes outbound connections to Cloudflare. The iPhone app still needs the CodePilot gateway token.
+CodePilot does not open inbound ports. Cloudflare Tunnel makes outbound connections to Cloudflare. The iPhone app still needs the iOS connection token from the Mac setup screen.
+
+After permanent setup succeeds, return to **Setup CodePilot... > iPhone Connection** and use **Copy Remote Access URL** and **Copy iOS Connection Token** to configure the iPhone app.
+
+The setup wizard requires the public health endpoint to identify a running CodePilot gateway before marking Cloudflare ready. If setup shows **Needs verification**, use **Verify Remote Access** while the Mac gateway and tunnel are running. CodePilot will not copy an unverified remote URL to the iPhone setup flow.
 
 ## Permanent Hostname
 
 Choose this for regular use. You need a Cloudflare account and a domain managed by Cloudflare.
 
-The wizard creates or reuses a tunnel, writes:
+The wizard creates a new tunnel and does not reuse an existing tunnel yet. If the default `codepilot` name already exists, choose a new tunnel name. The wizard writes:
 
 ```text
 ~/.cloudflared/codepilot-config.yaml
@@ -49,10 +53,14 @@ scripts/setup-cloudflare-remote-access.sh install-service
 scripts/setup-cloudflare-remote-access.sh verify --url https://codepilot.example.com
 ```
 
+Use only the DNS hostname with `--hostname`, not the full `https://` URL and not a path.
+
 ## Troubleshooting
 
 - **Homebrew missing**: install Homebrew or install `cloudflared` manually from Cloudflare.
 - **Hostname not on Cloudflare**: add the domain to Cloudflare first or use TryCloudflare.
+- **Hostname rejected before setup starts**: enter a DNS name such as `codepilot.example.com`, without `https://`, slashes, spaces, or underscores.
 - **502 from Cloudflare**: start the CodePilot gateway and restart the Cloudflare tunnel.
-- **401/403**: copy the current gateway token from the Mac app into the iPhone app.
+- **401/403**: copy the current iOS connection token from the Mac app into the iPhone app.
 - **Works locally but not remotely**: check the Cloudflare LaunchAgent logs in `~/Library/Logs/`.
+- **Verification cannot reach the hostname**: the check stops after 15 seconds. Confirm the Mac is online, restart the gateway and tunnel, then retry **Verify Remote Access**.

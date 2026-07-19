@@ -5,7 +5,8 @@ import os
 import socket
 import subprocess
 import tempfile
-import tomllib
+import threading
+import urllib.request
 import unittest
 import urllib.request
 from unittest import mock
@@ -117,6 +118,20 @@ class RecordingLocalWebFetcher:
         )
 
 
+class TOMLConfigParserTests(unittest.TestCase):
+    def test_parse_codex_plugin_config_subset(self):
+        parsed = gateway.parse_toml_config_text(
+            '[plugins."github@openai-curated"]\n'
+            'enabled = false\n'
+            '\n'
+            '[mcp_servers.supabase.env]\n'
+            'SUPABASE_PROJECT_REF = "test"\n'
+        )
+
+        self.assertFalse(parsed["plugins"]["github@openai-curated"]["enabled"])
+        self.assertEqual(parsed["mcp_servers"]["supabase"]["env"]["SUPABASE_PROJECT_REF"], "test")
+
+
 class FakeRemoteLoginProcess:
     def __init__(self, codex_home: Path, auth_url: str):
         self.codex_home = codex_home
@@ -170,7 +185,7 @@ class AppServerClientTests(unittest.TestCase):
         gateway.DEFAULT_SWITCHER_HOME = self._original_switcher_home
         self._switcher_home_tempdir.cleanup()
 
-    def test_codex_child_env_prepends_homebrew_path_and_sets_codex_home(self):
+    def test_codex_child_env_prepends_supported_install_paths_and_sets_codex_home(self):
         old_env = dict(gateway.os.environ)
         try:
             gateway.os.environ.clear()
@@ -179,35 +194,41 @@ class AppServerClientTests(unittest.TestCase):
             env = gateway.codex_child_env(Path("/tmp/codex-home"))
 
             self.assertEqual(env["CODEX_HOME"], "/tmp/codex-home")
-            self.assertTrue(env["PATH"].startswith("/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:"))
+            self.assertIn(str(gateway.HOME / ".local/bin"), env["PATH"])
+            self.assertIn(str(gateway.HOME / ".npm-global/bin"), env["PATH"])
+            self.assertIn(str(gateway.HOME / ".bun/bin"), env["PATH"])
+            self.assertIn("/opt/homebrew/bin", env["PATH"])
             self.assertIn("/usr/bin:/bin", env["PATH"])
         finally:
             gateway.os.environ.clear()
             gateway.os.environ.update(old_env)
 
-    def test_codex_child_env_removes_gateway_only_credentials(self):
-        old_env = dict(gateway.os.environ)
+    def test_codex_executable_finds_supported_user_install_when_launchd_path_is_restricted(self):
+        old_prefixes = gateway.CODEX_CHILD_PATH_PREFIXES
+        old_path = gateway.os.environ.get("PATH")
         try:
-            gateway.os.environ.clear()
-            gateway.os.environ.update({
-                "PATH": "/usr/bin:/bin",
-                "CODEPILOT_TURN_API_TOKEN": "turn-secret",
-                "CODEPILOT_TURN_KEY_ID": "turn-key",
-                "CODEX_PHONE_APNS_KEY_PATH": "/private/apns-key.p8",
-                "CODEPILOT_FILE_DOWNLOAD_ROOTS": "/private/previews",
-                "SUPABASE_ACCESS_TOKEN": "connector-secret",
-            })
+            with tempfile.TemporaryDirectory() as temporary_directory:
+                user_bin = Path(temporary_directory) / ".local" / "bin"
+                user_bin.mkdir(parents=True)
+                codex = user_bin / "codex"
+                codex.write_text("#!/bin/sh\n", encoding="utf-8")
+                codex.chmod(0o755)
+                gateway.CODEX_CHILD_PATH_PREFIXES = (str(user_bin),)
+                gateway.os.environ["PATH"] = "/usr/bin:/bin"
+                state = gateway.GatewayState(
+                    Path(temporary_directory) / ".codex",
+                    "token",
+                    Path(temporary_directory) / "missing-codex",
+                    False,
+                )
 
-            env = gateway.codex_child_env(Path("/tmp/codex-home"))
-
-            self.assertNotIn("CODEPILOT_TURN_API_TOKEN", env)
-            self.assertNotIn("CODEPILOT_TURN_KEY_ID", env)
-            self.assertNotIn("CODEX_PHONE_APNS_KEY_PATH", env)
-            self.assertNotIn("CODEPILOT_FILE_DOWNLOAD_ROOTS", env)
-            self.assertNotIn("SUPABASE_ACCESS_TOKEN", env)
+                self.assertEqual(state.codex_executable(), codex)
         finally:
-            gateway.os.environ.clear()
-            gateway.os.environ.update(old_env)
+            gateway.CODEX_CHILD_PATH_PREFIXES = old_prefixes
+            if old_path is None:
+                gateway.os.environ.pop("PATH", None)
+            else:
+                gateway.os.environ["PATH"] = old_path
 
     def test_initializes_app_server_over_stdio(self):
         process = FakeAppServerProcess([
@@ -1257,6 +1278,39 @@ class GatewayStateTests(unittest.TestCase):
             self.assertIn("localWeb", health)
             self.assertNotIn("secret-token", json.dumps(health))
 
+    def test_health_endpoint_is_available_without_bearer_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+            switcher_home = Path(tmp) / "switcher"
+            codex_home = Path(tmp) / "codex"
+            server = None
+            thread = None
+            try:
+                gateway.DEFAULT_SWITCHER_HOME = switcher_home
+                switcher_home.mkdir()
+                codex_home.mkdir()
+                (switcher_home / "active-account.txt").write_text("main", encoding="utf-8")
+                state = GatewayState(codex_home, "secret-token", Path("/missing-codex"), False)
+                server = gateway.GatewayServer(("127.0.0.1", 0), state)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+
+                url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+                with urllib.request.urlopen(url, timeout=2) as response:
+                    status = response.status
+                    payload = json.loads(response.read().decode("utf-8"))
+            finally:
+                if server is not None:
+                    server.shutdown()
+                    server.server_close()
+                if thread is not None:
+                    thread.join(timeout=2)
+                gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
+
+            self.assertEqual(status, 200)
+            self.assertTrue(payload["gateway"]["running"])
+            self.assertNotIn("secret-token", json.dumps(payload))
+
     def test_error_payload_has_stable_code_message_and_recovery(self):
         payload = gateway.error_payload(
             "local_web_invalid_target",
@@ -1831,7 +1885,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 state = GatewayState(codex_home, "token", Path("/missing-codex"), False)
 
                 status = state.ensure_plugin_connectivity()
-                merged = tomllib.loads((codex_home / "config.toml").read_text(encoding="utf-8"))
+                merged = gateway.parse_toml_config_text((codex_home / "config.toml").read_text(encoding="utf-8"))
 
                 self.assertEqual(status["addedPlugins"], ["supabase@openai-curated"])
                 self.assertEqual(status["addedMcpServers"], ["supabase"])
