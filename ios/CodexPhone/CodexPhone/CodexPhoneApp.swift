@@ -114,8 +114,6 @@ struct RootView: View {
     @StateObject private var model = CodexPhoneModel()
     @StateObject private var credentials = GatewayCredentials()
     @Environment(\.scenePhase) private var scenePhase
-    @AppStorage("gatewayURL") private var gatewayURL = ""
-    @AppStorage("gatewayToken") private var gatewayToken = ""
     @AppStorage("totalCreditLiveActivityEnabled") private var totalCreditLiveActivityEnabled = false
     @AppStorage("gatewayConnectionKind") private var gatewayConnectionKind = GatewayConnectionKind.setupDefault.rawValue
     @AppStorage("verifiedGatewayConfiguration") private var verifiedGatewayConfiguration = ""
@@ -132,8 +130,8 @@ struct RootView: View {
             Group {
                 if !gatewaySetupIsComplete {
                     EmptySettingsView(
-                        gatewayURL: $gatewayURL,
-                        gatewayToken: $gatewayToken,
+                        gatewayURL: gatewayURLBinding,
+                        gatewayToken: gatewayTokenBinding,
                         verifiedGatewayConfiguration: $verifiedGatewayConfiguration
                     )
                 } else if model.threads.isEmpty && model.isLoading {
@@ -219,8 +217,8 @@ struct RootView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView(
-                    gatewayURL: $gatewayURL,
-                    gatewayToken: $gatewayToken,
+                    gatewayURL: gatewayURLBinding,
+                    gatewayToken: gatewayTokenBinding,
                     verifiedGatewayConfiguration: $verifiedGatewayConfiguration,
                     model: model,
                     liveActivityError: $liveActivityError
