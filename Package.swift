@@ -8,7 +8,7 @@ let package = Package(
         .macOS(.v13)
     ],
     dependencies: [
-        .package(url: "https://github.com/livekit/webrtc-xcframework-static.git", exact: "144.7559.10")
+        .package(url: "https://github.com/livekit/webrtc-xcframework-static.git", exact: "144.7559.11")
     ],
     targets: [
         .executableTarget(
