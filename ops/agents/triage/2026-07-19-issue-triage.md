@@ -6,6 +6,8 @@ A later 2026-07-19 refresh again found no new or updated issues. Draft PR #33 ha
 
 A subsequent refresh found the queue unchanged after draft PRs #34 and #35 opened. Both are cleanly mergeable with passing CI: #34 narrows unauthenticated health diagnostics, while #35 records a community-promotion restriction. Neither changes the classification or next action for #27, #25, or #8.
 
+The latest refresh found the issue queue and issue update timestamps unchanged after draft PR #36 opened. PR #36 is cleanly mergeable with passing CI and refreshes release-readiness evidence. It reinforces the existing #25 distribution block, #27 public-site configuration gap, and #8 screenshot gap without resolving or reclassifying any issue.
+
 ## Reviewed Issues
 
 - #27 Complete public beta repository settings
@@ -30,6 +32,7 @@ A subsequent refresh found the queue unchanged after draft PRs #34 and #35 opene
 - Confirmed the linked preparation, containment, and triage pull requests are merged.
 - Reviewed draft PR #33 and confirmed its documentation changes do not alter the current issue classifications or blockers.
 - Reviewed draft PRs #34 and #35 and confirmed that their security-health and community-policy changes do not resolve or reclassify an open issue.
+- Reviewed draft PR #36 and confirmed that its release-readiness findings align with the existing issue classifications and blockers.
 - Did not change issue labels or comments because the queue has no new evidence beyond the already published blocker updates.
 - Did not change product code: #25 requires a coordinated security implementation, while #8 requires controlled visual capture rather than a code patch.
 
