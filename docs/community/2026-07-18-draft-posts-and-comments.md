@@ -297,36 +297,66 @@ feed.
 > being announced. Project and build instructions: [PUBLIC_REPOSITORY_URL]
 > TestFlight companion: [TESTFLIGHT_URL]
 
-## r/SideProject build-story draft
+## r/AI_Agents weekly Project Display thread
 
-**Status:** Optional later post; do not publish alongside the focused beta posts.
-
-**Title**
-
-> The hard part of an iPhone coding-agent companion was explaining where everything runs
-
-**Body**
+**Status:** Hold until the `codepilotios` identity has genuine non-promotional
+participation and remains safely below the community's one-in-ten
+self-promotion guideline. A maintainer must confirm the current weekly thread
+is open and approve this exact no-link comment before a human posts it.
 
 > Disclosure: we build CodePilot; this is the project's account.
 >
-> We expected the hard part of an iPhone companion for Codex CLI to be remote chat.
-> In practice, the harder problem was making the system boundary legible.
+> CodePilot is a beta Mac + iPhone companion for people who run Codex sessions
+> on a Mac they control.
 >
-> The agent and credentials stay on the user's Mac. A local gateway exposes the
-> selected threads and controls. The iPhone is a client. Remote access currently
-> uses infrastructure controlled by the tester. When something fails, the app has
-> to say whether the tunnel, gateway, authentication, or active turn is the actual
-> blocker.
+> The agent-workflow question we are exploring is what should remain possible
+> after you leave the terminal. CodePilot keeps the Codex session, credentials,
+> and project files on the Mac. A token-protected local gateway gives the iPhone
+> client narrow access to session status, threads, file uploads, notifications,
+> and controls to steer or stop an active turn. The current remote path uses a
+> Cloudflare Tunnel controlled by the tester.
 >
-> That changed our beta goal from “more features” to a measurable setup question:
-> can a new tester connect the phone and send a first prompt within five minutes,
-> without private support?
+> We would value feedback from people who run coding agents on longer tasks:
 >
-> We are preparing a public beta now. For people who have shipped a tool with a
-> local service plus mobile client: what explanation or diagnostic made that
-> architecture click for users?
+> - Which remote actions are genuinely useful: status, steering, stopping, file upload, or none of them?
+> - Which actions should always require a fresh confirmation on the Mac or phone?
+> - Does a user-owned gateway and tunnel clarify the trust boundary, or just make setup harder?
+> - What audit or recovery information would you expect before connecting a phone to an active agent session?
 >
-> Technical context: [PUBLIC_REPOSITORY_URL]
+> This is a workflow and trust feedback request, not an upvote request. We have
+> left out the beta link until public distribution is approved. Please do not
+> share credentials, gateway tokens, private hostnames, logs, screenshots, or
+> project files in replies.
+
+## r/SideProject self-promotion thread
+
+**Status:** Optional later comment. Use only after genuine participation and a
+same-day check that the current thread still explicitly invites project
+sharing. Keep it link-free and do not publish it alongside focused beta posts.
+
+> Disclosure: we build CodePilot; this is the project's account.
+>
+> We are preparing CodePilot, a beta Mac + iPhone companion for people who run
+> Codex sessions on a Mac they control.
+>
+> We built it around a specific problem: a coding-agent turn can keep running
+> after you leave your desk, but we do not want to move provider credentials or
+> project files to another hosted service. CodePilot leaves those on the Mac. A
+> token-protected local gateway gives the iPhone client narrow access to session
+> status, threads, file uploads, notifications, and controls to steer or stop an
+> active turn. The current remote path uses a Cloudflare Tunnel controlled by
+> the tester.
+>
+> We are looking for blunt feedback on the idea before broader distribution:
+>
+> - Is checking or steering a coding-agent session from a phone a real workflow, or just a smaller terminal-shaped distraction?
+> - Does the Mac gateway plus user-owned tunnel model feel understandable?
+> - Which part would stop you from trying the beta: setup effort, token handling, remote access, or something else?
+>
+> This is a feedback request, not an upvote request. We have left out the beta
+> link until public distribution is approved. Please do not share credentials,
+> gateway tokens, private hostnames, logs, screenshots, or project files in
+> replies.
 
 ## Show HN
 

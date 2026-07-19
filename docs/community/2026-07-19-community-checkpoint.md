@@ -20,6 +20,8 @@ the first beta placements. The broader community survey remains in
 | `r/TestFlight` | Strong after distribution is ready | Hold until a direct public Apple TestFlight URL is verified and approved. New posts may contain only the TestFlight link, need the app flair, and should use the app name with no recruitment tag in the title. Put later updates in comments rather than reposting. |
 | `r/BetaTests` | Strong for focused tester feedback | Use the prepared no-link draft only after a maintainer verifies the identity's age and karma eligibility and re-checks the posting guidance. |
 | `r/alphaandbetausers` | Good secondary tester pool | Its rules endpoint currently publishes no community-specific rules. Use only after a same-day review of rules and recent removals; do not offer incentives or reciprocal testing. |
+| `r/AI_Agents` | Good agent-workflow feedback pool, participation-gated | Project promotion belongs in the current weekly Project Display thread. The community permits limited self-promotion at roughly one in ten contributions, requires substantive context, and routes project links to that thread. Use the prepared no-link comment only after genuine non-promotional participation and a same-day thread check. |
+| `r/SideProject` | Broad secondary feedback pool | Its About page still publishes no community-specific rules, and a current thread explicitly invites projects and feedback. Prefer one prepared no-link comment in that thread over a standalone post, and use only after genuine participation plus a same-day thread and removal check. |
 | `r/ChatGPTCoding` | Good audience, gated placement | Maker-authored service promotion belongs in the designated self-promotion thread. The currently visible thread still receives comments, but its automated moderation actively removes or holds comments based on account karma. Main-feed placement requires moderator sponsorship. Confirm thread status and identity eligibility before a human posts one approved comment. |
 | `r/Codex` | Best topical match, moderator-first | Posts must be directly about Codex, use the right flair, and must not use bots. The published rules do not explicitly authorize maker promotion, so send the prepared permission request manually and post only if moderators and a maintainer approve. |
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | App promotion is limited to Saturday and one app per year. Current enforcement requires labeled Tech Stack, Development Challenge, and AI Disclosure sections. Use the revised technical draft only after account eligibility, timing, and the annual allowance are confirmed. |
@@ -40,6 +42,8 @@ It contains:
 - a TestFlight-only link post and safety-focused first comment with no
   additional URL;
 - a single `r/ChatGPTCoding` self-promotion-thread comment;
+- no-link thread comments for `r/AI_Agents` and `r/SideProject`, each held
+  behind its participation and same-day thread checks;
 - an `r/Codex` moderator permission request and conditional post;
 - a technical `r/iOSProgramming` App Saturday post;
 - held drafts for later communities, each with its eligibility gate; and
@@ -59,6 +63,13 @@ plan. The following destinations add a community-specific gate:
   title, and app flair.
 - `r/BetaTests`: confirm account age and karma eligibility.
 - `r/alphaandbetausers`: perform a same-day rules and recent-removals check.
+- `r/AI_Agents`: confirm genuine non-promotional participation, a safely
+  compliant one-in-ten ratio, and that the current weekly Project Display
+  thread remains open. Any later approved link belongs in the thread comment,
+  not a standalone project post.
+- `r/SideProject`: confirm genuine participation and that the current
+  self-promotion thread remains open; use the approved no-link comment only,
+  not a standalone launch post.
 - `r/ChatGPTCoding`: confirm the designated thread is still open and the
   identity can participate without an account-karma removal or manual-review
   hold; main-feed placement additionally requires moderator sponsorship.
@@ -81,6 +92,10 @@ The concise maintainer action list remains in
 - <https://www.reddit.com/r/TestFlight/about/>
 - <https://www.reddit.com/r/BetaTests/about/>
 - <https://www.reddit.com/r/alphaandbetausers/about/>
+- <https://www.reddit.com/r/AI_Agents/about/>
+- <https://www.reddit.com/r/AI_Agents/comments/1ukprfr/weekly_thread_project_display/>
+- <https://www.reddit.com/r/SideProject/about/>
+- <https://www.reddit.com/r/SideProject/comments/1utus1n/whats_everyone_working_on_lets_self_promote/>
 - <https://www.reddit.com/r/ChatGPTCoding/about/>
 - <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/>
 - <https://www.reddit.com/r/codex/about/>
