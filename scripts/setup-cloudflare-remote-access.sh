@@ -104,26 +104,6 @@ brew_bin() {
   return 1
 }
 
-validate_hostname() {
-  local hostname="$1"
-  /usr/bin/python3 - "$hostname" <<'PY'
-import re
-import sys
-
-hostname = sys.argv[1].strip().rstrip(".")
-label = r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
-pattern = re.compile(rf"^{label}(?:\.{label})+$")
-if pattern.fullmatch(hostname) and len(hostname) <= 253:
-    raise SystemExit(0)
-raise SystemExit(1)
-PY
-}
-
-validate_tunnel_name() {
-  local tunnel_name="$1"
-  [[ "$tunnel_name" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$ ]]
-}
-
 write_metadata() {
   local mode="$1"
   local hostname="$2"
@@ -240,14 +220,8 @@ configure_permanent() {
     echo "--hostname is required" >&2
     exit 2
   }
-  validate_hostname "$hostname" || {
-    echo "--hostname must be a DNS hostname such as codepilot.example.com, without https://, paths, spaces, or underscores." >&2
-    exit 2
-  }
-  validate_tunnel_name "$tunnel_name" || {
-    echo "--tunnel-name must start with a letter or number and use only letters, numbers, dots, underscores, or hyphens." >&2
-    exit 2
-  }
+  validate_tunnel_inputs "$hostname" "$tunnel_name"
+  validate_gateway_url
 
   local cf create_output tunnel_id
   cf="$(cloudflared_bin)" || {
@@ -325,92 +299,56 @@ verify_url() {
     echo "--url is required" >&2
     exit 2
   }
-  /usr/bin/python3 - "$METADATA_PATH" "$url" <<'PY'
+  url="$(/usr/bin/python3 - "$url" "$METADATA_PATH" <<'PY'
 import json
+import stat
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
-path = Path(sys.argv[1])
-verified_url = urlparse(sys.argv[2])
+value = sys.argv[1]
+metadata_path = Path(sys.argv[2])
+try:
+    metadata_stat = metadata_path.lstat()
+    if stat.S_ISLNK(metadata_stat.st_mode) or not stat.S_ISREG(metadata_stat.st_mode):
+        raise ValueError("setup metadata must be a regular file")
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    expected_host = str(metadata.get("hostname") or "").casefold()
+    parsed = urlsplit(value)
+    port = parsed.port
+except (OSError, ValueError, json.JSONDecodeError) as error:
+    raise SystemExit(f"Cannot verify an untrusted Cloudflare URL: {error}")
+
 if (
-    verified_url.scheme.lower() != "https"
-    or not verified_url.hostname
-    or verified_url.username
-    or verified_url.password
-    or verified_url.port not in (None, 443)
-    or verified_url.path not in ("", "/")
-    or verified_url.params
-    or verified_url.query
-    or verified_url.fragment
+    metadata.get("mode") != "permanent"
+    or not expected_host
+    or parsed.scheme != "https"
+    or (parsed.hostname or "").casefold() != expected_host
+    or parsed.username is not None
+    or parsed.password is not None
+    or parsed.path not in {"", "/"}
+    or parsed.query
+    or parsed.fragment
+    or port not in {None, 443}
 ):
-    print("--url must be the HTTPS tunnel origin, such as https://codepilot.example.com, without a path, query, or credentials.", file=sys.stderr)
-    raise SystemExit(2)
+    raise SystemExit("Verification URL must be the configured Cloudflare HTTPS origin")
 
-if not path.is_file():
-    print("Cloudflare setup metadata is missing. Configure a permanent tunnel before verification.", file=sys.stderr)
-    raise SystemExit(2)
-
-try:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-except (OSError, ValueError):
-    print("Cloudflare setup metadata could not be read. Configure the permanent tunnel again before verification.", file=sys.stderr)
-    raise SystemExit(2)
-
-configured_hostname = str(payload.get("hostname", "")).strip().rstrip(".").lower()
-verified_hostname = verified_url.hostname.strip().rstrip(".").lower()
-if payload.get("mode") != "permanent" or not configured_hostname:
-    print("No permanent Cloudflare hostname is configured. Finish permanent tunnel setup before verification.", file=sys.stderr)
-    raise SystemExit(2)
-if configured_hostname != verified_hostname:
-    print(f"--url must use the configured Cloudflare hostname: {configured_hostname}", file=sys.stderr)
-    raise SystemExit(2)
+print(f"https://{expected_host}")
 PY
-  local health_response
-  if ! health_response="$(curl -fsS --connect-timeout 5 --max-time 15 "$url/api/health")"; then
-    echo "Could not reach $url/api/health within 15 seconds. Confirm the Mac gateway and Cloudflare tunnel are running, then retry." >&2
-    exit 24
+)"
+  [ -f "$GATEWAY_TOKEN_PATH" ] || {
+    echo "CodePilot gateway token is missing. Start the gateway before verifying remote access." >&2
+    exit 22
+  }
+  local token
+  token="$(tr -d '\r\n' < "$GATEWAY_TOKEN_PATH")"
+  if [[ -z "$token" || "$token" == *[^A-Za-z0-9_-]* ]]; then
+    echo "CodePilot gateway token is invalid. Rotate the token before verifying remote access." >&2
+    exit 22
   fi
-  /usr/bin/python3 - "$url" "$health_response" <<'PY'
-import json
-import sys
-
-url = sys.argv[1]
-try:
-    payload = json.loads(sys.argv[2])
-except (json.JSONDecodeError, OSError):
-    print(f"{url}/api/health did not return a CodePilot health response.", file=sys.stderr)
-    raise SystemExit(23)
-
-gateway = payload.get("gateway")
-if not isinstance(gateway, dict) or gateway.get("running") is not True:
-    print(f"{url}/api/health did not report a running CodePilot gateway.", file=sys.stderr)
-    raise SystemExit(23)
-PY
-  /usr/bin/python3 - "$METADATA_PATH" "$url" <<'PY'
-import json
-import sys
-from datetime import datetime, timezone
-from pathlib import Path
-from urllib.parse import urlparse
-
-path = Path(sys.argv[1])
-verified_url = urlparse(sys.argv[2])
-if not path.is_file():
-    raise SystemExit(0)
-
-try:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-except (OSError, ValueError):
-    raise SystemExit(0)
-
-configured_hostname = str(payload.get("hostname", "")).strip().rstrip(".").lower()
-verified_hostname = (verified_url.hostname or "").strip().rstrip(".").lower()
-if configured_hostname and configured_hostname == verified_hostname:
-    payload["lastVerifiedAt"] = datetime.now(timezone.utc).isoformat()
-    payload["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-PY
+  printf 'header = "Authorization: Bearer %s"\n' "$token" | \
+    curl -fsS --proto '=https' --proto-redir '=https' --max-redirs 0 \
+      --connect-timeout 10 --max-time 20 --config - "$url/api/health" >/dev/null
   echo "verified $url"
 }
 
