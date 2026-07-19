@@ -30,6 +30,7 @@ The remaining gaps are productization gaps:
 - The Mac and iOS setup flows are not yet one coherent checklist.
 - Distribution requirements are not fully documented for public beta users.
 - Browser visual companion clicks from the phone did not reach the event log during planning and need reliability work or explicit fallback text.
+- Remote Desktop must remain outside the supported public beta until device-pairing and session-authorization enforcement is complete and independently verified.
 
 ## Release Principles
 
