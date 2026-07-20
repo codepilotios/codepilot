@@ -19,7 +19,7 @@ re-checked on 2026-07-20. The broader survey remains in
 | `r/GenAiApps` | Strong | Approved as the first placement using the prepared contextual, link-free feedback post with `iOS` flair. Do not post until the public beta install path and setup flow are verified. Re-check flair and live rules on posting day. |
 | `r/TestFlight` | Strong after distribution is ready | Hold until a direct public Apple TestFlight URL is verified and approved. The prepared link post contains no non-TestFlight URL; a human must confirm the title and app flair before posting. |
 | `r/BetaTests` | Strong for focused tester feedback | Use the prepared no-link tester request only after a maintainer confirms that `codepilotios` satisfies the community's account-age and karma gates. |
-| `r/alphaandbetausers` | Good secondary tester pool | No community-specific About-page rules were found in the latest review. Use only after a same-day rules and removal check; do not offer incentives or reciprocal testing. |
+| `r/alphaandbetausers` | Secondary, but likely low-signal | No community-specific About-page rules were found in the latest review, and recent beta requests remain visible. A recent community discussion describes weak follow-through and “post-and-ghost” behavior, while current threads often frame participation as reciprocal testing. Use only for a narrow feedback question after a same-day rules and removal check; do not promise a test swap, incentive, or private contact exchange. |
 | `r/AI_Agents` | Good agent-workflow feedback pool, participation-gated | The current weekly Project Display thread was active and receiving project comments. Keep CodePilot in that thread, disclose the maker relationship, and wait until the identity has genuine non-promotional participation and a safely compliant promotion ratio. |
 | `r/SideProject` | Broad secondary feedback pool | A fresh self-promotion thread was active on 2026-07-20 and explicitly invited projects and feedback. Prefer the prepared no-link comment there over a standalone launch post, after genuine participation and final approval. |
 | `r/ChatGPTCoding` | Good audience, restricted and account-filtered | The designated self-promotion thread remains visible and says each project may be promoted only once. Visible moderator actions still show inadequate-karma removals and manual-review holds. Use only if the existing identity is already eligible; do not seek contributor status or sponsorship solely for launch. |
@@ -63,6 +63,8 @@ or release gate changes.
   flair; do not add another link.
 - `r/BetaTests`: confirm account age and combined-karma eligibility.
 - `r/alphaandbetausers`: perform a same-day rules and recent-removals check.
+  Treat it as a secondary experiment rather than a launch-first placement, and
+  approve one specific feedback question so useful responses can be measured.
 - `r/AI_Agents`: confirm genuine non-promotional participation, a compliant
   promotion ratio, and that the current weekly Project Display thread is open.
 - `r/SideProject`: confirm genuine participation and use the current approved
@@ -87,6 +89,8 @@ The concise maintainer action list is in
 - <https://www.reddit.com/r/TestFlight/about/>
 - <https://www.reddit.com/r/BetaTests/about/>
 - <https://www.reddit.com/r/alphaandbetausers/about/>
+- <https://www.reddit.com/r/alphaandbetausers/comments/1saowv5/honest_discussion_this_community_is_dead_if_not/>
+- <https://www.reddit.com/r/alphaandbetausers/comments/1unh2mo/looking_for_cool_projects_comment_them_and_ill/>
 - <https://www.reddit.com/r/AI_Agents/about/>
 - <https://www.reddit.com/r/AI_Agents/comments/1ukprfr/weekly_thread_project_display/>
 - <https://www.reddit.com/r/SideProject/about/>
