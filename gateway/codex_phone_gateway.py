@@ -1023,14 +1023,13 @@ def safe_http_header_value(value: object, fallback: str, *, max_length: int = 51
 def file_response(handler: BaseHTTPRequestHandler, path: Path):
     metadata = file_metadata(path)
     content_type = safe_http_header_value(metadata["mimeType"], "application/octet-stream")
-    download_name = safe_filename(path.name, "download")
     handler.send_response(200)
     handler.send_header("Content-Type", content_type)
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Referrer-Policy", "no-referrer")
     handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(metadata["size"]))
-    handler.send_header("Content-Disposition", f'attachment; filename="{download_name}"')
+    handler.send_header("Content-Disposition", "attachment")
     handler.end_headers()
     with path.open("rb") as handle:
         shutil.copyfileobj(handle, handler.wfile)

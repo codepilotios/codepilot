@@ -1469,7 +1469,7 @@ class GatewayStateTests(unittest.TestCase):
             self.assertEqual(metadata["mimeType"], "text/plain")
             self.assertEqual(metadata["size"], 5)
 
-    def test_file_response_sanitizes_download_filename_header(self):
+    def test_file_response_does_not_include_filename_in_header(self):
         with tempfile.TemporaryDirectory() as tmp:
             file_path = Path(tmp) / 'report\nX-Injected: yes.txt'
             file_path.write_text("hello", encoding="utf-8")
@@ -1479,7 +1479,7 @@ class GatewayStateTests(unittest.TestCase):
             gateway.file_response(handler, file_path)
 
             headers = dict(call.args for call in handler.send_header.call_args_list)
-            self.assertEqual(headers["Content-Disposition"], 'attachment; filename="report_X-Injected_ yes.txt"')
+            self.assertEqual(headers["Content-Disposition"], "attachment")
             self.assertNotIn("\n", headers["Content-Disposition"])
             self.assertNotIn("\r", headers["Content-Disposition"])
 
