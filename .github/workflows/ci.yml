@@ -23,6 +23,9 @@ jobs:
       - name: Privacy audit regression tests
         run: scripts/tests/privacy-audit-test.sh
 
+      - name: Public presence audit
+        run: scripts/public-presence-audit.sh
+
       - name: SwiftPM tests
         run: swift test
 
