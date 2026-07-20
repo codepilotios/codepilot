@@ -16,7 +16,7 @@ re-checked on 2026-07-20. The broader survey remains in
 
 | Community | Current fit | Result for this beta queue |
 | --- | --- | --- |
-| `r/GenAiApps` | Strong | Preferred first placement. Use the prepared contextual, link-free feedback post with `iOS` flair after final maintainer approval. Re-check flair and live rules on posting day. |
+| `r/GenAiApps` | Strong | Approved as the first placement using the prepared contextual, link-free feedback post with `iOS` flair. Do not post until the public beta install path and setup flow are verified. Re-check flair and live rules on posting day. |
 | `r/TestFlight` | Strong after distribution is ready | Hold until a direct public Apple TestFlight URL is verified and approved. The prepared link post contains no non-TestFlight URL; a human must confirm the title and app flair before posting. |
 | `r/BetaTests` | Strong for focused tester feedback | Use the prepared no-link tester request only after a maintainer confirms that `codepilotios` satisfies the community's account-age and karma gates. |
 | `r/alphaandbetausers` | Good secondary tester pool | No community-specific About-page rules were found in the latest review. Use only after a same-day rules and removal check; do not offer incentives or reciprocal testing. |
@@ -52,6 +52,12 @@ privacy-audited public URLs that a maintainer has approved.
 
 Every public post or comment requires final maintainer approval under the launch
 plan. These destinations add community-specific gates:
+
+Standing maintainer decision (2026-07-20): the exact `r/GenAiApps` draft and
+`iOS` flair are approved. Posting remains on hold until CodePilot has a verified
+public beta install path and a production-ready setup flow. This standing
+decision should not be escalated again unless the draft, target community rules,
+or release gate changes.
 
 - `r/TestFlight`: verify the direct Apple TestFlight URL, exact title, and app
   flair; do not add another link.

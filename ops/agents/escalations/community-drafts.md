@@ -1,14 +1,17 @@
 # Community Drafts Escalation
 
-Status: maintainer action required before any public posting.
+Status: no current maintainer action required. Public posting remains gated on
+a verified beta install path and production-ready setup flow.
 
 Last live-rule checkpoint: 2026-07-20. No public action was taken.
 
-- Review and approve the proposed first placement: the link-free `r/GenAiApps`
-  draft with `iOS` flair. `r/ChatGPTCoding` is currently restricted to approved
-  contributors; if `codepilotios` is already eligible, maker-authored promotion
-  must use its current self-promotion thread and remains subject to account-karma
-  filtering. Do not request contributor status solely for this launch run.
+- The link-free `r/GenAiApps` draft with `iOS` flair is approved as the first
+  placement. Do not post it until the public beta install path and setup flow
+  are verified. Re-escalate only if the copy, rules, or release gate changes.
+- `r/ChatGPTCoding` is currently restricted to approved contributors; if
+  `codepilotios` is already eligible, maker-authored promotion must use its
+  current self-promotion thread and remains subject to account-karma filtering.
+  Do not request contributor status solely for this launch run.
 - Confirm that the `codepilotios` identity is approved and eligible under the
   target community's account-age, karma, and participation rules. Do not create
   an account solely to satisfy this request.
@@ -52,8 +55,9 @@ Last live-rule checkpoint: 2026-07-20. No public action was taken.
   live rules explicitly prohibit AI content. Do not reframe CodePilot to bypass
   that rule or contact moderators solely to seek an exception.
 - `r/GenAiApps` is a text-first alternative whose rules allow contextual,
-  valuable self-promotion. Approve the prepared copy and `iOS` flair before a
-  human posts it; do not add a beta link until that URL is verified and approved.
+  valuable self-promotion. The prepared copy and `iOS` flair are approved, but
+  posting remains blocked on the release gate above. Do not add a beta link
+  unless that URL is separately verified and approved.
 - For `r/AI_Agents`, use only the current weekly Project Display thread after the
   approved identity has genuine participation and remains safely below the
   community's one-in-ten self-promotion guideline. Approve the no-link draft;
