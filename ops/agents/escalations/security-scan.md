@@ -1,6 +1,6 @@
 # CodePilot Security Maintenance Notice
 
-Status reviewed: 2026-07-19. Public launch remains blocked on the maintainer-only items below; keep the documented fail-closed controls enabled.
+Status reviewed: 2026-07-20. Public launch remains blocked on the maintainer-only items below; keep the documented fail-closed controls enabled.
 
 Detailed security findings are intentionally not stored in the public repository. Send vulnerability details, private identifiers, logs, and credential-related evidence through the maintainers' private security channel.
 
@@ -10,8 +10,7 @@ Before public launch, maintainer coordination is still required for:
 - A credential and edge-access architecture review for the remotely reachable gateway.
 - Sanitizing historical private identifiers and commit metadata, followed by coordinated clone migration.
 - Protecting the default branch with required reviews and passing checks.
-- Enabling private vulnerability reporting before inviting public security reports.
-- Enabling dependency alerts and security updates, plus non-provider secret patterns and validity checks, then reviewing the initial Dependabot, CodeQL, and secret-scanning results.
+- Enabling dependency alerts and security updates, plus non-provider secret patterns and validity checks, then reviewing and dispositioning the outstanding dependency, code-scanning, and secret-scanning results.
 - Shipping pending credential-storage changes through an authorized build channel and rotating affected beta credentials.
 - Shipping the pending HTTPS-only gateway-client hardening through the authorized OTA channel; this unattended scan may build locally but may not publish an OTA update.
 - Approving one consistent upload-retention statement for the privacy policy and FAQ; the gateway now removes expired upload batches after seven days, while public privacy copy still says uploads remain until manual deletion.

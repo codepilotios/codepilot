@@ -1008,11 +1008,23 @@ def file_metadata(path: Path) -> dict:
     }
 
 
+def safe_http_header_value(value: object, fallback: str, *, max_length: int = 512) -> str:
+    candidate = str(value or "").strip()
+    if (
+        not candidate
+        or len(candidate) > max_length
+        or any(ord(character) < 32 or ord(character) == 127 for character in candidate)
+    ):
+        return fallback
+    return candidate
+
+
 def file_response(handler: BaseHTTPRequestHandler, path: Path):
     metadata = file_metadata(path)
-    download_name = path.name.replace('"', "_")
+    content_type = safe_http_header_value(metadata["mimeType"], "application/octet-stream")
+    download_name = safe_filename(path.name, "download")
     handler.send_response(200)
-    handler.send_header("Content-Type", metadata["mimeType"])
+    handler.send_header("Content-Type", content_type)
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Referrer-Policy", "no-referrer")
     handler.send_header("X-Content-Type-Options", "nosniff")
@@ -1028,8 +1040,9 @@ def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
     if isinstance(body, str):
         body = body.encode("utf-8")
     status = int(payload.get("status") or 502)
+    content_type = safe_http_header_value(payload.get("contentType"), "application/octet-stream")
     handler.send_response(status)
-    handler.send_header("Content-Type", str(payload.get("contentType") or "application/octet-stream"))
+    handler.send_header("Content-Type", content_type)
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Referrer-Policy", "no-referrer")
     handler.send_header("X-Content-Type-Options", "nosniff")
