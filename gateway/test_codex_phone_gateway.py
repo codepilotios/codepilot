@@ -1391,6 +1391,14 @@ class GatewayStateTests(unittest.TestCase):
             self.assertIn("accounts", payload)
             self.assertIn("notifications", payload)
 
+    def test_authentication_rejects_non_ascii_header_without_raising(self):
+        state = GatewayState(Path("/tmp/codex"), "secret-token", Path("/missing-codex"), False)
+        handler = object.__new__(gateway.Handler)
+        handler.server = type("Server", (), {"state": state})()
+        handler.headers = {"authorization": "Bearer secrét-token"}
+
+        self.assertFalse(handler.is_authenticated())
+
     def test_error_payload_has_stable_code_message_and_recovery(self):
         payload = gateway.error_payload(
             "local_web_invalid_target",

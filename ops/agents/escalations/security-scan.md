@@ -10,9 +10,8 @@ Before public launch, maintainer coordination is still required for:
 - A credential and edge-access architecture review for the remotely reachable gateway.
 - Sanitizing historical private identifiers and commit metadata, followed by coordinated clone migration.
 - Protecting the default branch with required reviews and passing checks.
-- Enabling dependency alerts and security updates, plus non-provider secret patterns and validity checks, then reviewing and dispositioning the outstanding dependency, code-scanning, and secret-scanning results.
+- Enabling dependency alerts and security updates, plus non-provider secret patterns and validity checks, then reviewing new results and dispositioning the outstanding code-scanning findings.
 - Shipping pending credential-storage changes through an authorized build channel and rotating affected beta credentials.
 - Shipping the pending HTTPS-only gateway-client hardening through the authorized OTA channel; this unattended scan may build locally but may not publish an OTA update.
-- Approving one consistent upload-retention statement for the privacy policy and FAQ; the gateway now removes expired upload batches after seven days, while public privacy copy still says uploads remain until manual deletion.
 
 Keep fail-closed controls enabled until the corresponding private review is complete. Do not copy private findings into public issues or pull requests.

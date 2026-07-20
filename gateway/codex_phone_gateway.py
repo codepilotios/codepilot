@@ -68,6 +68,7 @@ MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_ATTACHMENT_BYTES = 50 * 1024 * 1024
 MAX_JSON_BODY_BYTES = 1 * 1024 * 1024
 MAX_ATTACHMENT_REQUEST_BYTES = 72 * 1024 * 1024
+MAX_AUTHORIZATION_HEADER_BYTES = 512
 UPLOAD_RETENTION_SECONDS = 7 * 24 * 60 * 60
 VALID_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 PUBLIC_JOB_TEXT_LIMIT = 4_000
@@ -4925,7 +4926,14 @@ class Handler(BaseHTTPRequestHandler):
     def is_authenticated(self) -> bool:
         expected = self.state().token
         header = self.headers.get("authorization", "")
-        return secrets.compare_digest(header, f"Bearer {expected}")
+        try:
+            header_bytes = header.encode("ascii")
+            expected_bytes = f"Bearer {expected}".encode("ascii")
+        except (AttributeError, UnicodeEncodeError):
+            return False
+        if len(header_bytes) > MAX_AUTHORIZATION_HEADER_BYTES:
+            return False
+        return secrets.compare_digest(header_bytes, expected_bytes)
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)
