@@ -96,11 +96,13 @@ Last live-rule checkpoint: 2026-07-20. No public action was taken.
 - For `r/github`, approve an accessible, privacy-audited public repository URL
   before using the prepared self-promotion megathread comment. Do not post the
   placeholder or use a standalone feed post.
-- For `r/LLMDevs`, confirm that its live noncommercial-license exception covers
-  the PolyForm Noncommercial License, then approve the exact technical draft
-  and an accessible, privacy-audited public repository URL. Describe CodePilot
-  as source-available, not open source, and do not use disguised discussion
-  framing.
+- Treat `r/LLMDevs` as moderator-first. Because CodePilot is source-available
+  under the PolyForm Noncommercial License rather than FOSS, a maintainer must
+  manually send the prepared permission request and wait for approval. Before
+  any approved post, confirm that the beta has no paid-feature distinction and
+  approve the exact technical draft plus an accessible, privacy-audited public
+  repository URL. Preserve the maker, AI-assistance, feedback-purpose, no-PII,
+  and no-monetization disclosures; do not use disguised discussion framing.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 - Hold `r/ChatGPTPro` until the approved identity has genuine non-promotional

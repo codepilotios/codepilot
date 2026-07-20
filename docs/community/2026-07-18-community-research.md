@@ -24,6 +24,7 @@ re-check each destination immediately before requesting approval to post.
 | --- | --- | --- |
 | r/MacApps | Relevant to the menu-bar app, but the community requires 10 local karma and limits promotion to once per developer in 30 days. Main-feed promotion also requires an established trust signal or a public transparency path; other promotions belong in the monthly App Pile megathread. | Hold for the App Pile only. A maintainer must verify local-karma eligibility, the current megathread, and its required format. Never manufacture karma or expose a private identity to qualify. |
 | r/OpenAI | Relevant but broad. Self-promotion should remain under 10% of participation, must be a contextual text post rather than a direct-link post, and participation is expected before advertising. | Hold until the identity has genuine participation and a maintainer approves a contextual post. |
+| r/LLMDevs | Strong technical audience, but moderator-first for CodePilot's license | Source-available non-FOSS promotion requires prior moderator approval and a clear disclaimer; the free version must match every other version. Feedback requests must disclose their purpose, avoid PII collection and response monetization, and share findings back where appropriate. | Hold until moderator and maintainer approval, confirmation of no paid-feature distinction, and approval of a privacy-audited repository URL. Use the prepared technical draft, not a generic tester request. |
 | Show HN | A project must be personally built, directly usable, non-trivial, and ready for the author to discuss. Show HN discourages signup barriers and vote coordination. | Hold until the public beta is immediately testable and a maintainer can be present to answer questions. |
 | r/SwiftUI | Promotion is allowed only when source code is provided and the app is open source. CodePilot is source-available under a noncommercial license, not OSI open source. | Do not promote CodePilot there under the current rules. |
 | r/iOSApps | Requires 10 local karma, disclosure, ABC-format promotion, official App Store/TestFlight links, and either qualification or the monthly App Shelf megathread. More importantly, its current rules exclude generative-AI and AI-wrapped apps when AI is a core feature. | Do not promote CodePilot there under the current rules. Use r/TestFlight instead. |
@@ -44,6 +45,7 @@ re-check each destination immediately before requesting approval to post.
 - [r/ChatGPTCoding rules](https://www.reddit.com/r/ChatGPTCoding/about/rules)
 - [r/ChatGPTCoding promotion thread example](https://www.reddit.com/r/ChatGPTCoding/comments/1ryqth6/self_promotion_thread/)
 - [r/Codex rules](https://www.reddit.com/r/codex/about/rules)
+- [r/LLMDevs rules](https://www.reddit.com/r/LLMDevs/about/rules.json)
 - [r/iOSProgramming rules](https://www.reddit.com/r/iOSProgramming/about/rules)
 - [r/iOSProgramming App Saturday format update](https://www.reddit.com/r/iOSProgramming/comments/1pnivdy/proposed_update_to_app_saturday_feedback_requested/)
 - [r/iOSProgramming current missing-section enforcement example](https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/)
@@ -75,6 +77,10 @@ re-check each destination immediately before requesting approval to post.
   comment rather than a standalone launch post.
 - r/Codex requires moderator confirmation because its published rules do not
   explicitly authorize project promotion.
+- r/LLMDevs requires moderator approval for source-available non-FOSS projects,
+  plus confirmation that the beta has no paid-feature distinction and that the
+  required maker, AI-assistance, feedback-purpose, no-PII, and no-monetization
+  disclosures remain intact.
 - r/iOSProgramming requires confirmation of Saturday timing, current account
   eligibility, genuine prior activity, the once-per-year allowance, and the
   required Tech Stack, Development Challenge, and AI Disclosure sections.

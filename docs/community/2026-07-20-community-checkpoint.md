@@ -24,6 +24,7 @@ re-checked on 2026-07-20. The broader survey remains in
 | `r/SideProject` | Broad secondary feedback pool | A fresh self-promotion thread was active on 2026-07-20 and explicitly invited projects and feedback. Prefer the prepared no-link comment there over a standalone launch post, after genuine participation and final approval. |
 | `r/ChatGPTCoding` | Good audience, restricted and account-filtered | The designated self-promotion thread remains visible and says each project may be promoted only once. Visible moderator actions still show inadequate-karma removals and manual-review holds. Use only if the existing identity is already eligible; do not seek contributor status or sponsorship solely for launch. |
 | `r/codex` | Best topical match, moderator-first | The live rules still require direct Codex relevance, correct flair, and no bots; they do not expressly authorize maker promotion. A maintainer should obtain moderator permission and make any approved post manually. |
+| `r/LLMDevs` | Strong technical fit, moderator-first | Its live self-promotion rule permits a source-available non-FOSS project only with prior moderator approval and a clear disclaimer, provided the free version is functionally identical to every other version. Feedback requests must disclose their purpose, avoid PII collection and response monetization, and share useful findings back where appropriate. The prepared technical draft and new moderator request now include those disclosures. |
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | Current enforcement still removes App Saturday posts missing Tech Stack, Development Challenge, or AI Disclosure sections. Confirm Saturday timing, genuine prior activity, and the unused once-per-year allowance before approval. |
 | `r/MacApps` | Relevant but held | The promotion megathread requires PCP fields, including pricing and a link, and warns that new or low-local-karma accounts may be filtered. That conflicts with the beta's no-pricing and unverified-link constraints, so hold. |
 | `r/iOSApps` | Not eligible | Recent enforcement continues to exclude AI-first or AI-wrapped apps and directs them to `r/GenAiApps`. Do not use its feed or promotion megathread. |
@@ -41,6 +42,7 @@ remains current. It includes:
 - a single `r/ChatGPTCoding` self-promotion-thread comment;
 - no-link thread comments for `r/AI_Agents` and `r/SideProject`;
 - an `r/codex` moderator permission request and conditional post;
+- an `r/LLMDevs` moderator permission request and conditional technical post;
 - an `r/iOSProgramming` technical App Saturday draft with all required sections;
 - held drafts for later communities; and
 - transparent profile and reusable response copy in
@@ -75,6 +77,10 @@ or release gate changes.
   CodePilot.
 - `r/codex`: obtain moderator permission, select the correct flair, and have a
   human make the post without automation.
+- `r/LLMDevs`: obtain moderator permission because CodePilot is source-available
+  rather than FOSS; confirm that the beta has no paid-feature distinction;
+  preserve the maker, AI-assistance, feedback-purpose, no-PII, and
+  no-monetization disclosures; and approve a privacy-audited repository URL.
 - `r/iOSProgramming`: confirm Saturday timing, account eligibility, prior
   participation, and the unused annual allowance; preserve all three mandatory
   technical disclosure sections.
@@ -103,6 +109,7 @@ The concise maintainer action list is in
 - <https://www.reddit.com/r/ChatGPTCoding/about/>
 - <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/>
 - <https://www.reddit.com/r/codex/about/>
+- <https://www.reddit.com/r/LLMDevs/about/rules.json>
 - <https://www.reddit.com/r/iOSProgramming/about/>
 - <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/>
 - <https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/>
