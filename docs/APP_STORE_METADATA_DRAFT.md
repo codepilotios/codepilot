@@ -24,7 +24,7 @@ Character count: 127 of 170.
 
 CodePilot is a Mac menu bar app, local gateway, and iPhone companion for AI coding users who already run Codex CLI on a Mac.
 
-Use the iPhone app to check active account status, follow threads, upload files, steer or stop supported turns, receive turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
+Use the iPhone app to check active account status, follow threads, upload files, open loopback web previews, steer or stop supported turns, receive optional turn-finished notifications, and connect through your own Cloudflare Tunnel setup. The Mac stays in your control, and the current beta does not require a hosted CodePilot account service.
 
 The beta is focused on setup clarity, connection reliability, privacy-safe diagnostics, and practical remote workflows for existing Codex CLI users. Some internals still use legacy Codex-specific names, and support for other coding agents is not part of the current beta.
 
@@ -40,7 +40,7 @@ Character count: 88 of 100.
 
 Install CodePilot on a Mac that already runs Codex CLI, create a saved account profile, start the gateway, connect the iPhone app with the gateway URL and token, and verify thread visibility, file upload, turn control, and setup recovery messages. Open a purpose-built demo page from a loopback link and confirm it appears in the in-app browser without exposing development data. If APNs is configured for the gateway, also verify turn-finished notifications.
 
-Please report Cloudflare Tunnel connection problems. Remove account names, gateway URLs, tokens, hostnames, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
+Please report whether Cloudflare Tunnel setup, gateway connection, token entry, or localhost link opening was the step that failed. Remove account names, gateway URLs, tokens, hostnames, localhost or local-web session URLs, local page contents, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
 
 ## Support URL
 
