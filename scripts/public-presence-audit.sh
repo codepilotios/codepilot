@@ -87,6 +87,24 @@ version_metadata = JSON.parse(File.read("metadata/version/0.1/en-US.json"))
   exit 1
 end
 
+{
+  "Support URL" => "supportUrl",
+  "Privacy URL" => "privacyPolicyUrl"
+}.each do |heading, json_key|
+  section = metadata[/^## #{Regexp.escape(heading)}\n\n(.*?)(?=\n## |\z)/m, 1]
+  candidate_url = section&.match(/Candidate destination[^:]*: `([^`]+)`/)&.captures&.first
+
+  unless candidate_url
+    warn "public presence audit failed: candidate #{heading.downcase} is missing from #{metadata_path}"
+    exit 1
+  end
+
+  next if version_metadata[json_key] == candidate_url
+
+  warn "public presence audit failed: versioned #{json_key} does not match the candidate URL in #{metadata_path}"
+  exit 1
+end
+
 
 remote_desktop_setup_files = ["docs/INSTALL_MAC.md", "docs/INSTALL_IOS.md", "docs/TROUBLESHOOTING.md"]
 remote_desktop_enablement_patterns = [

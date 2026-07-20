@@ -55,6 +55,8 @@
 - Aligned privacy, FAQ, iOS setup, and troubleshooting copy with the gateway's seven-day upload-retention cleanup behavior.
 - Reconciled the versioned App Store and TestFlight drafts with the approved Codex CLI beta positioning, supported feature set, and privacy-safe feedback guidance.
 - Added the public-presence audit to CI and made canonical App Store metadata drift or blocked Remote Desktop enablement copy fail the check.
+- Replaced placeholder support and privacy URLs in the versioned App Store metadata with the approved GitHub Pages candidates, and made URL drift from the human-readable draft fail the public-presence audit.
+- Aligned the App Store screenshot checklist with the public demo-data brief and added full-resolution privacy checks for window chrome, local-web previews, and unrelated device content.
 
 ### Recent Product Work
 
