@@ -1479,6 +1479,7 @@ class GatewayStateTests(unittest.TestCase):
             gateway.file_response(handler, file_path)
 
             headers = dict(call.args for call in handler.send_header.call_args_list)
+            self.assertEqual(headers["Content-Type"], "application/octet-stream")
             self.assertEqual(headers["Content-Disposition"], "attachment")
             self.assertNotIn("\n", headers["Content-Disposition"])
             self.assertNotIn("\r", headers["Content-Disposition"])
@@ -1496,6 +1497,19 @@ class GatewayStateTests(unittest.TestCase):
         headers = dict(call.args for call in handler.send_header.call_args_list)
         self.assertEqual(headers["Content-Type"], "application/octet-stream")
         self.assertNotIn("X-Injected", "\n".join(headers.values()))
+
+    def test_local_web_response_canonicalizes_allowed_content_type(self):
+        handler = mock.Mock()
+        handler.wfile = io.BytesIO()
+
+        gateway.local_web_response(handler, {
+            "status": 200,
+            "contentType": "Text/HTML; charset=untrusted",
+            "body": b"<p>hello</p>",
+        })
+
+        headers = dict(call.args for call in handler.send_header.call_args_list)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
 
     def test_local_web_session_rejects_non_loopback_url(self):
         state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)

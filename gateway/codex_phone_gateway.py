@@ -73,6 +73,22 @@ MIN_APNS_TOKEN_HEX_CHARS = 32
 MAX_APNS_TOKEN_HEX_CHARS = 200
 MAX_APNS_TOPIC_CHARS = 255
 MAX_LIVE_ACTIVITY_ID_CHARS = 128
+LOCAL_WEB_CONTENT_TYPES = {
+    "application/javascript": "application/javascript; charset=utf-8",
+    "application/json": "application/json; charset=utf-8",
+    "application/pdf": "application/pdf",
+    "application/wasm": "application/wasm",
+    "image/avif": "image/avif",
+    "image/gif": "image/gif",
+    "image/jpeg": "image/jpeg",
+    "image/png": "image/png",
+    "image/svg+xml": "image/svg+xml",
+    "image/webp": "image/webp",
+    "text/css": "text/css; charset=utf-8",
+    "text/html": "text/html; charset=utf-8",
+    "text/javascript": "text/javascript; charset=utf-8",
+    "text/plain": "text/plain; charset=utf-8",
+}
 UPLOAD_RETENTION_SECONDS = 7 * 24 * 60 * 60
 VALID_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 PUBLIC_JOB_TEXT_LIMIT = 4_000
@@ -1013,22 +1029,15 @@ def file_metadata(path: Path) -> dict:
     }
 
 
-def safe_http_header_value(value: object, fallback: str, *, max_length: int = 512) -> str:
-    candidate = str(value or "").strip()
-    if (
-        not candidate
-        or len(candidate) > max_length
-        or any(ord(character) < 32 or ord(character) == 127 for character in candidate)
-    ):
-        return fallback
-    return candidate
+def canonical_local_web_content_type(value: object) -> str:
+    media_type = str(value or "").partition(";")[0].strip().lower()
+    return LOCAL_WEB_CONTENT_TYPES.get(media_type, "application/octet-stream")
 
 
 def file_response(handler: BaseHTTPRequestHandler, path: Path):
     metadata = file_metadata(path)
-    content_type = safe_http_header_value(metadata["mimeType"], "application/octet-stream")
     handler.send_response(200)
-    handler.send_header("Content-Type", content_type)
+    handler.send_header("Content-Type", "application/octet-stream")
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Referrer-Policy", "no-referrer")
     handler.send_header("X-Content-Type-Options", "nosniff")
@@ -1044,7 +1053,7 @@ def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
     if isinstance(body, str):
         body = body.encode("utf-8")
     status = int(payload.get("status") or 502)
-    content_type = safe_http_header_value(payload.get("contentType"), "application/octet-stream")
+    content_type = canonical_local_web_content_type(payload.get("contentType"))
     handler.send_response(status)
     handler.send_header("Content-Type", content_type)
     handler.send_header("Cache-Control", "no-store")
@@ -1267,9 +1276,14 @@ def normalized_apns_token(raw_token: object) -> str:
 
 def validated_apns_topic(raw_topic: object) -> str:
     topic = str(raw_topic or DEFAULT_APNS_TOPIC).strip() or DEFAULT_APNS_TOPIC
-    if (
-        len(topic) > MAX_APNS_TOPIC_CHARS
-        or re.fullmatch(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", topic) is None
+    segments = topic.split(".")
+    if len(topic) > MAX_APNS_TOPIC_CHARS or len(segments) < 2 or any(
+        not segment
+        or any(
+            not (character.isascii() and (character.isalnum() or character == "-"))
+            for character in segment
+        )
+        for segment in segments
     ):
         raise ValueError("APNs bundle identifier is invalid")
     return topic
