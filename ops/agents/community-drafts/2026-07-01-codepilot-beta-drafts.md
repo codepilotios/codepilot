@@ -2,11 +2,12 @@
 
 Status: draft only. Do not post publicly without explicit maintainer approval.
 
-Last rule review: 2026-07-19.
+Last rule review: 2026-07-20.
 
 Review method: checked public Reddit rule/sidebar/search-visible pages, moderator
 announcements, removal notices, and recent promotion threads on 2026-07-18 and
-re-checked the current `r/AI_Agents` and `r/SideProject` threads on 2026-07-19.
+re-checked the current `r/AI_Agents`, `r/SideProject`, `r/ChatGPTCoding`, and
+`r/codex` pages on 2026-07-20.
 Re-check each target immediately before any
 human-approved posting because subreddit rules and megathread formats change.
 

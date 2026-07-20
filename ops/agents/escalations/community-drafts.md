@@ -2,6 +2,8 @@
 
 Status: maintainer action required before any public posting.
 
+Last live-rule checkpoint: 2026-07-20. No public action was taken.
+
 - Review and approve the proposed first placement: the link-free `r/GenAiApps`
   draft with `iOS` flair. `r/ChatGPTCoding` is currently restricted to approved
   contributors; if `codepilotios` is already eligible, maker-authored promotion
@@ -56,6 +58,10 @@ Status: maintainer action required before any public posting.
   approved identity has genuine participation and remains safely below the
   community's one-in-ten self-promotion guideline. Approve the no-link draft;
   any later approved link belongs in a reply rather than the project description.
+- For `r/SideProject`, the currently active self-promotion thread explicitly
+  invites projects and feedback. Approve the prepared no-link comment and have a
+  human use that thread only after genuine participation; do not use a standalone
+  launch post.
 - Do not use `r/iPhoneApps` for a standalone launch post. Its Developer flair was
   removed on 2026-07-16, and maker mentions now require genuine participation,
   contextual value, an App Store listing, and approved status/cost details.
@@ -91,9 +97,6 @@ Status: maintainer action required before any public posting.
   and an accessible, privacy-audited public repository URL. Describe CodePilot
   as source-available, not open source, and do not use disguised discussion
   framing.
-- For `r/SideProject`, approve the prepared no-link comment and have a human use
-  the current self-promotion thread. Do not use a standalone launch post or a
-  promotion-only account; re-check the live About page and thread first.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
   target, send the prepared modmail manually and wait for approval.
 - Hold `r/ChatGPTPro` until the approved identity has genuine non-promotional
