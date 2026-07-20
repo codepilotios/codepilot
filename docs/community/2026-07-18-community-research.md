@@ -27,6 +27,7 @@ re-check each destination immediately before requesting approval to post.
 | Show HN | A project must be personally built, directly usable, non-trivial, and ready for the author to discuss. Show HN discourages signup barriers and vote coordination. | Hold until the public beta is immediately testable and a maintainer can be present to answer questions. |
 | r/SwiftUI | Promotion is allowed only when source code is provided and the app is open source. CodePilot is source-available under a noncommercial license, not OSI open source. | Do not promote CodePilot there under the current rules. |
 | r/iOSApps | Requires 10 local karma, disclosure, ABC-format promotion, official App Store/TestFlight links, and either qualification or the monthly App Shelf megathread. More importantly, its current rules exclude generative-AI and AI-wrapped apps when AI is a core feature. | Do not promote CodePilot there under the current rules. Use r/TestFlight instead. |
+| r/iPhoneApps | A 2026-07-16 moderator update removed the Developer flair after repeated low-effort promotion. Maker mentions now require genuine community participation and must contribute contextual value rather than act as a standalone app advertisement. | Hold. Do not use a standalone launch post or generic prepared comment. Reconsider only after genuine participation, a same-day rules check, and approval of the exact conversational context. |
 
 ## Rule sources
 
@@ -52,6 +53,7 @@ re-check each destination immediately before requesting approval to post.
 - [r/SideProject rules](https://www.reddit.com/r/SideProject/about/rules)
 - [r/SwiftUI rules](https://www.reddit.com/r/SwiftUI/about/rules)
 - [r/iOSApps rules](https://www.reddit.com/r/iosapps/about/rules)
+- [r/iPhoneApps self-promotion update](https://www.reddit.com/r/IPhoneApps/comments/1uy20l2/an_update_on_selfpromotion/)
 - [Show HN guidelines](https://news.ycombinator.com/showhn.html)
 
 ## Required approvals

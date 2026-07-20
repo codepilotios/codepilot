@@ -27,6 +27,7 @@ re-checked on 2026-07-20. The broader survey remains in
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | Current enforcement still removes App Saturday posts missing Tech Stack, Development Challenge, or AI Disclosure sections. Confirm Saturday timing, genuine prior activity, and the unused once-per-year allowance before approval. |
 | `r/MacApps` | Relevant but held | The promotion megathread requires PCP fields, including pricing and a link, and warns that new or low-local-karma accounts may be filtered. That conflicts with the beta's no-pricing and unverified-link constraints, so hold. |
 | `r/iOSApps` | Not eligible | Recent enforcement continues to exclude AI-first or AI-wrapped apps and directs them to `r/GenAiApps`. Do not use its feed or promotion megathread. |
+| `r/iPhoneApps` | Relevant audience, but participation-first | A 2026-07-16 moderator update removed the Developer flair and rejects drive-by app promotion. Maker mentions are acceptable only when they arise from genuine participation and add contextual value. Do not use a standalone launch post or prepare a generic drop-in comment; reconsider only after real participation and a same-day rules check. |
 
 ## Drafts prepared
 
@@ -79,6 +80,10 @@ or release gate changes.
   technical disclosure sections.
 - `r/MacApps`: obtain guidance if reconsidered because its required pricing and
   link format conflicts with this beta campaign.
+- `r/iPhoneApps`: confirm genuine prior participation and approve the exact
+  conversational context before any maker mention. The current moderation
+  policy is participation-first, so a reusable promotional draft is
+  intentionally not included.
 
 The concise maintainer action list is in
 [`ops/agents/escalations/community-drafts.md`](../../ops/agents/escalations/community-drafts.md).
@@ -103,6 +108,7 @@ The concise maintainer action list is in
 - <https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/>
 - <https://www.reddit.com/r/macapps/comments/1uknpm8/megathread_the_app_pile_july_2026/>
 - <https://www.reddit.com/r/iosapps/about/>
+- <https://www.reddit.com/r/IPhoneApps/comments/1uy20l2/an_update_on_selfpromotion/>
 
 Re-read the target's live rules, pinned posts, flair options, and promotion
 thread immediately before any approved manual submission.
