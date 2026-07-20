@@ -72,7 +72,7 @@ Use an HTTPS tunnel URL. CodePilot still requires the gateway bearer token when 
 
 When the iPhone app opens an `http` or `https` link to `localhost`, `127.0.0.1`, or `::1`, the authenticated Mac gateway creates a short-lived proxy session and requests that page from the Mac. Page bodies, URL paths, and query strings then pass through the gateway and the user-owned Cloudflare Tunnel to the iPhone. Local dashboards can contain source code, logs, filenames, prompts, or development data even when the link itself looks generic.
 
-The local-web workflow accepts only loopback hosts; it is not a general website proxy. Session identifiers expire, response sizes are bounded, and the gateway bearer token is not placed in the proxied page URL. These limits reduce exposure but do not make page contents public-safe. Close sensitive local pages when finished and remove local-web URLs, contents, and screenshots from public reports.
+The local-web workflow accepts only loopback hosts; it is not a general website proxy. Session identifiers expire, response sizes are bounded, the gateway bearer token is not placed in the proxied page URL, and the iPhone browser uses a nonpersistent WebKit data store. These limits reduce exposure but do not make page contents public-safe. Close sensitive local pages when finished and remove local-web URLs, contents, and screenshots from public reports.
 
 ## External Services
 
