@@ -2083,16 +2083,47 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
 
                 response = state.register_notification_device({
-                    "token": " ABC123 ",
+                    "token": " " + ("AB" * 32) + " ",
                     "environment": "production",
                     "bundleId": "io.codepilot.iOS",
                 })
 
                 self.assertTrue(response["ok"])
                 devices = json.loads((switcher_home / "phone-notification-devices.json").read_text(encoding="utf-8"))
-                self.assertEqual(devices[0]["token"], "abc123")
+                self.assertEqual(devices[0]["token"], "ab" * 32)
                 self.assertEqual(devices[0]["environment"], "production")
                 self.assertEqual(devices[0]["bundleId"], "io.codepilot.iOS")
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_notification_registration_rejects_malformed_or_unbounded_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = tmp_path / "switcher"
+            try:
+                state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
+                valid_token = "ab" * 32
+
+                invalid_payloads = [
+                    {"token": "ab:not-a-token", "environment": "production"},
+                    {"token": valid_token, "environment": "staging"},
+                    {"token": valid_token, "environment": "production", "bundleId": "invalid\nheader"},
+                    {"token": valid_token, "environment": "production", "bundleId": "a" * 256},
+                ]
+                for payload in invalid_payloads:
+                    with self.subTest(payload=payload):
+                        with self.assertRaises(ValueError):
+                            state.register_notification_device(payload)
+
+                with self.assertRaisesRegex(ValueError, "identifier"):
+                    state.register_live_activity({
+                        "activityId": "../unsafe",
+                        "pushToken": valid_token,
+                        "environment": "production",
+                    })
+                self.assertFalse((gateway.DEFAULT_SWITCHER_HOME / "phone-notification-devices.json").exists())
+                self.assertFalse((gateway.DEFAULT_SWITCHER_HOME / "phone-live-activities.json").exists())
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
@@ -2106,18 +2137,18 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
                 payload = {
                     "activityId": "activity-1",
-                    "pushToken": " ABC123 ",
+                    "pushToken": " " + ("AB" * 32) + " ",
                     "environment": "production",
                     "bundleId": "io.codepilot.iOS",
                 }
 
                 first = state.register_live_activity(payload)
-                second = state.register_live_activity({**payload, "pushToken": "def456"})
+                second = state.register_live_activity({**payload, "pushToken": "de" * 32})
 
                 self.assertEqual(first["activityCount"], 1)
                 self.assertEqual(second["activityCount"], 1)
                 registrations = state.read_live_activities()
-                self.assertEqual(registrations[0]["pushToken"], "def456")
+                self.assertEqual(registrations[0]["pushToken"], "de" * 32)
                 self.assertFalse((switcher_home / "phone-notification-devices.json").exists())
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
@@ -2132,7 +2163,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 with self.assertRaisesRegex(ValueError, "environment"):
                     state.register_live_activity({
                         "activityId": "activity-1",
-                        "pushToken": "abc123",
+                        "pushToken": "ab" * 32,
                         "environment": "staging",
                     })
             finally:
@@ -2154,7 +2185,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 )
                 state.register_live_activity({
                     "activityId": "activity-1",
-                    "pushToken": "abc123",
+                    "pushToken": "ab" * 32,
                     "environment": "production",
                     "bundleId": "io.codepilot.iOS",
                 })
