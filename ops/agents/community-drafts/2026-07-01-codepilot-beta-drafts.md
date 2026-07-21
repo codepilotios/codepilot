@@ -2,12 +2,15 @@
 
 Status: draft only. Do not post publicly without explicit maintainer approval.
 
-Last rule review: 2026-07-20.
+Last rule review: 2026-07-22.
 
 Review method: checked public Reddit rule/sidebar/search-visible pages, moderator
 announcements, removal notices, and recent promotion threads on 2026-07-18 and
 re-checked the current `r/AI_Agents`, `r/SideProject`, `r/ChatGPTCoding`, and
-`r/codex` pages on 2026-07-20.
+`r/codex` pages on 2026-07-20. Re-checked the current `r/TestFlight`,
+`r/ChatGPTCoding`, `r/iOSProgramming`, `r/SwiftUI`, `r/macapps`, `r/iosapps`,
+and `r/SideProject` pages plus the official Hacker News and Show HN guidelines
+on 2026-07-22; the existing queue and approval gates remain accurate.
 Re-check each target immediately before any
 human-approved posting because subreddit rules and megathread formats change.
 

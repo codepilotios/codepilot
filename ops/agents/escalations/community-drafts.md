@@ -3,7 +3,11 @@
 Status: no current maintainer action required. Public posting remains gated on
 a verified beta install path and production-ready setup flow.
 
-Last live-rule checkpoint: 2026-07-21. No public action was taken.
+Last live-rule checkpoint: 2026-07-22. No public action was taken.
+
+The 2026-07-22 re-check covered `r/TestFlight`, `r/ChatGPTCoding`,
+`r/iOSProgramming`, `r/SwiftUI`, `r/macapps`, `r/iosapps`, `r/SideProject`, and
+the official Hacker News / Show HN guidelines. No approval gate changed.
 
 - The link-free `r/GenAiApps` draft with `iOS` flair is approved as the first
   placement. Do not post it until the public beta install path and setup flow
