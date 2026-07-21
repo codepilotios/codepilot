@@ -12,7 +12,7 @@ The following public-publishing decisions are approved:
 
 ## Pending Maintainer Action
 
-Reverified on 2026-07-20. The read-only live presence audit still reports seven failures: the repository description, repository website field, GitHub Pages configuration, private vulnerability reporting, and the landing, privacy, and support URLs. These map to four launch-readiness settings that require maintainer access, one legal-content decision, and one unresolved release blocker:
+Reverified on 2026-07-21. The read-only live presence audit still reports seven failures: the repository description, repository website field, GitHub Pages configuration, private vulnerability reporting, and the landing, privacy, and support URLs. These map to four launch-readiness settings that require maintainer access, one legal-content decision, and one unresolved release blocker:
 
 Repository-setting follow-up is tracked in GitHub issue #27.
 
