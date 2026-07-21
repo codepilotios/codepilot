@@ -104,7 +104,9 @@ Last live-rule checkpoint: 2026-07-21. No public action was taken.
   repository URL. Preserve the maker, AI-assistance, feedback-purpose, no-PII,
   and no-monetization disclosures; do not use disguised discussion framing.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
-  target, send the prepared modmail manually and wait for approval.
+  target, send the prepared modmail manually and wait for approval. For
+  `r/codex`, keep the candidate as a substantive project discussion; its live
+  rules route low-information problem reports to megathreads.
 - Hold `r/ChatGPTPro` until the approved identity has genuine non-promotional
   technical participation and a CodePilot post would remain at or below 10% of
   its community activity. A maintainer must re-check recent enforcement,

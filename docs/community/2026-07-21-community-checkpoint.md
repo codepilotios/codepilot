@@ -8,6 +8,11 @@ All proposed activity uses the public `codepilotios` identity, discloses the
 maker relationship, asks for beta workflow or setup feedback, and makes no paid
 subscription claim.
 
+A second live-rule check on 2026-07-21 confirmed the queue below. No draft was
+posted or sent. Reddit's public rules endpoint exposed the current rule text;
+thread availability and account eligibility still require a same-day manual
+check immediately before any approved submission.
+
 ## Communities researched
 
 The highest-priority Reddit destinations and their time-sensitive promotion
@@ -23,7 +28,7 @@ threads were re-checked on 2026-07-21. The broader survey remains in
 | `r/AI_Agents` | Good agent-workflow feedback pool, participation-gated | The current weekly Project Display thread is open and active. Keep CodePilot in that thread, put any later approved link in a reply, and wait until the identity has genuine non-promotional participation and a safely compliant one-in-ten promotion ratio. |
 | `r/SideProject` | Broad secondary feedback pool | A fresh self-promotion thread was active on 2026-07-21 and explicitly invited projects and feedback. Prefer the prepared no-link comment there over a standalone launch post, after genuine participation and final approval. |
 | `r/ChatGPTCoding` | Good audience, restricted and account-filtered | The community remains restricted to approved contributors. Its visible designated promotion thread still limits each project to one promotion, and visible moderator actions show inadequate-karma removals. Use only if the existing identity is already eligible; do not seek contributor status or sponsorship solely for launch. |
-| `r/codex` | Best topical match, moderator-first | The live rules require direct Codex relevance, correct flair, prior-post checks, and no bots, but do not expressly authorize maker promotion. A maintainer should obtain moderator permission and make any approved post manually. |
+| `r/codex` | Best topical match, moderator-first | The live rules require direct Codex relevance, correct flair, prior-post checks, no bots, and megathreads for low-information problem reports, but do not expressly authorize maker promotion. A maintainer should obtain moderator permission and make any approved, substantive project post manually. |
 | `r/LLMDevs` | Strong technical fit, moderator-first | The live rules still require prior moderator approval and a clear disclaimer for source-available non-FOSS promotion. Feedback requests must disclose their purpose, exclude PII and response monetization, and share useful findings back when appropriate. Use the prepared permission request and conditional technical post. |
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | The live rules still limit app posts to Saturday, one app per year, and identities with prior activity. The App Saturday guide still requires Tech Stack, Development Challenge, and AI Disclosure content. Keep the prepared technical draft held until every gate is confirmed. |
 | `r/MacApps` | Relevant but incompatible with this campaign | The July App Pile megathread is active, but its mandatory PCP format requires a pricing amount and link and warns that first linked comments from low-local-karma accounts are likely to be removed. Hold rather than invent pricing, add an unverified link, or manufacture participation. |
@@ -71,8 +76,9 @@ plan. These destinations add community-specific approval gates:
   for the then-current self-promotion thread.
 - `r/ChatGPTCoding`: confirm existing contributor and karma eligibility; use a
   designated thread only once for CodePilot.
-- `r/codex`: obtain moderator permission, select the correct flair, and have a
-  human post without automation.
+- `r/codex`: obtain moderator permission, select the correct flair, confirm the
+  post is a substantive project discussion rather than a low-information
+  support report, and have a human post without automation.
 - `r/LLMDevs`: obtain moderator permission; confirm that the beta has no paid
   feature distinction; preserve the maker, AI-assistance, feedback-purpose,
   no-PII, and no-monetization disclosures; and approve a privacy-audited public
@@ -92,9 +98,9 @@ gates remain closed.
 
 ## Live sources checked
 
-- <https://www.reddit.com/r/GenAiApps/about/>
-- <https://www.reddit.com/r/TestFlight/about/>
-- <https://www.reddit.com/r/BetaTests/about/>
+- <https://www.reddit.com/r/GenAiApps/about/rules.json>
+- <https://www.reddit.com/r/TestFlight/about/rules.json>
+- <https://www.reddit.com/r/BetaTests/about/rules.json>
 - <https://www.reddit.com/r/alphaandbetausers/about/>
 - <https://www.reddit.com/r/AI_Agents/about/>
 - <https://www.reddit.com/r/AI_Agents/comments/1ukprfr/weekly_thread_project_display/>
@@ -102,7 +108,7 @@ gates remain closed.
 - <https://www.reddit.com/r/SideProject/comments/1utus1n/whats_everyone_working_on_lets_self_promote/>
 - <https://www.reddit.com/r/ChatGPTCoding/about/>
 - <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/>
-- <https://www.reddit.com/r/codex/about/>
+- <https://www.reddit.com/r/codex/about/rules.json>
 - <https://www.reddit.com/r/LLMDevs/about/rules.json>
 - <https://www.reddit.com/r/iOSProgramming/about/>
 - <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/>
