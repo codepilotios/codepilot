@@ -57,6 +57,7 @@
 - Added the public-presence audit to CI and made canonical App Store metadata drift or blocked Remote Desktop enablement copy fail the check.
 - Replaced placeholder support and privacy URLs in the versioned App Store metadata with the approved GitHub Pages candidates, and made URL drift from the human-readable draft fail the public-presence audit.
 - Aligned the App Store screenshot checklist with the public demo-data brief and added full-resolution privacy checks for window chrome, local-web previews, and unrelated device content.
+- Replaced the versioned App Review notes placeholder with a beta-scoped local draft and added length and drift checks, while keeping final reviewer access and submission approval-gated.
 
 ### Recent Product Work
 

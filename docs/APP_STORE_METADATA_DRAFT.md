@@ -42,6 +42,10 @@ Install CodePilot on a Mac that already runs Codex CLI, create a saved account p
 
 Please report whether Cloudflare Tunnel setup, gateway connection, token entry, or localhost link opening was the step that failed. Remove account names, gateway URLs, tokens, hostnames, localhost or local-web session URLs, local page contents, local paths, private prompts, screenshots, and logs containing private data before sharing feedback.
 
+## Review Notes
+
+CodePilot is a companion for people who already run Codex CLI on a Mac they control. No CodePilot account or demo credentials are required. The app opens without a gateway and shows connection setup guidance. Connected features require a user-controlled Mac running the CodePilot gateway, an HTTPS Cloudflare Tunnel URL, and its gateway token. Remote Desktop is disabled and is not part of this beta. The support documentation explains the setup and privacy model.
+
 ## Support URL
 
 Requires maintainer approval before TestFlight external testing or App Store submission. Candidate destination after GitHub Pages is enabled and verified: `https://codepilotios.github.io/codepilot/SUPPORT.html`.
@@ -68,4 +72,5 @@ See the [App Store screenshot checklist](../metadata/screenshots/README.md).
 - Age rating.
 - Export compliance.
 - TestFlight external testing and App Store review submission.
+- Final App Review notes and reviewer access path.
 - Pricing, subscription, or commercial-use claims.
