@@ -1295,6 +1295,10 @@ class GatewayStateTests(unittest.TestCase):
             self.assertIn("auth", health["accounts"])
             self.assertIn("notifications", health)
             self.assertIn("remoteDesktop", health)
+            self.assertEqual(
+                health["remoteDesktop"],
+                {"available": False, "remoteControlAvailable": False},
+            )
             self.assertIn("localWeb", health)
 
     def test_health_endpoint_is_available_without_bearer_token(self):
