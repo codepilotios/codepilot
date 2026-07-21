@@ -64,3 +64,12 @@ Two release-readiness issues were opened after the preceding sweep and were revi
 
 - #48: a maintainer with access to the existing Apple and OTA records must confirm the canonical bundle identity and authorize the release/distribution verification workflow.
 - #49: a maintainer must approve the app data-use inventory before the privacy manifest is encoded; any resulting iOS asset or manifest change must complete the mandatory OTA verification workflow.
+
+## 23:08 CEST Refresh
+
+- The open queue remains unchanged at issues #49, #48, #27, #25, and #8; none has received a new issue update since the 22:17 CEST review.
+- Re-ran the focused Remote Desktop gateway suite for #25: all 24 tests pass with the feature still failing closed. The signed-lease implementation and cross-stack authorization coverage remain outstanding.
+- Re-ran the live public-presence audit for #27: it still reports seven findings covering the repository copy and website field, Pages configuration, private vulnerability reporting, and the three public Pages URLs.
+- Rechecked #49: no app-owned privacy manifest exists, all nine AppIcon PNGs retain alpha channels, and their required dimensions remain intact. Xcode and Fastlane continue to declare `io.codepilot.iOS` consistently for #48.
+- Rechecked #8: no PNG, JPEG, or WebP screenshot asset exists under `docs/`.
+- No low-risk source fix, label change, issue comment, or new escalation is warranted from this unchanged evidence.
