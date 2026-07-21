@@ -1,5 +1,11 @@
 # Issue Triage Escalations
 
+Date: 2026-07-21
+
+- Issue #48 requires maintainer access to the existing Apple and OTA records to confirm the canonical `io.codepilot.iOS` identity, followed by an authorized build from current public `main`, provenance verification, public install-path verification, and an installed-update check. This unattended run cannot mutate OTA or App Store systems.
+- Issue #49 requires maintainer approval of the app data-use inventory before an app-owned privacy manifest can be encoded. The nine AppIcon files also retain alpha channels; any manifest or asset patch must complete the mandatory OTA verification workflow before completion.
+- No pricing, legal metadata change, App Store submission, credential change, or external distribution mutation was performed.
+
 Date: 2026-07-19
 
 - Issue #25 remains a critical distribution blocker after fail-closed containment merged in PR #22. Keep Remote Desktop disabled until approved-device signed leases, expiry and revocation, and HTTP/WebRTC/native-boundary authorization regression coverage pass.
