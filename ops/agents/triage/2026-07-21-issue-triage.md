@@ -73,3 +73,12 @@ Two release-readiness issues were opened after the preceding sweep and were revi
 - Rechecked #49: no app-owned privacy manifest exists, all nine AppIcon PNGs retain alpha channels, and their required dimensions remain intact. Xcode and Fastlane continue to declare `io.codepilot.iOS` consistently for #48.
 - Rechecked #8: no PNG, JPEG, or WebP screenshot asset exists under `docs/`.
 - No low-risk source fix, label change, issue comment, or new escalation is warranted from this unchanged evidence.
+
+## 23:54 CEST Refresh
+
+- The open queue remains unchanged at issues #49, #48, #27, #25, and #8; none has received a new issue update or comment since the preceding review.
+- Re-ran the focused Remote Desktop gateway suite for #25: all 24 tests pass, including the fail-closed `remote_desktop_disabled` response. The signed-lease implementation and cross-stack authorization coverage remain outstanding.
+- Re-ran the live public-presence audit for #27: it still reports seven findings covering the repository copy and website field, Pages configuration, private vulnerability reporting, and the three public Pages URLs.
+- Rechecked #49: no app-owned privacy manifest exists, all nine AppIcon PNGs retain alpha channels, and their required dimensions remain intact. Xcode and Fastlane continue to declare `io.codepilot.iOS` consistently for #48.
+- Rechecked #8: no PNG, JPEG, or WebP screenshot asset exists under `docs/`.
+- No low-risk source fix, label change, issue comment, or new escalation is warranted from this unchanged evidence.
