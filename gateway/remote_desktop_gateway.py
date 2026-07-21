@@ -200,6 +200,13 @@ class RemoteDesktopGateway:
         self._signals: dict[str, list[dict[str, Any]]] = {}
         self._last_signal_sequence: dict[str, int] = {}
 
+    def public_status(self) -> dict[str, Any]:
+        """Return policy state without probing the privileged native host."""
+        return {
+            "available": self.remote_control_enabled,
+            "remoteControlAvailable": self.remote_control_enabled,
+        }
+
     def handle(
         self,
         http_method: str,

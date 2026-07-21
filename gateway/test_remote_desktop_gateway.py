@@ -213,6 +213,16 @@ class FakeNativeHostClient:
 
 
 class RemoteDesktopGatewayTests(unittest.TestCase):
+    def test_public_status_reports_fail_closed_policy_without_probing_host(self):
+        host = FakeNativeHostClient()
+        gateway = RemoteDesktopGateway(host_client=host)
+
+        self.assertEqual(
+            gateway.public_status(),
+            {"available": False, "remoteControlAvailable": False},
+        )
+        self.assertEqual(host.calls, [])
+
     def test_remote_control_routes_fail_closed_by_default(self):
         host = FakeNativeHostClient()
         gateway = RemoteDesktopGateway(host_client=host)

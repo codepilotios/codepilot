@@ -1295,6 +1295,10 @@ class GatewayStateTests(unittest.TestCase):
             self.assertIn("auth", health["accounts"])
             self.assertIn("notifications", health)
             self.assertIn("remoteDesktop", health)
+            self.assertEqual(
+                health["remoteDesktop"],
+                {"available": False, "remoteControlAvailable": False},
+            )
             self.assertIn("localWeb", health)
 
     def test_health_endpoint_is_available_without_bearer_token(self):
@@ -1391,6 +1395,14 @@ class GatewayStateTests(unittest.TestCase):
             self.assertIn("accounts", payload)
             self.assertIn("notifications", payload)
 
+    def test_authentication_rejects_non_ascii_header_without_raising(self):
+        state = GatewayState(Path("/tmp/codex"), "secret-token", Path("/missing-codex"), False)
+        handler = object.__new__(gateway.Handler)
+        handler.server = type("Server", (), {"state": state})()
+        handler.headers = {"authorization": "Bearer secrét-token"}
+
+        self.assertFalse(handler.is_authenticated())
+
     def test_error_payload_has_stable_code_message_and_recovery(self):
         payload = gateway.error_payload(
             "local_web_invalid_target",
@@ -1460,6 +1472,48 @@ class GatewayStateTests(unittest.TestCase):
             self.assertEqual(metadata["filename"], "created-by-codex.txt")
             self.assertEqual(metadata["mimeType"], "text/plain")
             self.assertEqual(metadata["size"], 5)
+
+    def test_file_response_does_not_include_filename_in_header(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            file_path = Path(tmp) / 'report\nX-Injected: yes.txt'
+            file_path.write_text("hello", encoding="utf-8")
+            handler = mock.Mock()
+            handler.wfile = io.BytesIO()
+
+            gateway.file_response(handler, file_path)
+
+            headers = dict(call.args for call in handler.send_header.call_args_list)
+            self.assertEqual(headers["Content-Type"], "application/octet-stream")
+            self.assertEqual(headers["Content-Disposition"], "attachment")
+            self.assertNotIn("\n", headers["Content-Disposition"])
+            self.assertNotIn("\r", headers["Content-Disposition"])
+
+    def test_local_web_response_rejects_control_characters_in_content_type(self):
+        handler = mock.Mock()
+        handler.wfile = io.BytesIO()
+
+        gateway.local_web_response(handler, {
+            "status": 200,
+            "contentType": "text/plain\r\nX-Injected: yes",
+            "body": b"hello",
+        })
+
+        headers = dict(call.args for call in handler.send_header.call_args_list)
+        self.assertEqual(headers["Content-Type"], "application/octet-stream")
+        self.assertNotIn("X-Injected", "\n".join(headers.values()))
+
+    def test_local_web_response_canonicalizes_allowed_content_type(self):
+        handler = mock.Mock()
+        handler.wfile = io.BytesIO()
+
+        gateway.local_web_response(handler, {
+            "status": 200,
+            "contentType": "Text/HTML; charset=untrusted",
+            "body": b"<p>hello</p>",
+        })
+
+        headers = dict(call.args for call in handler.send_header.call_args_list)
+        self.assertEqual(headers["Content-Type"], "text/html; charset=utf-8")
 
     def test_local_web_session_rejects_non_loopback_url(self):
         state = GatewayState(Path("/tmp/codex"), "token", Path("/missing-codex"), False)
@@ -2047,16 +2101,47 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
 
                 response = state.register_notification_device({
-                    "token": " ABC123 ",
+                    "token": " " + ("AB" * 32) + " ",
                     "environment": "production",
                     "bundleId": "io.codepilot.iOS",
                 })
 
                 self.assertTrue(response["ok"])
                 devices = json.loads((switcher_home / "phone-notification-devices.json").read_text(encoding="utf-8"))
-                self.assertEqual(devices[0]["token"], "abc123")
+                self.assertEqual(devices[0]["token"], "ab" * 32)
                 self.assertEqual(devices[0]["environment"], "production")
                 self.assertEqual(devices[0]["bundleId"], "io.codepilot.iOS")
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = old_home
+
+    def test_notification_registration_rejects_malformed_or_unbounded_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            old_home = gateway.DEFAULT_SWITCHER_HOME
+            gateway.DEFAULT_SWITCHER_HOME = tmp_path / "switcher"
+            try:
+                state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
+                valid_token = "ab" * 32
+
+                invalid_payloads = [
+                    {"token": "ab:not-a-token", "environment": "production"},
+                    {"token": valid_token, "environment": "staging"},
+                    {"token": valid_token, "environment": "production", "bundleId": "invalid\nheader"},
+                    {"token": valid_token, "environment": "production", "bundleId": "a" * 256},
+                ]
+                for payload in invalid_payloads:
+                    with self.subTest(payload=payload):
+                        with self.assertRaises(ValueError):
+                            state.register_notification_device(payload)
+
+                with self.assertRaisesRegex(ValueError, "identifier"):
+                    state.register_live_activity({
+                        "activityId": "../unsafe",
+                        "pushToken": valid_token,
+                        "environment": "production",
+                    })
+                self.assertFalse((gateway.DEFAULT_SWITCHER_HOME / "phone-notification-devices.json").exists())
+                self.assertFalse((gateway.DEFAULT_SWITCHER_HOME / "phone-live-activities.json").exists())
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
 
@@ -2070,18 +2155,18 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 state = GatewayState(tmp_path / "codex", "token", Path("/missing-codex"), False)
                 payload = {
                     "activityId": "activity-1",
-                    "pushToken": " ABC123 ",
+                    "pushToken": " " + ("AB" * 32) + " ",
                     "environment": "production",
                     "bundleId": "io.codepilot.iOS",
                 }
 
                 first = state.register_live_activity(payload)
-                second = state.register_live_activity({**payload, "pushToken": "def456"})
+                second = state.register_live_activity({**payload, "pushToken": "de" * 32})
 
                 self.assertEqual(first["activityCount"], 1)
                 self.assertEqual(second["activityCount"], 1)
                 registrations = state.read_live_activities()
-                self.assertEqual(registrations[0]["pushToken"], "def456")
+                self.assertEqual(registrations[0]["pushToken"], "de" * 32)
                 self.assertFalse((switcher_home / "phone-notification-devices.json").exists())
             finally:
                 gateway.DEFAULT_SWITCHER_HOME = old_home
@@ -2096,7 +2181,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 with self.assertRaisesRegex(ValueError, "environment"):
                     state.register_live_activity({
                         "activityId": "activity-1",
-                        "pushToken": "abc123",
+                        "pushToken": "ab" * 32,
                         "environment": "staging",
                     })
             finally:
@@ -2118,7 +2203,7 @@ node_repl      /Applications/Codex.app/Contents/Resources/cua_node/bin/node_repl
                 )
                 state.register_live_activity({
                     "activityId": "activity-1",
-                    "pushToken": "abc123",
+                    "pushToken": "ab" * 32,
                     "environment": "production",
                     "bundleId": "io.codepilot.iOS",
                 })

@@ -51,13 +51,21 @@ final class RemoteDesktopTests: XCTestCase {
         XCTAssertFalse(canStartRemoteDesktop(statusText: "Host reachable, relay available"))
     }
 
-    func testGatewayRootURLRequiresHTTPOrHTTPSWithHost() throws {
+    func testGatewayRootURLRequiresHTTPSOrLoopbackAndServerOrigin() throws {
         let url = try gatewayRootURL(from: " https://codepilot.example.com ")
 
         XCTAssertEqual(url.absoluteString, "https://codepilot.example.com")
+        XCTAssertEqual(
+            try gatewayRootURL(from: "http://127.0.0.1:18790").absoluteString,
+            "http://127.0.0.1:18790"
+        )
         assertInvalidGatewayRootURL("codepilot.example.com")
         assertInvalidGatewayRootURL("file:///tmp/codepilot")
         assertInvalidGatewayRootURL("http:///missing-host")
+        assertInvalidGatewayRootURL("http://192.0.2.10:18790")
+        assertInvalidGatewayRootURL("https://codepilot.example.com/api")
+        assertInvalidGatewayRootURL("https://" + "user:" + "password" + "@codepilot.example.com")
+        assertInvalidGatewayRootURL("https://codepilot.example.com?token=unsafe")
     }
 
     func testGatewaySetupValidationExplainsMissingFields() {
@@ -84,7 +92,11 @@ final class RemoteDesktopTests: XCTestCase {
             gatewaySetupValidationMessage(url: "http://127.0.0.1:18790", token: "token", connectionKind: .local),
             "Same Network needs the Mac's LAN address, not localhost or 127.0.0.1."
         )
-        XCTAssertNil(gatewaySetupValidationMessage(url: "http://192.0.2.10:18790", token: "token", connectionKind: .local))
+        XCTAssertEqual(
+            gatewaySetupValidationMessage(url: "http://192.0.2.10:18790", token: "token", connectionKind: .local),
+            "Same Network connections must use https:// so the iOS connection token is encrypted."
+        )
+        XCTAssertNil(gatewaySetupValidationMessage(url: "https://192.0.2.10:18790", token: "token", connectionKind: .local))
     }
 
     func testGatewaySetupValidationRequiresHTTPSForCloudflare() {
@@ -218,7 +230,7 @@ final class RemoteDesktopTests: XCTestCase {
     func testLocalWebSessionURLResolvesGatewayRelativePath() throws {
         let url = try XCTUnwrap(localWebSessionURL(
             path: "/api/local-web/session-1/dashboard?tab=logs",
-            baseURL: "https://gateway.example/base"
+            baseURL: "https://gateway.example"
         ))
 
         XCTAssertEqual(url.absoluteString, "https://gateway.example/api/local-web/session-1/dashboard?tab=logs")

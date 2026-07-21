@@ -1765,6 +1765,7 @@ struct LocalWebView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
         configuration.allowsInlineMediaPlayback = true
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.allowsBackForwardNavigationGestures = true
@@ -1899,12 +1900,7 @@ func isMacLocalWebURL(_ url: URL) -> Bool {
 }
 
 func gatewayRootURL(from rawValue: String) throws -> URL {
-    let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard let url = URL(string: trimmed),
-          let scheme = url.scheme?.lowercased(),
-          ["http", "https"].contains(scheme),
-          let host = url.host,
-          !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+    guard let url = GatewayEndpoint.baseURL(from: rawValue) else {
         throw GatewayError.invalidURL
     }
     return url
@@ -1919,7 +1915,11 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
     if trimmedToken.isEmpty {
         return "Enter the iOS connection token from the Mac setup screen."
     }
-    guard let url = try? gatewayRootURL(from: trimmedURL) else {
+    guard let url = URL(string: trimmedURL),
+          let scheme = url.scheme?.lowercased(),
+          ["http", "https"].contains(scheme),
+          let rawHost = url.host,
+          !rawHost.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
         return "Gateway URL must start with http:// or https:// and include a host."
     }
     if url.user != nil
@@ -1929,11 +1929,12 @@ func gatewaySetupValidationMessage(url rawURL: String, token rawToken: String, c
         || url.fragment != nil {
         return "Gateway URL must be the server address only, without credentials, a path, query, or fragment."
     }
-    let scheme = url.scheme?.lowercased()
     let host = url.host?.lowercased() ?? ""
     switch connectionKind {
     case .local where host == "localhost" || host == "127.0.0.1" || host == "::1":
         return "Same Network needs the Mac's LAN address, not localhost or 127.0.0.1."
+    case .local where scheme != "https":
+        return "Same Network connections must use https:// so the iOS connection token is encrypted."
     case .cloudflare where host == "localhost" || host == "127.0.0.1" || host == "::1":
         return "Cloudflare needs the public tunnel URL from the Mac setup screen, not localhost or 127.0.0.1."
     case .cloudflare where IPv4Address(host) != nil || IPv6Address(host) != nil:

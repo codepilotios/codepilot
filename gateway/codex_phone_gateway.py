@@ -68,6 +68,27 @@ MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 MAX_TOTAL_ATTACHMENT_BYTES = 50 * 1024 * 1024
 MAX_JSON_BODY_BYTES = 1 * 1024 * 1024
 MAX_ATTACHMENT_REQUEST_BYTES = 72 * 1024 * 1024
+MAX_AUTHORIZATION_HEADER_BYTES = 512
+MIN_APNS_TOKEN_HEX_CHARS = 32
+MAX_APNS_TOKEN_HEX_CHARS = 200
+MAX_APNS_TOPIC_CHARS = 255
+MAX_LIVE_ACTIVITY_ID_CHARS = 128
+LOCAL_WEB_CONTENT_TYPES = {
+    "application/javascript": "application/javascript; charset=utf-8",
+    "application/json": "application/json; charset=utf-8",
+    "application/pdf": "application/pdf",
+    "application/wasm": "application/wasm",
+    "image/avif": "image/avif",
+    "image/gif": "image/gif",
+    "image/jpeg": "image/jpeg",
+    "image/png": "image/png",
+    "image/svg+xml": "image/svg+xml",
+    "image/webp": "image/webp",
+    "text/css": "text/css; charset=utf-8",
+    "text/html": "text/html; charset=utf-8",
+    "text/javascript": "text/javascript; charset=utf-8",
+    "text/plain": "text/plain; charset=utf-8",
+}
 UPLOAD_RETENTION_SECONDS = 7 * 24 * 60 * 60
 VALID_REASONING_EFFORTS = {"none", "minimal", "low", "medium", "high", "xhigh"}
 PUBLIC_JOB_TEXT_LIMIT = 4_000
@@ -1008,16 +1029,20 @@ def file_metadata(path: Path) -> dict:
     }
 
 
+def canonical_local_web_content_type(value: object) -> str:
+    media_type = str(value or "").partition(";")[0].strip().lower()
+    return LOCAL_WEB_CONTENT_TYPES.get(media_type, "application/octet-stream")
+
+
 def file_response(handler: BaseHTTPRequestHandler, path: Path):
     metadata = file_metadata(path)
-    download_name = path.name.replace('"', "_")
     handler.send_response(200)
-    handler.send_header("Content-Type", metadata["mimeType"])
+    handler.send_header("Content-Type", "application/octet-stream")
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Referrer-Policy", "no-referrer")
     handler.send_header("X-Content-Type-Options", "nosniff")
     handler.send_header("Content-Length", str(metadata["size"]))
-    handler.send_header("Content-Disposition", f'attachment; filename="{download_name}"')
+    handler.send_header("Content-Disposition", "attachment")
     handler.end_headers()
     with path.open("rb") as handle:
         shutil.copyfileobj(handle, handler.wfile)
@@ -1028,8 +1053,9 @@ def local_web_response(handler: BaseHTTPRequestHandler, payload: dict):
     if isinstance(body, str):
         body = body.encode("utf-8")
     status = int(payload.get("status") or 502)
+    content_type = canonical_local_web_content_type(payload.get("contentType"))
     handler.send_response(status)
-    handler.send_header("Content-Type", str(payload.get("contentType") or "application/octet-stream"))
+    handler.send_header("Content-Type", content_type)
     handler.send_header("Cache-Control", "no-store")
     handler.send_header("Referrer-Policy", "no-referrer")
     handler.send_header("X-Content-Type-Options", "nosniff")
@@ -1231,9 +1257,47 @@ def is_connector_auth_warning(text: str) -> bool:
 
 def connector_name_from_text(text: str, fallback: str = "Connector") -> str:
     lower = str(text or "").lower()
-    if "mcp.cloudflare.com" in lower or "cloudflare" in lower:
+    if "cloudflare" in lower:
         return "cloudflare-api"
     return str(fallback or "Connector").strip() or "Connector"
+
+
+def normalized_apns_token(raw_token: object) -> str:
+    token = str(raw_token or "").strip().lower()
+    if (
+        len(token) < MIN_APNS_TOKEN_HEX_CHARS
+        or len(token) > MAX_APNS_TOKEN_HEX_CHARS
+        or len(token) % 2 != 0
+        or re.fullmatch(r"[0-9a-f]+", token) is None
+    ):
+        raise ValueError("APNs token must be an even-length hexadecimal value")
+    return token
+
+
+def validated_apns_topic(raw_topic: object) -> str:
+    topic = str(raw_topic or DEFAULT_APNS_TOPIC).strip() or DEFAULT_APNS_TOPIC
+    segments = topic.split(".")
+    if len(topic) > MAX_APNS_TOPIC_CHARS or len(segments) < 2 or any(
+        not segment
+        or any(
+            not (character.isascii() and (character.isalnum() or character == "-"))
+            for character in segment
+        )
+        for segment in segments
+    ):
+        raise ValueError("APNs bundle identifier is invalid")
+    return topic
+
+
+def validated_live_activity_id(raw_activity_id: object) -> str:
+    activity_id = str(raw_activity_id or "").strip()
+    if (
+        not activity_id
+        or len(activity_id) > MAX_LIVE_ACTIVITY_ID_CHARS
+        or re.fullmatch(r"[A-Za-z0-9._-]+", activity_id) is None
+    ):
+        raise ValueError("Live Activity identifier is invalid")
+    return activity_id
 
 
 def connector_display_name(name: str) -> str:
@@ -3277,19 +3341,16 @@ class GatewayState:
         return sorted(names, key=str.casefold)
 
     def register_notification_device(self, payload: dict) -> dict:
-        raw_token = str(payload.get("token") or "")
-        token = re.sub(r"[^0-9a-fA-F]", "", raw_token).lower()
-        if not token:
-            raise ValueError("Device token is required")
+        token = normalized_apns_token(payload.get("token"))
         environment = str(payload.get("environment") or "production").strip().lower()
         if environment not in {"development", "production"}:
-            environment = "production"
-        bundle_id = str(payload.get("bundleId") or DEFAULT_APNS_TOPIC).strip() or DEFAULT_APNS_TOPIC
+            raise ValueError("Notification environment must be development or production")
+        bundle_id = validated_apns_topic(payload.get("bundleId"))
         device = {
             "token": token,
             "environment": environment,
             "bundleId": bundle_id,
-            "platform": str(payload.get("platform") or "ios"),
+            "platform": "ios",
             "updatedAt": int(time.time()),
         }
         devices = [
@@ -3305,16 +3366,12 @@ class GatewayState:
         return {"ok": True, "deviceCount": len(devices[:20])}
 
     def register_live_activity(self, payload: dict) -> dict:
-        activity_id = str(payload.get("activityId") or "").strip()
-        if not activity_id:
-            raise ValueError("Live Activity identifier is required")
-        token = re.sub(r"[^0-9a-fA-F]", "", str(payload.get("pushToken") or "")).lower()
-        if not token:
-            raise ValueError("Live Activity push token is required")
+        activity_id = validated_live_activity_id(payload.get("activityId"))
+        token = normalized_apns_token(payload.get("pushToken"))
         environment = str(payload.get("environment") or "production").strip().lower()
         if environment not in {"development", "production"}:
             raise ValueError("Live Activity environment must be development or production")
-        bundle_id = str(payload.get("bundleId") or DEFAULT_APNS_TOPIC).strip() or DEFAULT_APNS_TOPIC
+        bundle_id = validated_apns_topic(payload.get("bundleId"))
         existing = next(
             (item for item in self.read_live_activities() if item.get("activityId") == activity_id),
             None,
@@ -4912,7 +4969,14 @@ class Handler(BaseHTTPRequestHandler):
     def is_authenticated(self) -> bool:
         expected = self.state().token
         header = self.headers.get("authorization", "")
-        return secrets.compare_digest(header, f"Bearer {expected}")
+        try:
+            header_bytes = header.encode("ascii")
+            expected_bytes = f"Bearer {expected}".encode("ascii")
+        except (AttributeError, UnicodeEncodeError):
+            return False
+        if len(header_bytes) > MAX_AUTHORIZATION_HEADER_BYTES:
+            return False
+        return secrets.compare_digest(header_bytes, expected_bytes)
 
     def do_GET(self):
         parsed = urllib.parse.urlparse(self.path)

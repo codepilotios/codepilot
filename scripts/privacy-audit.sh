@@ -65,6 +65,8 @@ secret_patterns=(
   "g""hp_[A-Za-z0-9_]{20,}"
   "g""ho_[A-Za-z0-9_]{20,}"
   "g""hu_[A-Za-z0-9_]{20,}"
+  "g""hs_[A-Za-z0-9_]{20,}"
+  "g""hr_[A-Za-z0-9_]{20,}"
   "github_""pat_[A-Za-z0-9_]{20,}"
   "(^|[^A-Za-z0-9])s""k-[A-Za-z0-9]{20,}"
   "(^|[^A-Za-z0-9])s""k-proj-[A-Za-z0-9]{20,}"
@@ -77,11 +79,19 @@ secret_patterns=(
   'Bearer [A-Za-z0-9._-]{20,}'
   'AKIA[A-Z0-9]{16}'
   "AI""za[0-9A-Za-z_-]{35}"
-  "xox""b-[A-Za-z0-9-]{20,}"
+  "xox""[baprs]-[A-Za-z0-9-]{20,}"
   'xapp-[A-Za-z0-9-]{20,}'
   "s""k_live_[A-Za-z0-9]{20,}"
+  "s""k_test_[A-Za-z0-9]{20,}"
+  "r""k_live_[A-Za-z0-9]{20,}"
   'glpat-[A-Za-z0-9_-]{20,}'
   'npm_[A-Za-z0-9]{20,}'
+  "pypi-""[A-Za-z0-9_-]{40,}"
+  "hf_""[A-Za-z0-9]{30,}"
+  "SG\.""[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}"
+  "dop_v1_""[A-Za-z0-9]{40,}"
+  "AGE-SECRET-KEY-""1[A-Z0-9]{20,}"
+  "-----BEGIN PGP PRIVATE ""KEY BLOCK-----"
   'eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{20,}'
   "client_""secret[[:space:]]*[:=]"
   "private_""key[[:space:]]*[:=]"
