@@ -31,3 +31,11 @@ The full open GitHub issue queue was reviewed against current `origin/main` and 
 - #25: keep Remote Desktop disabled and keep distribution containing the feature blocked until paired-device lease enforcement and all authorization regression paths pass.
 - #27: a maintainer with repository administration access must enable Pages from `main`/`docs`, verify the public URLs, set the approved website and beta description, enable private vulnerability reporting, and align security-reporting links.
 - #8: a sanitized demo capture session and manual full-resolution privacy review are still required. Existing approval already covers the demo-only capture set.
+
+## 21:26 CEST Refresh
+
+- The open queue remains unchanged at issues #27, #25, and #8; none has received a new issue update since the preceding review.
+- Reproduced #25 containment against current `origin/main`: all 24 focused Remote Desktop gateway tests pass, including the fail-closed `remote_desktop_disabled` response. This does not satisfy the signed-lease requirements tracked by the issue.
+- Rechecked #27: the Pages API still returns 404, the repository website remains unset, the description still uses the pre-beta wording, and private vulnerability reporting remains disabled.
+- Rechecked #8: no PNG, JPEG, or WebP screenshot asset is present under `docs/`.
+- No additional source fix, label change, issue comment, or escalation is warranted from this unchanged evidence.
