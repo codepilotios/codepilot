@@ -3,7 +3,7 @@
 Status: no current maintainer action required. Public posting remains gated on
 a verified beta install path and production-ready setup flow.
 
-Last live-rule checkpoint: 2026-07-20. No public action was taken.
+Last live-rule checkpoint: 2026-07-21. No public action was taken.
 
 - The link-free `r/GenAiApps` draft with `iOS` flair is approved as the first
   placement. Do not post it until the public beta install path and setup flow
@@ -62,7 +62,7 @@ Last live-rule checkpoint: 2026-07-20. No public action was taken.
   approved identity has genuine participation and remains safely below the
   community's one-in-ten self-promotion guideline. Approve the no-link draft;
   any later approved link belongs in a reply rather than the project description.
-- For `r/SideProject`, the currently active self-promotion thread explicitly
+- For `r/SideProject`, a fresh 2026-07-21 self-promotion thread explicitly
   invites projects and feedback. Approve the prepared no-link comment and have a
   human use that thread only after genuine participation; do not use a standalone
   launch post.
