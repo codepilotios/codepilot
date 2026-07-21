@@ -2569,8 +2569,12 @@ enum SwitchError: LocalizedError {
 }
 
 enum CodePilotGatewayHealthProbe {
-    static func request() -> URLRequest {
-        URLRequest(url: URL(string: "http://127.0.0.1:18790/api/health")!)
+    static func request(token: String?) -> URLRequest {
+        var request = URLRequest(url: URL(string: "http://127.0.0.1:18790/api/health")!)
+        if let token = token?.trimmingCharacters(in: .whitespacesAndNewlines), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        return request
     }
 
     static func requirement(from data: Data?) -> CodePilotSetupRequirement {
@@ -2725,7 +2729,12 @@ struct CodePilotSetupStatus {
     }
 
     private static func gatewayHealthStatus() -> CodePilotGatewayHealthStatus {
-        CodePilotGatewayHealthProbe.status(from: synchronousData(for: CodePilotGatewayHealthProbe.request()))
+        let tokenPath = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".codex-account-switcher/phone-gateway-token")
+        let token = try? String(contentsOf: tokenPath, encoding: .utf8)
+        return CodePilotGatewayHealthProbe.status(
+            from: synchronousData(for: CodePilotGatewayHealthProbe.request(token: token))
+        )
     }
 
     private static func synchronousData(for request: URLRequest) -> Data? {

@@ -51,6 +51,10 @@
 - Aligned the GitHub Pages metadata description with the approved Mac-and-iPhone public beta positioning for Codex CLI users.
 - Added a read-only live-presence audit for the public repository description, website field, Pages source and URLs, and private vulnerability reporting.
 - Expanded the App Store metadata audit to guard the app name, subtitle, description, and beta testing instructions against submission field-limit drift.
+- Removed stale Remote Desktop enablement steps from the public install guides and replaced unrelated upload-permission troubleshooting with the actual attachment limits and recovery path.
+- Aligned privacy, FAQ, iOS setup, and troubleshooting copy with the gateway's seven-day upload-retention cleanup behavior.
+- Reconciled the versioned App Store and TestFlight drafts with the approved Codex CLI beta positioning, supported feature set, and privacy-safe feedback guidance.
+- Added the public-presence audit to CI and made canonical App Store metadata drift or blocked Remote Desktop enablement copy fail the check.
 
 ### Recent Product Work
 

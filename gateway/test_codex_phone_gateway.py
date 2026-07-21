@@ -6,9 +6,9 @@ import socket
 import subprocess
 import tempfile
 import threading
+import urllib.error
 import urllib.request
 import unittest
-import urllib.request
 from unittest import mock
 from pathlib import Path
 
@@ -1254,7 +1254,7 @@ class GatewayStateTests(unittest.TestCase):
         finally:
             gateway.JOBS.pop(job_id, None)
 
-    def test_public_health_exposes_safe_gateway_status(self):
+    def test_public_health_exposes_only_non_identifying_liveness(self):
         with tempfile.TemporaryDirectory() as tmp:
             original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
             switcher_home = Path(tmp) / "switcher"
@@ -1271,12 +1271,31 @@ class GatewayStateTests(unittest.TestCase):
                 gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
 
             self.assertTrue(health["gateway"]["running"])
+            self.assertEqual(set(health), {"gateway"})
+            self.assertEqual(set(health["gateway"]), {"running"})
+            self.assertNotIn("secret-token", json.dumps(health))
+
+    def test_diagnostic_health_retains_authenticated_setup_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+            switcher_home = Path(tmp) / "switcher"
+            codex_home = Path(tmp) / "codex"
+            try:
+                gateway.DEFAULT_SWITCHER_HOME = switcher_home
+                switcher_home.mkdir()
+                codex_home.mkdir()
+                (switcher_home / "active-account.txt").write_text("main", encoding="utf-8")
+                state = GatewayState(codex_home, "secret-token", Path("/missing-codex"), False)
+
+                health = state.diagnostic_health()
+            finally:
+                gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
+
             self.assertEqual(health["accounts"]["active"], "main")
             self.assertIn("auth", health["accounts"])
             self.assertIn("notifications", health)
             self.assertIn("remoteDesktop", health)
             self.assertIn("localWeb", health)
-            self.assertNotIn("secret-token", json.dumps(health))
 
     def test_health_endpoint_is_available_without_bearer_token(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1298,6 +1317,7 @@ class GatewayStateTests(unittest.TestCase):
                 url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
                 with urllib.request.urlopen(url, timeout=2) as response:
                     status = response.status
+                    server_header = response.headers.get("Server")
                     payload = json.loads(response.read().decode("utf-8"))
             finally:
                 if server is not None:
@@ -1308,8 +1328,68 @@ class GatewayStateTests(unittest.TestCase):
                 gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
 
             self.assertEqual(status, 200)
+            self.assertEqual(server_header, "CodePilotGateway")
             self.assertTrue(payload["gateway"]["running"])
+            self.assertEqual(set(payload), {"gateway"})
+            self.assertEqual(set(payload["gateway"]), {"running"})
             self.assertNotIn("secret-token", json.dumps(payload))
+
+    def test_local_web_endpoint_hides_backend_failure_details(self):
+        state = GatewayState(
+            Path("/tmp/codex"),
+            "secret-token",
+            Path("/missing-codex"),
+            False,
+            local_web_fetcher=mock.Mock(side_effect=RuntimeError("private backend detail")),
+        )
+        session = state.start_local_web_session("http://localhost:3000/")
+        server = gateway.GatewayServer(("127.0.0.1", 0), state)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            url = f"http://127.0.0.1:{server.server_address[1]}{session['path']}"
+            with self.assertRaises(urllib.error.HTTPError) as raised:
+                urllib.request.urlopen(url, timeout=2)
+            payload = json.loads(raised.exception.read().decode("utf-8"))
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join(timeout=2)
+
+        self.assertEqual(raised.exception.code, 502)
+        self.assertEqual(payload["error"]["message"], "The selected local web server is unavailable")
+        self.assertNotIn("private backend detail", json.dumps(payload))
+
+    def test_health_endpoint_returns_diagnostics_with_bearer_token(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            original_switcher_home = gateway.DEFAULT_SWITCHER_HOME
+            switcher_home = Path(tmp) / "switcher"
+            codex_home = Path(tmp) / "codex"
+            server = None
+            thread = None
+            try:
+                gateway.DEFAULT_SWITCHER_HOME = switcher_home
+                switcher_home.mkdir()
+                codex_home.mkdir()
+                state = GatewayState(codex_home, "secret-token", Path("/missing-codex"), False)
+                server = gateway.GatewayServer(("127.0.0.1", 0), state)
+                thread = threading.Thread(target=server.serve_forever, daemon=True)
+                thread.start()
+
+                url = f"http://127.0.0.1:{server.server_address[1]}/api/health"
+                request = urllib.request.Request(url, headers={"Authorization": "Bearer secret-token"})
+                with urllib.request.urlopen(request, timeout=2) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+            finally:
+                if server is not None:
+                    server.shutdown()
+                    server.server_close()
+                if thread is not None:
+                    thread.join(timeout=2)
+                gateway.DEFAULT_SWITCHER_HOME = original_switcher_home
+
+            self.assertIn("accounts", payload)
+            self.assertIn("notifications", payload)
 
     def test_error_payload_has_stable_code_message_and_recovery(self):
         payload = gateway.error_payload(

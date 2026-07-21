@@ -12,7 +12,6 @@ A second live-rule check on 2026-07-21 confirmed the queue below. No draft was
 posted or sent. Reddit's public rules endpoint exposed the current rule text;
 thread availability and account eligibility still require a same-day manual
 check immediately before any approved submission.
-
 ## Communities researched
 
 The highest-priority Reddit destinations and their time-sensitive promotion

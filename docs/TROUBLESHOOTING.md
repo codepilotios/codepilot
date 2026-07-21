@@ -44,7 +44,11 @@ Pull to refresh the thread list. If a live stream was interrupted, open the thre
 
 ## File Upload Is Rejected
 
-Open **Remote Desktop...** on the Mac and confirm Screen Recording and Accessibility permissions are granted. Use **Allow Screen Recording** or **Allow Accessibility** for a missing permission, then restart CodePilot after changing macOS privacy permissions.
+Confirm the turn has no more than eight attachments, each file is 25 MB or smaller, and the combined attachment size is 50 MB or smaller. Remove or resize files that exceed those limits, then retry the upload.
+
+If a file within those limits is still rejected, confirm the Mac gateway and Cloudflare Tunnel are online, then retry with a non-sensitive sample file. Do not attach the rejected private file or its local path to a public issue.
+
+Uploaded attachment batches are retained for up to seven days. The gateway removes expired batches when it starts and before it saves another upload.
 
 ## Localhost Link Does Not Open
 

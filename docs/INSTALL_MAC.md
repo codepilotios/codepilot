@@ -97,6 +97,6 @@ Do not share this token in issue reports or screenshots.
 
 For access away from the local network, open **Setup CodePilot...** in the Mac menu bar app and use **Cloudflare Remote Access**. The setup wizard can install `cloudflared`, sign in to Cloudflare, configure a permanent hostname, or start a temporary TryCloudflare URL for testing.
 
-## Remote Desktop Permissions
+## Remote Desktop
 
-Open **Setup CodePilot... > Remote Desktop Permissions > Open Permission Setup...** (or **Remote Desktop...** from the Mac menu) to check Screen Recording and Accessibility. Screen Recording is required to view the Mac, and Accessibility is required for pointer and keyboard control. Use **Allow Screen Recording** or **Allow Accessibility** when the corresponding permission is missing, then restart CodePilot after granting either macOS privacy permission.
+Remote Desktop is not part of the supported public beta while its device-pairing and session-authorization enforcement is being completed and independently verified. Do not grant Screen Recording or Accessibility permission for CodePilot to enable this feature, and do not expose its routes through the beta tunnel.
