@@ -2,6 +2,8 @@
 
 The full open GitHub issue queue was reviewed against current `origin/main` and the live repository settings. No issue, comment, or label update has landed since the late 2026-07-21 pass. Five open issues were reviewed.
 
+A follow-up sweep later on 2026-07-22 found no new or updated issues. The focused reproductions below were run again against the same current `origin/main` baseline and produced unchanged results.
+
 ## Reviewed Issues
 
 - #49 Add iOS privacy manifest and flatten App Store icons
@@ -29,6 +31,7 @@ The full open GitHub issue queue was reviewed against current `origin/main` and 
 - Re-ran the focused Remote Desktop gateway test suite: all 24 tests passed.
 - Re-ran the live public-presence audit: seven findings remain.
 - Rechecked the iOS privacy manifest, AppIcon alpha and dimensions, canonical bundle identifier declarations, and documentation screenshot inventory.
+- Confirmed in the follow-up sweep that the issue labels, reproduction evidence, and maintainer blockers remain current; no duplicate public issue comment was warranted.
 - Did not change labels or add issue comments because the current labels already match where present and no new diagnosis would be added publicly.
 - Did not change product code, App Store metadata, repository settings, or external distribution systems.
 
