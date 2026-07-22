@@ -4,6 +4,7 @@
 
 ### Public Beta Preparation
 
+- Kept maintainer-only App Store setup guidance and community promotion drafts out of the generated GitHub Pages site, with an automated exclusion check.
 - Added GitHub Pages configuration and narrowed the generated site to user-facing beta documentation.
 - Refined the Pages landing page with beta scope, security guidance, and install prerequisites.
 - Added public-safe GitHub feature request and pull request templates for beta feedback and contribution review.

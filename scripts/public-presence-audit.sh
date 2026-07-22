@@ -30,6 +30,25 @@ unless missing_links.empty?
   exit 1
 end
 
+pages_config = File.read("docs/_config.yml")
+[
+  "APP_STORE_CONNECT_SETUP.md",
+  "APP_STORE_METADATA_DRAFT.md",
+  "PRODUCTION_READINESS.md",
+  "PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md",
+  "PUBLIC_PRESENCE_CHECKLIST.md",
+  "RELEASE_CHECKLIST.md",
+  "SCREENSHOTS.md",
+  "community",
+  "operations",
+  "superpowers"
+].each do |private_pages_path|
+  next if pages_config.match?(/^\s*- #{Regexp.escape(private_pages_path)}\s*$/)
+
+  warn "public presence audit failed: docs/_config.yml does not exclude #{private_pages_path} from GitHub Pages"
+  exit 1
+end
+
 metadata_path = "docs/APP_STORE_METADATA_DRAFT.md"
 metadata = File.read(metadata_path)
 metadata_values = {}
