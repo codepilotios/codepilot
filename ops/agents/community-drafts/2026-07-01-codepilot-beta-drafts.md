@@ -2,11 +2,15 @@
 
 Status: draft only. Do not post publicly without explicit maintainer approval.
 
-Last rule review: 2026-07-19.
+Last rule review: 2026-07-22.
 
 Review method: checked public Reddit rule/sidebar/search-visible pages, moderator
 announcements, removal notices, and recent promotion threads on 2026-07-18 and
-re-checked the current `r/AI_Agents` and `r/SideProject` threads on 2026-07-19.
+re-checked the current `r/AI_Agents`, `r/SideProject`, `r/ChatGPTCoding`, and
+`r/codex` pages on 2026-07-20. Re-checked the current `r/TestFlight`,
+`r/ChatGPTCoding`, `r/iOSProgramming`, `r/SwiftUI`, `r/macapps`, `r/iosapps`,
+and `r/SideProject` pages plus the official Hacker News and Show HN guidelines
+on 2026-07-22; the existing queue and approval gates remain accurate.
 Re-check each target immediately before any
 human-approved posting because subreddit rules and megathread formats change.
 
@@ -53,7 +57,7 @@ Operational rules for this queue:
 | `r/AI_Agents` | Medium-high | The live rules permit limited self-promotion at roughly one in ten posts/comments, prohibit promotion-only accounts and low-context posts, require links to be placed in comments, and route project showcases to the weekly Project Display thread. The current weekly thread explicitly welcomes AI agents and LLM apps. Sources: <https://www.reddit.com/r/AI_Agents/about/> and <https://www.reddit.com/r/AI_Agents/comments/1ukprfr/weekly_thread_project_display/> | Good agent-workflow feedback target only after the approved identity has genuine non-promotional participation. Use the weekly Project Display thread, disclose the maker relationship, and keep the first draft link-free unless a direct public beta or repository URL is separately approved. |
 | `r/vibecoding` | Low / externally gated | CodePilot counts as a developer tool, and the live rules require developer-tool makers to obtain approval by joining the community on X, posting the tool there, and waiting for a moderator DM before making one introduction post. The subreddit also rejects fully generated low-effort content and requires educational detail for project posts. Sources: <https://www.reddit.com/r/vibecoding/about/> and <https://www.reddit.com/r/vibecoding/comments/1mp8oyw/important_new_rules_update_on_selfpromotion/> | Hold. This run may not create or mutate accounts or post on non-GitHub external systems, so it cannot complete the X approval gate. Do not disguise CodePilot promotion as general discussion or a project breakdown. |
 | `r/codex` | High | Community is specifically for OpenAI Codex tools, including Codex CLI, IDE Extension, and Codex in the Cloud. Current rules require posts to be directly related to Codex, use the right flair, avoid low-effort rants, and not use bots. Recent AMA thread required subreddit karma for comments. Sources: <https://www.reddit.com/r/codex/about/> and <https://www.reddit.com/r/codex/comments/1us9ty9/ama_with_openais_codex_team/> | Strong fit, but treat as moderator-approval first because the post is maker-authored promotion. A maintainer must post manually; use text-only feedback framing unless mods approve a beta link. |
-| `r/LLMDevs` | High for a technical project discussion | The community prioritizes substantive LLM/NLP material. Its current self-promotion clarification allows projects under noncommercial licenses without prior moderator approval, prohibits commercial promotion, and bans disguised advertising or fake discussion framing. Sources: <https://www.reddit.com/r/LLMDevs/about/> and <https://www.reddit.com/r/LLMDevs/comments/1mvuw5x/community_rule_update_clarifying_our/> | Good technical candidate because CodePilot is source-available under the PolyForm Noncommercial License, but describe that license exactly rather than calling the project open source. Hold until a maintainer approves an accessible, privacy-audited repository URL and confirms that the live rule still treats this specific license as eligible. Use the transparent architecture-and-trust draft, not a generic tester request. |
+| `r/LLMDevs` | High for a technical project discussion, moderator-first | The live rules permit promotion only when the free version is functionally identical to every other version and the project is either FOSS or meets all three source-available conditions: prior moderator approval, source availability, and a clear disclaimer. The rules also require transparent data-collection purpose, no personally identifiable information or monetization of responses, accurate claims, sources for claims, AI-content attribution, and no disguised advertising. Sources: <https://www.reddit.com/r/LLMDevs/about/rules.json> and <https://www.reddit.com/r/LLMDevs/comments/1mvuw5x/community_rule_update_clarifying_our/> | CodePilot is source-available under the PolyForm Noncommercial License, not FOSS, so prior moderator approval is mandatory. Hold until a maintainer manually sends the prepared permission request, moderators approve the exact format, the repository URL passes the privacy audit, and the current beta is confirmed to have no paid-feature distinction. Use the transparent architecture-and-trust draft, disclose AI assistance, and state that requested replies will not be monetized or intentionally collect PII. |
 | `r/SideProject` | Medium-high | The live About page currently shows no community-specific rules beyond Reddit-wide rules and says anyone may post. Project showcases and beta-feedback requests are common, and a current self-promotion thread explicitly invites projects and feedback. A recent high-engagement community discussion objects to promotion-only accounts and link drops. Sources: <https://www.reddit.com/r/SideProject/about/>, <https://www.reddit.com/r/SideProject/>, <https://www.reddit.com/r/SideProject/comments/1utus1n/whats_everyone_working_on_lets_self_promote/>, and <https://www.reddit.com/r/SideProject/comments/1u07rgx/the_selfish_promotion_epidemic_is_killing_this_sub/> | Prefer the current self-promotion thread over a standalone post. Use the no-link, feedback-specific comment draft after maintainer approval, and re-check the thread and live About page immediately before posting. |
 | `r/iOSProgramming` | Medium | App posts are Saturday-only and limited to one post per app per year. The live App Saturday guide requires `Tech Stack Used`, `Development Challenge + How You Solved It`, and `AI Disclosure` content. The live rule also asks authors not to post without previous community activity but does not state a numeric karma threshold. Sources: <https://www.reddit.com/r/iOSProgramming/about/> and <https://www.reddit.com/r/iOSProgramming/wiki/app-saturday/> | Approval required. Hold until Saturday and do not use a new/inactive `codepilotios` account. |
 | `r/swift` | Medium | Self-promotion must be under 5% of the account's posts and comments in the subreddit. It is not allowed with fewer than 5 posts/comments in the sub or when the account is under 2 months old. Source: <https://www.reddit.com/r/swift/about/> | Approval required. Do not post from a new `codepilotios` account. Use only after the account age, activity, and contribution-ratio thresholds are met. |
@@ -88,7 +92,13 @@ Operational rules for this queue:
 - `r/AI_Agents`: use only the current weekly Project Display thread after the approved identity has genuine participation and its self-promotion ratio is safely below one in ten. Put any separately approved link in a reply rather than the project description, provide substantive workflow context, and have a maintainer post manually.
 - `r/vibecoding`: do not post or prepare a disguised discussion placement. Developer-tool promotion requires prior approval through an X community post and moderator DM; satisfying that gate requires a maintainer-controlled external account action that this agent is not authorized to perform.
 - `r/codex`: directly relevant to Codex, but ask moderators before a maker-authored beta-feedback post with any link; new-account karma filters may apply, and the explicit no-bots rule means a maintainer must post manually.
-- `r/LLMDevs`: the published clarification allows noncommercial-licensed projects without prior moderator approval, but CodePilot must be described accurately as source-available under the PolyForm Noncommercial License rather than open source. A maintainer must approve the exact copy and an accessible, privacy-audited repository URL, confirm the live rule still covers that license, and post manually. Do not disguise the maker relationship or frame an advertisement as an organic question.
+- `r/LLMDevs`: prior moderator approval is required because CodePilot is
+  source-available under a noncommercial license rather than FOSS. A maintainer
+  must manually send the prepared permission request, confirm that the beta has
+  no paid-feature distinction, approve the exact copy and an accessible,
+  privacy-audited repository URL, and post manually only after moderators
+  approve. Disclose AI assistance, the maker relationship, the feedback purpose,
+  and that replies will not be monetized or intentionally collect PII.
 - `r/SideProject`: the live About page currently lists no community-specific rules, but community sentiment strongly disfavors promotion-only participation. Prefer the current self-promotion thread, post manually only after maintainer approval, disclose the maker relationship, and use the no-link feedback draft rather than a standalone launch post.
 - `r/iOSProgramming`: Saturday-only app post, one app post per year, prior activity expected, and mandatory App Saturday content sections. The live rules do not currently state a numeric karma threshold, but eligibility must still be re-checked before posting.
 - `r/swift`: do not self-promote from an account under 2 months old or with fewer than 5 posts/comments in the subreddit; self-promotional content must also remain below 5% of the account's posts and comments there.
@@ -123,9 +133,10 @@ approve the exact copy immediately before every manual post or comment.
    approved, use Draft 10 in `r/TestFlight` with `iOS` flair and only that link.
    Put later beta updates in the original post's comments rather than reposting.
 4. **Technical follow-up:** after the repository URL is approved and
-   privacy-audited, consider Draft 19 in `r/LLMDevs`. Confirm that the live
-   noncommercial-license exception still covers CodePilot's exact license and
-   keep the post candid, technical, and creator-disclosed.
+   privacy-audited, consider Draft 19 in `r/LLMDevs` only after moderators grant
+   permission for this source-available, non-FOSS project. Keep the post candid,
+   technical, creator-disclosed, and explicit about AI assistance and feedback
+   handling.
 5. **Thread, moderator, or participation-gated communities:** consider the
    current `r/ChatGPTCoding` self-promotion thread, `r/AI_Agents`, `r/codex`,
    `r/ChatGPTPro`, `r/iOSProgramming`, `r/swift`, `r/MacOS`, `r/apple`,
@@ -828,15 +839,19 @@ I am looking for technical critique rather than installs or votes. I have omitte
 
 Posting target: `r/LLMDevs` main feed.
 
-Approval status: needs maintainer approval before posting. Hold until an
-accessible public repository URL has passed the privacy audit and a maintainer
-confirms that the current noncommercial-license exception covers the PolyForm
-Noncommercial License.
+Approval status: moderator approval and maintainer approval required before
+posting. Hold until a maintainer manually sends the permission request below,
+moderators approve the exact format, an accessible public repository URL has
+passed the privacy audit, and the current beta is confirmed to have no
+paid-feature distinction.
 
 Rule notes:
 - Disclose the maker relationship in the opening sentence.
 - Describe CodePilot as source-available under a noncommercial license; do not
   call it open source.
+- Disclose that AI assisted with the draft and project work.
+- Explain that the feedback request is for beta reliability and architecture,
+  will not intentionally collect PII, and will not monetize responses.
 - Include concrete LLM-agent architecture and trust questions so the post adds
   technical value.
 - Do not use fake question framing, obscure the affiliation, make commercial
@@ -845,6 +860,18 @@ Rule notes:
   accessible, privacy-audited public URL.
 - Re-check the live About page and self-promotion clarification immediately
   before a maintainer posts manually.
+
+Moderator permission request; a maintainer must review and send it manually:
+
+```text
+Hello moderators,
+
+We maintain CodePilot, a beta Mac menu bar app, local gateway, and iPhone companion for people who run Codex on a Mac they control. The repository is source-available under the PolyForm Noncommercial License, not FOSS, so we are requesting prior approval under your source-available project rule.
+
+Would a single technical discussion be acceptable if the current beta has no paid-feature distinction, the post clearly discloses our maker relationship and AI assistance, and it links only to a public, privacy-audited repository? The discussion would focus on the trust boundary around a loopback gateway, user-controlled tunnel, authentication, and remote agent controls. Its purpose is beta architecture and reliability feedback; replies would not be monetized or intentionally collect personally identifiable information. We would share a concise summary of useful technical findings back with the community if appropriate.
+
+If this is acceptable, which flair and disclaimer wording should we use?
+```
 
 Title:
 
@@ -855,7 +882,7 @@ Architecture feedback: keeping Codex sessions on a Mac while exposing narrow iPh
 Body:
 
 ```text
-I am the maker of CodePilot, a beta Mac menu bar app, local gateway, and iPhone companion for Codex users. The code is source-available under the PolyForm Noncommercial License; it is not OSI open source.
+I am the maker of CodePilot, a beta Mac menu bar app, local gateway, and iPhone companion for Codex users. The code is source-available under the PolyForm Noncommercial License; it is not OSI open source. AI-assisted tools contributed to project work and this draft.
 
 The design keeps the Codex session, provider credentials, and project files on a Mac controlled by the user. A token-protected loopback gateway exposes a narrow API for session status, threads, file uploads, notifications, and controls to steer or stop an active turn. For the current public-beta remote path, the tester connects through a Cloudflare Tunnel they control.
 
@@ -867,7 +894,7 @@ I would value technical criticism of three boundaries:
 
 Repository: [APPROVED PUBLIC REPOSITORY URL]
 
-I am looking for architecture and security feedback, not votes or promotional amplification. Please do not share credentials, gateway tokens, private hostnames, logs, or project files in replies.
+I am looking for architecture and security feedback, not votes or promotional amplification. The purpose is to improve beta reliability and document the trust model; replies will not be monetized or intentionally used to collect personally identifiable information. If the discussion produces useful technical findings, we will share a concise summary back here when appropriate. Please do not share credentials, gateway tokens, private hostnames, logs, or project files in replies.
 ```
 
 ## Draft 20: `r/apple` Developer Sunday Self-Post
@@ -1057,9 +1084,10 @@ technical draft is moderator-first because CodePilot's source-available license
 does not qualify for that community's open-source exception. Hacker News / Show
 HN is also held while its temporary genuine-contributor restriction remains;
 this run did not create an account or manufacture participation.
-The new `r/LLMDevs` technical draft is held until a maintainer confirms that
-the live noncommercial-license exception covers the PolyForm Noncommercial
-License and approves an accessible, privacy-audited repository URL.
+The `r/LLMDevs` technical draft is held until a maintainer manually requests
+and receives moderator approval for this source-available, non-FOSS project,
+confirms there is no paid-feature distinction in the current beta, and approves
+an accessible, privacy-audited repository URL.
 The new `r/apple` Developer Sunday draft is held until the approved identity
 already meets the community's organic-participation and one-in-ten promotion
 gates and a maintainer approves the timing, exact copy, and direct official URL.

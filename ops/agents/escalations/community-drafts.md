@@ -1,12 +1,21 @@
 # Community Drafts Escalation
 
-Status: maintainer action required before any public posting.
+Status: no current maintainer action required. Public posting remains gated on
+a verified beta install path and production-ready setup flow.
 
-- Review and approve the proposed first placement: the link-free `r/GenAiApps`
-  draft with `iOS` flair. `r/ChatGPTCoding` is currently restricted to approved
-  contributors; if `codepilotios` is already eligible, maker-authored promotion
-  must use its current self-promotion thread and remains subject to account-karma
-  filtering. Do not request contributor status solely for this launch run.
+Last live-rule checkpoint: 2026-07-22. No public action was taken.
+
+The 2026-07-22 re-check covered `r/TestFlight`, `r/ChatGPTCoding`,
+`r/iOSProgramming`, `r/SwiftUI`, `r/macapps`, `r/iosapps`, `r/SideProject`, and
+the official Hacker News / Show HN guidelines. No approval gate changed.
+
+- The link-free `r/GenAiApps` draft with `iOS` flair is approved as the first
+  placement. Do not post it until the public beta install path and setup flow
+  are verified. Re-escalate only if the copy, rules, or release gate changes.
+- `r/ChatGPTCoding` is currently restricted to approved contributors; if
+  `codepilotios` is already eligible, maker-authored promotion must use its
+  current self-promotion thread and remains subject to account-karma filtering.
+  Do not request contributor status solely for this launch run.
 - Confirm that the `codepilotios` identity is approved and eligible under the
   target community's account-age, karma, and participation rules. Do not create
   an account solely to satisfy this request.
@@ -14,6 +23,8 @@ Status: maintainer action required before any public posting.
   Re-check that the currently visible self-promotion thread remains open,
   confirm that `codepilotios` can comment without an account-karma removal or
   manual-review hold, and approve the exact comment before a human posts it.
+  The thread allows only one promotion per project, so do not reuse it for a
+  later CodePilot update.
 - For `r/TestFlight`, provide or approve a verified public Apple TestFlight link;
   the draft must contain no other link.
 - For `r/BetaTests`, approve the no-link tester-feedback draft and confirm that
@@ -48,12 +59,17 @@ Status: maintainer action required before any public posting.
   live rules explicitly prohibit AI content. Do not reframe CodePilot to bypass
   that rule or contact moderators solely to seek an exception.
 - `r/GenAiApps` is a text-first alternative whose rules allow contextual,
-  valuable self-promotion. Approve the prepared copy and `iOS` flair before a
-  human posts it; do not add a beta link until that URL is verified and approved.
+  valuable self-promotion. The prepared copy and `iOS` flair are approved, but
+  posting remains blocked on the release gate above. Do not add a beta link
+  unless that URL is separately verified and approved.
 - For `r/AI_Agents`, use only the current weekly Project Display thread after the
   approved identity has genuine participation and remains safely below the
   community's one-in-ten self-promotion guideline. Approve the no-link draft;
   any later approved link belongs in a reply rather than the project description.
+- For `r/SideProject`, a fresh 2026-07-21 self-promotion thread explicitly
+  invites projects and feedback. Approve the prepared no-link comment and have a
+  human use that thread only after genuine participation; do not use a standalone
+  launch post.
 - Do not use `r/iPhoneApps` for a standalone launch post. Its Developer flair was
   removed on 2026-07-16, and maker mentions now require genuine participation,
   contextual value, an App Store listing, and approved status/cost details.
@@ -84,16 +100,17 @@ Status: maintainer action required before any public posting.
 - For `r/github`, approve an accessible, privacy-audited public repository URL
   before using the prepared self-promotion megathread comment. Do not post the
   placeholder or use a standalone feed post.
-- For `r/LLMDevs`, confirm that its live noncommercial-license exception covers
-  the PolyForm Noncommercial License, then approve the exact technical draft
-  and an accessible, privacy-audited public repository URL. Describe CodePilot
-  as source-available, not open source, and do not use disguised discussion
-  framing.
-- For `r/SideProject`, approve the prepared no-link comment and have a human use
-  the current self-promotion thread. Do not use a standalone launch post or a
-  promotion-only account; re-check the live About page and thread first.
+- Treat `r/LLMDevs` as moderator-first. Because CodePilot is source-available
+  under the PolyForm Noncommercial License rather than FOSS, a maintainer must
+  manually send the prepared permission request and wait for approval. Before
+  any approved post, confirm that the beta has no paid-feature distinction and
+  approve the exact technical draft plus an accessible, privacy-audited public
+  repository URL. Preserve the maker, AI-assistance, feedback-purpose, no-PII,
+  and no-monetization disclosures; do not use disguised discussion framing.
 - If choosing `r/codex`, `r/OpenAI`, `r/macapps`, or another moderator-first
-  target, send the prepared modmail manually and wait for approval.
+  target, send the prepared modmail manually and wait for approval. For
+  `r/codex`, keep the candidate as a substantive project discussion; its live
+  rules route low-information problem reports to megathreads.
 - Hold `r/ChatGPTPro` until the approved identity has genuine non-promotional
   technical participation and a CodePilot post would remain at or below 10% of
   its community activity. A maintainer must re-check recent enforcement,

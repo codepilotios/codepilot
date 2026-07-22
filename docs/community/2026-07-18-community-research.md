@@ -11,7 +11,7 @@ re-check each destination immediately before requesting approval to post.
 | 1 | r/GenAiApps | Direct fit for a generative-AI iPhone workflow | Self-promotion must be contextual and useful, use the appropriate flair, and avoid duplicate or unsafe links. | Maintainer approves the exact link-free post and `iOS` flair. Add a beta link only after separate verification and approval. |
 | 2 | r/TestFlight | Direct access to beta testers | Link posts must point only to TestFlight; title should be the app name with at most a short message; use the app flair; keep comments on the beta; avoid repeat posts. | Hold until a public TestFlight link is tested, then maintainer approves the exact post. |
 | 3 | r/BetaTests | Focused product-beta feedback | Posting identities must be at least 24 hours old with at least 2 combined karma. Posts should explain the product and ask specific feedback questions. | Maintainer approves the exact post and confirms identity eligibility. Keep it link-free until a direct beta URL is verified. |
-| 4 | r/alphaandbetausers | Broad alpha/beta tester recruitment | No community-specific rules are visible, but recent moderation behavior and Reddit-wide authenticity rules still apply. | Maintainer approves the exact link-free post after a same-day rules and removals check. |
+| 4 | r/alphaandbetausers | Broad but likely low-signal alpha/beta tester recruitment | No community-specific rules are visible. Recent discussion reports weak follow-through, and active threads often encourage reciprocal testing, so a broad tester request may attract low-quality responses. Reddit-wide authenticity rules still apply. | Use only as a secondary experiment. A maintainer approves the exact link-free post and one measurable feedback question after a same-day rules and removals check. Do not promise reciprocal testing, incentives, or private contact exchange. |
 | 5 | r/AI_Agents | Coding-agent builders and users | Project promotion belongs in the weekly Project Display thread; links belong there rather than in standalone posts. Self-promotion should remain around one in ten contributions and must include useful context. | Hold until the identity has genuine non-promotional participation and the current thread is re-checked; then approve one no-link comment. |
 | 6 | r/SideProject | Broad maker feedback | No community-specific About-page rules are visible. A current thread explicitly invites project sharing, but community discussion rejects promotion-only accounts and low-effort link dropping. | Prefer one approved no-link thread comment after genuine participation and a same-day thread/removal check. |
 | 7 | r/ChatGPTCoding | AI coding users and agent-tool builders | Promotion belongs in the designated self-promotion thread; flair is required for main posts; promote a project only once in the thread's stated policy. Main-feed promotion requires moderator sponsorship through modmail. | Maintainer approval required. Use only the current self-promotion thread, not the main feed. |
@@ -24,9 +24,11 @@ re-check each destination immediately before requesting approval to post.
 | --- | --- | --- |
 | r/MacApps | Relevant to the menu-bar app, but the community requires 10 local karma and limits promotion to once per developer in 30 days. Main-feed promotion also requires an established trust signal or a public transparency path; other promotions belong in the monthly App Pile megathread. | Hold for the App Pile only. A maintainer must verify local-karma eligibility, the current megathread, and its required format. Never manufacture karma or expose a private identity to qualify. |
 | r/OpenAI | Relevant but broad. Self-promotion should remain under 10% of participation, must be a contextual text post rather than a direct-link post, and participation is expected before advertising. | Hold until the identity has genuine participation and a maintainer approves a contextual post. |
+| r/LLMDevs | Strong technical audience, but moderator-first for CodePilot's license | Source-available non-FOSS promotion requires prior moderator approval and a clear disclaimer; the free version must match every other version. Feedback requests must disclose their purpose, avoid PII collection and response monetization, and share findings back where appropriate. | Hold until moderator and maintainer approval, confirmation of no paid-feature distinction, and approval of a privacy-audited repository URL. Use the prepared technical draft, not a generic tester request. |
 | Show HN | A project must be personally built, directly usable, non-trivial, and ready for the author to discuss. Show HN discourages signup barriers and vote coordination. | Hold until the public beta is immediately testable and a maintainer can be present to answer questions. |
 | r/SwiftUI | Promotion is allowed only when source code is provided and the app is open source. CodePilot is source-available under a noncommercial license, not OSI open source. | Do not promote CodePilot there under the current rules. |
 | r/iOSApps | Requires 10 local karma, disclosure, ABC-format promotion, official App Store/TestFlight links, and either qualification or the monthly App Shelf megathread. More importantly, its current rules exclude generative-AI and AI-wrapped apps when AI is a core feature. | Do not promote CodePilot there under the current rules. Use r/TestFlight instead. |
+| r/iPhoneApps | A 2026-07-16 moderator update removed the Developer flair after repeated low-effort promotion. Maker mentions now require genuine community participation and must contribute contextual value rather than act as a standalone app advertisement. | Hold. Do not use a standalone launch post or generic prepared comment. Reconsider only after genuine participation, a same-day rules check, and approval of the exact conversational context. |
 
 ## Rule sources
 
@@ -35,12 +37,15 @@ re-check each destination immediately before requesting approval to post.
 - [r/BetaTests rules](https://www.reddit.com/r/BetaTests/about/rules)
 - [r/BetaTests posting guidance](https://www.reddit.com/r/BetaTests/comments/1ufs2a9/community_rules/)
 - [r/alphaandbetausers rules](https://www.reddit.com/r/alphaandbetausers/about/rules)
+- [r/alphaandbetausers community-quality discussion](https://www.reddit.com/r/alphaandbetausers/comments/1saowv5/honest_discussion_this_community_is_dead_if_not/)
+- [r/alphaandbetausers recent reciprocal-testing thread](https://www.reddit.com/r/alphaandbetausers/comments/1unh2mo/looking_for_cool_projects_comment_them_and_ill/)
 - [r/AI_Agents rules](https://www.reddit.com/r/AI_Agents/about/)
 - [r/AI_Agents current Project Display thread](https://www.reddit.com/r/AI_Agents/comments/1ukprfr/weekly_thread_project_display/)
 - [r/SideProject current self-promotion thread](https://www.reddit.com/r/SideProject/comments/1utus1n/whats_everyone_working_on_lets_self_promote/)
 - [r/ChatGPTCoding rules](https://www.reddit.com/r/ChatGPTCoding/about/rules)
 - [r/ChatGPTCoding promotion thread example](https://www.reddit.com/r/ChatGPTCoding/comments/1ryqth6/self_promotion_thread/)
 - [r/Codex rules](https://www.reddit.com/r/codex/about/rules)
+- [r/LLMDevs rules](https://www.reddit.com/r/LLMDevs/about/rules.json)
 - [r/iOSProgramming rules](https://www.reddit.com/r/iOSProgramming/about/rules)
 - [r/iOSProgramming App Saturday format update](https://www.reddit.com/r/iOSProgramming/comments/1pnivdy/proposed_update_to_app_saturday_feedback_requested/)
 - [r/iOSProgramming current missing-section enforcement example](https://www.reddit.com/r/iOSProgramming/comments/1utie4g/removed/)
@@ -50,6 +55,7 @@ re-check each destination immediately before requesting approval to post.
 - [r/SideProject rules](https://www.reddit.com/r/SideProject/about/rules)
 - [r/SwiftUI rules](https://www.reddit.com/r/SwiftUI/about/rules)
 - [r/iOSApps rules](https://www.reddit.com/r/iosapps/about/rules)
+- [r/iPhoneApps self-promotion update](https://www.reddit.com/r/IPhoneApps/comments/1uy20l2/an_update_on_selfpromotion/)
 - [Show HN guidelines](https://news.ycombinator.com/showhn.html)
 
 ## Required approvals
@@ -71,6 +77,10 @@ re-check each destination immediately before requesting approval to post.
   comment rather than a standalone launch post.
 - r/Codex requires moderator confirmation because its published rules do not
   explicitly authorize project promotion.
+- r/LLMDevs requires moderator approval for source-available non-FOSS projects,
+  plus confirmation that the beta has no paid-feature distinction and that the
+  required maker, AI-assistance, feedback-purpose, no-PII, and no-monetization
+  disclosures remain intact.
 - r/iOSProgramming requires confirmation of Saturday timing, current account
   eligibility, genuine prior activity, the once-per-year allowance, and the
   required Tech Stack, Development Challenge, and AI Disclosure sections.
