@@ -8,10 +8,10 @@ All proposed activity uses the public `codepilotios` identity, discloses the
 maker relationship, asks for beta workflow or setup feedback, and makes no paid
 subscription claim.
 
-Live rules and current promotion surfaces were checked again on 2026-07-22.
-The existing draft queue remains accurate. Account eligibility, flair, thread
-availability, and exact copy still require a same-day manual check before any
-approved submission.
+Live rules and current promotion surfaces were checked again on 2026-07-22,
+including the three highest-priority Reddit audiences. The existing draft queue
+remains accurate. Account eligibility, flair, thread availability, and exact
+copy still require a same-day manual check before any approved submission.
 
 ## Communities researched
 
@@ -21,7 +21,10 @@ materially change the launch queue. The broader survey remains in
 
 | Community | Current fit | Result for this beta queue |
 | --- | --- | --- |
+| `r/GenAiApps` | Strongest link-free first placement | Keep the prepared contextual feedback post as the first candidate. Current rules allow valuable self-promotion, require relevant flair and context for any link, reject low-effort duplicates, and prohibit personal information or unsafe links. Use the `iOS` flair and add no beta link until it is separately verified and approved. |
 | `r/TestFlight` | Strong after distribution is ready | Hold until a direct public Apple TestFlight URL is verified and approved. Current rules require a TestFlight-only link, an app-name title with at most a short message, the correct platform flair, app-focused comments, and infrequent posting. |
+| `r/BetaTests` | Strong setup-feedback audience | Keep the prepared no-link tester request. Current rules require an identity at least 24 hours old with at least 2 combined Reddit karma and reject spam or low-effort posts. A maintainer must confirm that the existing `codepilotios` identity qualifies without manufactured activity. |
+| `r/AI_Agents` | Strong technical audience after genuine participation | Keep the prepared no-link Project Display comment held. Current rules route projects to the weekly display thread, recommend no more than one promotional contribution in ten, and remove context-free traffic-driving content. |
 | `r/ChatGPTCoding` | Good audience, restricted and account-filtered | Use only the designated self-promotion thread if the existing identity is eligible. Current rules route service promotion to that thread or moderator sponsorship, and recent thread removals still show account-karma filtering and manual review. Do not seek contributor status or sponsorship solely for this launch. |
 | `r/iOSProgramming` | Good technical retrospective, not recruitment-first | Keep the technical App Saturday draft held. Current rules still limit app posts to Saturday, one app per year, and identities with prior activity. The wiki still mandates Tech Stack, Development Challenge, and AI Disclosure sections. |
 | `r/SwiftUI` | Incompatible with the current campaign | Do not promote CodePilot there. Current rules permit app promotion only when source code is provided and the app is open source; CodePilot is source-available under a noncommercial license, not OSI open source. |
@@ -53,6 +56,15 @@ plan. These checked destinations add community-specific approval gates:
 
 - `r/TestFlight`: verify and approve the direct Apple TestFlight URL, exact
   title, and `iOS` flair; include no other link.
+- `r/GenAiApps`: approve the exact contextual text and `iOS` flair. Keep the
+  first placement link-free; any later beta link needs separate verification
+  and approval.
+- `r/BetaTests`: confirm that the existing identity is at least 24 hours old
+  with at least 2 combined karma and approve the exact no-link post. Do not
+  create an account or manufacture engagement to qualify.
+- `r/AI_Agents`: confirm genuine non-promotional participation and a compliant
+  one-in-ten ratio, then re-check the current weekly Project Display thread and
+  approve the exact no-link comment.
 - `r/ChatGPTCoding`: confirm existing contributor and karma eligibility, ensure
   the designated thread remains open, and approve the exact one-time comment.
 - `r/iOSProgramming`: confirm Saturday timing, prior participation, account
@@ -76,7 +88,10 @@ gates remain closed.
 
 ## Live sources checked
 
+- <https://www.reddit.com/r/GenAiApps/about/rules.json>
 - <https://www.reddit.com/r/TestFlight/about/rules.json>
+- <https://www.reddit.com/r/BetaTests/about/rules.json>
+- <https://www.reddit.com/r/AI_Agents/about/rules.json>
 - <https://www.reddit.com/r/ChatGPTCoding/about/rules.json>
 - <https://www.reddit.com/r/ChatGPTCoding/comments/1seq7us/self_promotion_thread/>
 - <https://www.reddit.com/r/iOSProgramming/about/rules.json>
