@@ -30,6 +30,25 @@ unless missing_links.empty?
   exit 1
 end
 
+pages_config = File.read("docs/_config.yml")
+[
+  "APP_STORE_CONNECT_SETUP.md",
+  "APP_STORE_METADATA_DRAFT.md",
+  "PRODUCTION_READINESS.md",
+  "PRODUCTION_READINESS_IMPLEMENTATION_PLAN.md",
+  "PUBLIC_PRESENCE_CHECKLIST.md",
+  "RELEASE_CHECKLIST.md",
+  "SCREENSHOTS.md",
+  "community",
+  "operations",
+  "superpowers"
+].each do |private_pages_path|
+  next if pages_config.match?(/^\s*- #{Regexp.escape(private_pages_path)}\s*$/)
+
+  warn "public presence audit failed: docs/_config.yml does not exclude #{private_pages_path} from GitHub Pages"
+  exit 1
+end
+
 metadata_path = "docs/APP_STORE_METADATA_DRAFT.md"
 metadata = File.read(metadata_path)
 metadata_values = {}
@@ -55,7 +74,7 @@ metadata_values = {}
   metadata_values[heading] = value
 end
 
-{"Description" => 4_000, "What To Test" => 4_000}.each do |heading, field_limit|
+{"Description" => 4_000, "What To Test" => 4_000, "Review Notes" => 4_000}.each do |heading, field_limit|
   value = metadata[/^## #{Regexp.escape(heading)}\n\n(.*?)(?=\n## |\z)/m, 1]&.strip
 
   unless value
@@ -79,11 +98,30 @@ version_metadata = JSON.parse(File.read("metadata/version/0.1/en-US.json"))
   "Subtitle" => "subtitle",
   "Promotional Text" => "promotionalText",
   "Description" => "description",
-  "Keywords" => "keywords"
+  "Keywords" => "keywords",
+  "Review Notes" => "reviewNotes"
 }.each do |heading, json_key|
   next if version_metadata[json_key] == metadata_values[heading]
 
   warn "public presence audit failed: versioned #{json_key} does not match #{heading} in #{metadata_path}"
+  exit 1
+end
+
+{
+  "Support URL" => "supportUrl",
+  "Privacy URL" => "privacyPolicyUrl"
+}.each do |heading, json_key|
+  section = metadata[/^## #{Regexp.escape(heading)}\n\n(.*?)(?=\n## |\z)/m, 1]
+  candidate_url = section&.match(/Candidate destination[^:]*: `([^`]+)`/)&.captures&.first
+
+  unless candidate_url
+    warn "public presence audit failed: candidate #{heading.downcase} is missing from #{metadata_path}"
+    exit 1
+  end
+
+  next if version_metadata[json_key] == candidate_url
+
+  warn "public presence audit failed: versioned #{json_key} does not match the candidate URL in #{metadata_path}"
   exit 1
 end
 

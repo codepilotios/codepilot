@@ -4,6 +4,7 @@
 
 ### Public Beta Preparation
 
+- Kept maintainer-only App Store setup guidance and community promotion drafts out of the generated GitHub Pages site, with an automated exclusion check.
 - Added GitHub Pages configuration and narrowed the generated site to user-facing beta documentation.
 - Refined the Pages landing page with beta scope, security guidance, and install prerequisites.
 - Added public-safe GitHub feature request and pull request templates for beta feedback and contribution review.
@@ -31,7 +32,7 @@
 - Added concrete draft support and privacy URLs that remain gated on GitHub Pages enablement and maintainer verification.
 - Added the missing repository checkout step and documented the supported macOS 13 and iOS 17 minimums for beta setup.
 - Reframed Remote Desktop support categories as availability-guard reports so the gated feature is not presented as a supported beta workflow.
-- Expanded the beta privacy draft to disclose Cloudflare data transit, notification and Live Activity payload contents, and the lack of automatic upload cleanup.
+- Expanded the beta privacy draft to disclose Cloudflare data transit, notification and Live Activity payload contents, and the gateway's seven-day upload cleanup behavior.
 - Clarified that the local gateway does not make Codex workflows offline: prompts, conversation context, and selected attachments can still be processed by OpenAI, while Cloudflare and Apple process data only for the enabled tunnel and notification workflows.
 - Added a consistent fictional-data capture brief and full-resolution acceptance checklist for the approved public beta screenshot set.
 - Added a public beta data-flow map showing what stays on the Mac and what can be processed by Codex, OpenAI, Cloudflare, or Apple.
@@ -55,6 +56,9 @@
 - Aligned privacy, FAQ, iOS setup, and troubleshooting copy with the gateway's seven-day upload-retention cleanup behavior.
 - Reconciled the versioned App Store and TestFlight drafts with the approved Codex CLI beta positioning, supported feature set, and privacy-safe feedback guidance.
 - Added the public-presence audit to CI and made canonical App Store metadata drift or blocked Remote Desktop enablement copy fail the check.
+- Replaced placeholder support and privacy URLs in the versioned App Store metadata with the approved GitHub Pages candidates, and made URL drift from the human-readable draft fail the public-presence audit.
+- Aligned the App Store screenshot checklist with the public demo-data brief and added full-resolution privacy checks for window chrome, local-web previews, and unrelated device content.
+- Replaced the versioned App Review notes placeholder with a beta-scoped local draft and added length and drift checks, while keeping final reviewer access and submission approval-gated.
 
 ### Recent Product Work
 
